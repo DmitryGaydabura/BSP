@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; align-items: flex-start; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; }
+  .divider { height: 1px; background: var(--border-divider); margin: 8px 0 12px; }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 200px; flex: 1; }
+  .field-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #C9A84C; }
+  .field input, .field select { background: var(--navy-mid); border: 1px solid rgba(201,168,76,0.25); border-radius: 4px; color: #F5F0E8; font-family: 'Raleway', sans-serif; font-size: 13px; padding: 9px 12px; outline: none; width: 100%; }
+  .field input:focus, .field select:focus { border-color: #C9A84C; box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+  .field input::placeholder { color: #4A6070; }
+  .field-error input { border-color: #C0392B; }
+  .field-error .field-label { color: #E05545; }
+  .field-hint { font-size: 10px; color: var(--text-muted); }
+  .field-error .field-hint { color: #E05545; }
+  select option { background: #1A2F4A; }
+</style>
+</head>
+<body>
+  <div class="tag">Text Inputs</div>
+  <div class="row">
+    <div class="field">
+      <div class="field-label">Full Name</div>
+      <input type="text" placeholder="Oleksandr Kovalenko" />
+      <div class="field-hint">As on your membership card</div>
+    </div>
+    <div class="field field-error">
+      <div class="field-label">Email</div>
+      <input type="email" value="invalid@" />
+      <div class="field-hint">Enter a valid email address</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Select & Date</div>
+  <div class="row">
+    <div class="field">
+      <div class="field-label">Select Court</div>
+      <select>
+        <option>Court 1 — Indoor Glass</option>
+        <option>Court 2 — Outdoor</option>
+        <option>Court 3 — Championship</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="field-label">Session Date</div>
+      <input type="date" />
+    </div>
+  </div>
+</body>
+</html>

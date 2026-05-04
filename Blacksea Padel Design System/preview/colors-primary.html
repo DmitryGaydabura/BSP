@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+  .swatch { flex: 1; min-width: 80px; border-radius: 6px; overflow: hidden; }
+  .swatch-color { height: 64px; }
+  .swatch-info { padding: 6px 8px; background: var(--navy-mid); }
+  .swatch-name { font-size: 11px; font-weight: 600; color: var(--white-warm); letter-spacing: 0.04em; }
+  .swatch-hex { font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); }
+  .group-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-primary); margin-bottom: 8px; margin-top: 16px; }
+  .group-label:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+  <div class="group-label">Navy Scale</div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-color" style="background:#0D1B2E"></div><div class="swatch-info"><div class="swatch-name">Navy Deep</div><div class="swatch-hex">#0D1B2E</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#1A2F4A"></div><div class="swatch-info"><div class="swatch-name">Navy Mid</div><div class="swatch-hex">#1A2F4A</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#243D5C"></div><div class="swatch-info"><div class="swatch-name">Navy Light</div><div class="swatch-hex">#243D5C</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#2E4D72"></div><div class="swatch-info"><div class="swatch-name">Navy Subtle</div><div class="swatch-hex">#2E4D72</div></div></div>
+  </div>
+  <div class="group-label">Gold Scale</div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-color" style="background:#6E5418"></div><div class="swatch-info"><div class="swatch-name">Gold Darker</div><div class="swatch-hex">#6E5418</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#9B7A2E"></div><div class="swatch-info"><div class="swatch-name">Gold Dark</div><div class="swatch-hex">#9B7A2E</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#C9A84C"></div><div class="swatch-info"><div class="swatch-name">Gold Primary</div><div class="swatch-hex">#C9A84C</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#E8C97A"></div><div class="swatch-info"><div class="swatch-name">Gold Light</div><div class="swatch-hex">#E8C97A</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#F2DFA0"></div><div class="swatch-info"><div class="swatch-name">Gold Lighter</div><div class="swatch-hex">#F2DFA0</div></div></div>
+  </div>
+  <div class="group-label">Sea Blue Scale</div>
+  <div class="swatches">
+    <div class="swatch"><div class="swatch-color" style="background:#1A4B72"></div><div class="swatch-info"><div class="swatch-name">Sea Dark</div><div class="swatch-hex">#1A4B72</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#2A6496"></div><div class="swatch-info"><div class="swatch-name">Sea Blue</div><div class="swatch-hex">#2A6496</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#4A8AB5"></div><div class="swatch-info"><div class="swatch-name">Sea Light</div><div class="swatch-hex">#4A8AB5</div></div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#6AADD3"></div><div class="swatch-info"><div class="swatch-name">Sea Lighter</div><div class="swatch-hex">#6AADD3</div></div></div>
+  </div>
+</body>
+</html>

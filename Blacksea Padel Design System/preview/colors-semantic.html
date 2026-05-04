@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .chip { display: flex; align-items: center; gap: 8px; background: var(--navy-mid); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 8px 12px; flex: 1; min-width: 160px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+  .chip-text { }
+  .chip-label { font-size: 11px; font-weight: 600; color: var(--white-warm); }
+  .chip-var { font-size: 10px; color: var(--text-muted); font-family: monospace; }
+  .section-label { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold-primary); margin-bottom: 6px; margin-top: 14px; }
+  .section-label:first-child { margin-top: 0; }
+  .semantic-bar { height: 8px; border-radius: 4px; margin-bottom: 12px; background: linear-gradient(90deg, #0D1B2E 0%, #1A2F4A 25%, #243D5C 50%, #C9A84C 75%, #2A6496 100%); }
+</style>
+</head>
+<body>
+  <div class="semantic-bar"></div>
+  <div class="section-label">Backgrounds</div>
+  <div class="row">
+    <div class="chip"><div class="dot" style="background:#0D1B2E; border:1px solid #333"></div><div class="chip-text"><div class="chip-label">bg-base</div><div class="chip-var">--navy-deep</div></div></div>
+    <div class="chip"><div class="dot" style="background:#1A2F4A"></div><div class="chip-text"><div class="chip-label">bg-surface</div><div class="chip-var">--navy-mid</div></div></div>
+    <div class="chip"><div class="dot" style="background:#243D5C"></div><div class="chip-text"><div class="chip-label">bg-elevated</div><div class="chip-var">--navy-light</div></div></div>
+    <div class="chip"><div class="dot" style="background:rgba(13,27,46,0.85); border:1px solid #333"></div><div class="chip-text"><div class="chip-label">bg-overlay</div><div class="chip-var">rgba(13,27,46,.85)</div></div></div>
+  </div>
+  <div class="section-label">Foregrounds</div>
+  <div class="row">
+    <div class="chip"><div class="dot" style="background:#F5F0E8"></div><div class="chip-text"><div class="chip-label">fg-primary</div><div class="chip-var">--white-warm</div></div></div>
+    <div class="chip"><div class="dot" style="background:#B8C8D8"></div><div class="chip-text"><div class="chip-label">fg-secondary</div><div class="chip-var">--text-secondary</div></div></div>
+    <div class="chip"><div class="dot" style="background:#8FA3B8"></div><div class="chip-text"><div class="chip-label">fg-muted</div><div class="chip-var">--text-muted</div></div></div>
+    <div class="chip"><div class="dot" style="background:#C9A84C"></div><div class="chip-text"><div class="chip-label">fg-accent</div><div class="chip-var">--gold-primary</div></div></div>
+  </div>
+  <div class="section-label">Status Colors</div>
+  <div class="row">
+    <div class="chip"><div class="dot" style="background:#2E8B57"></div><div class="chip-text"><div class="chip-label">Success</div><div class="chip-var">#2E8B57</div></div></div>
+    <div class="chip"><div class="dot" style="background:#C9A84C"></div><div class="chip-text"><div class="chip-label">Warning</div><div class="chip-var">--gold-primary</div></div></div>
+    <div class="chip"><div class="dot" style="background:#C0392B"></div><div class="chip-text"><div class="chip-label">Error</div><div class="chip-var">#C0392B</div></div></div>
+    <div class="chip"><div class="dot" style="background:#2A6496"></div><div class="chip-text"><div class="chip-label">Info</div><div class="chip-var">--sea-blue</div></div></div>
+  </div>
+</body>
+</html>

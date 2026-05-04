@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; align-items: stretch; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; }
+  .divider { height: 1px; background: var(--border-divider); margin: 8px 0 12px; }
+  .card { background: var(--navy-mid); border: 1px solid rgba(201,168,76,0.2); border-radius: 8px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); min-width: 160px; flex: 1; }
+  .card-label { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #C9A84C; margin-bottom: 6px; }
+  .card-title { font-family: 'Cinzel', Georgia, serif; font-size: 15px; font-weight: 600; color: #F5F0E8; margin-bottom: 4px; }
+  .card-sub { font-size: 12px; color: #8FA3B8; }
+  .card-stat { font-family: 'Courier Prime', monospace; font-size: 26px; font-weight: 700; color: #E8C97A; margin: 6px 0; }
+  .card-featured { background: linear-gradient(135deg, #1A2F4A, #243D5C); border-color: rgba(201,168,76,0.5); box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 16px rgba(201,168,76,0.2); }
+  .card-glass { background: rgba(26,47,74,0.7); backdrop-filter: blur(12px); border-color: rgba(201,168,76,0.25); }
+</style>
+</head>
+<body>
+  <div class="tag">Card Variants</div>
+  <div class="row">
+    <div class="card">
+      <div class="card-label">Court 1</div>
+      <div class="card-title">Glass Court</div>
+      <div class="card-sub">Indoor · Lighting · 18:00–20:00</div>
+    </div>
+    <div class="card card-featured">
+      <div class="card-label">★ Premium</div>
+      <div class="card-title">Championship Court</div>
+      <div class="card-sub">Full glass · LED lighting</div>
+    </div>
+    <div class="card card-glass">
+      <div class="card-label">Glass / Blur</div>
+      <div class="card-title">Overlay Card</div>
+      <div class="card-sub">Used on hero imagery</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Stat Cards</div>
+  <div class="row">
+    <div class="card" style="text-align:center;">
+      <div class="card-label">Members</div>
+      <div class="card-stat">200+</div>
+      <div class="card-sub">Active players</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-label">Courts</div>
+      <div class="card-stat">3</div>
+      <div class="card-sub">Glass & outdoor</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-label">Est.</div>
+      <div class="card-stat">2023</div>
+      <div class="card-sub">Odesa, Ukraine</div>
+    </div>
+  </div>
+</body>
+</html>

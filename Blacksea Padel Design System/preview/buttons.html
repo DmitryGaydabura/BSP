@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; }
+  .divider { height: 1px; background: var(--border-divider); margin: 8px 0 12px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-family: 'Raleway', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; border: none; cursor: pointer; border-radius: 4px; padding: 10px 22px; transition: all 200ms ease; }
+  .btn-primary { background: linear-gradient(135deg, #C9A84C, #9B7A2E); color: #0D1B2E; box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 0 12px rgba(201,168,76,0.2); }
+  .btn-primary:hover { background: linear-gradient(135deg, #E8C97A, #C9A84C); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 20px rgba(201,168,76,0.35); }
+  .btn-secondary { background: transparent; color: #C9A84C; border: 1.5px solid #C9A84C; }
+  .btn-secondary:hover { background: rgba(201,168,76,0.1); }
+  .btn-ghost { background: transparent; color: #F5F0E8; border: 1.5px solid rgba(245,240,232,0.2); }
+  .btn-ghost:hover { border-color: rgba(245,240,232,0.5); background: rgba(245,240,232,0.05); }
+  .btn-sea { background: linear-gradient(135deg, #2A6496, #1A4B72); color: #F5F0E8; }
+  .btn-sea:hover { background: linear-gradient(135deg, #4A8AB5, #2A6496); }
+  .btn-danger { background: #C0392B; color: #fff; }
+  .btn-sm { padding: 6px 14px; font-size: 11px; }
+  .btn-lg { padding: 14px 32px; font-size: 15px; }
+  .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <div class="tag">Primary Button</div>
+  <div class="row">
+    <button class="btn btn-primary btn-sm">Book Now</button>
+    <button class="btn btn-primary">Book a Court</button>
+    <button class="btn btn-primary btn-lg">Join the Club</button>
+    <button class="btn btn-primary" disabled>Disabled</button>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Secondary / Ghost</div>
+  <div class="row">
+    <button class="btn btn-secondary btn-sm">View Schedule</button>
+    <button class="btn btn-secondary">View Schedule</button>
+    <button class="btn btn-ghost">Learn More</button>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Variants</div>
+  <div class="row">
+    <button class="btn btn-sea">Sea Blue</button>
+    <button class="btn btn-danger">Cancel</button>
+  </div>
+</body>
+</html>

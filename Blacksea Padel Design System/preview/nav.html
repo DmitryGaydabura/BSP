@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 0; font-family: var(--font-body); margin: 0; }
+  nav { background: rgba(13,27,46,0.95); border-bottom: 1px solid rgba(201,168,76,0.2); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; backdrop-filter: blur(12px); }
+  .nav-logo { display: flex; align-items: center; gap: 10px; }
+  .nav-logo-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .nav-brand { font-family: 'Cinzel', Georgia, serif; font-size: 15px; font-weight: 700; color: #C9A84C; letter-spacing: 0.08em; text-transform: uppercase; }
+  .nav-links { display: flex; align-items: center; gap: 24px; }
+  .nav-link { font-family: 'Raleway', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #B8C8D8; text-decoration: none; transition: color 200ms; }
+  .nav-link:hover, .nav-link.active { color: #C9A84C; }
+  .nav-cta { font-family: 'Raleway', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; background: linear-gradient(135deg, #C9A84C, #9B7A2E); color: #0D1B2E; border: none; border-radius: 4px; padding: 8px 18px; cursor: pointer; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); padding: 10px 24px 4px; font-family: monospace; }
+  .divider { height: 1px; background: var(--border-divider); margin: 0; }
+  nav.mobile { padding: 0 16px; height: 52px; }
+  nav.mobile .nav-links { display: none; }
+  .tag2 { padding: 10px 24px 4px; }
+</style>
+</head>
+<body>
+  <div class="tag">Desktop Nav</div>
+  <nav>
+    <div class="nav-logo">
+      <img class="nav-logo-img" src="../assets/logo.jpg" alt="Blacksea Padel" />
+      <span class="nav-brand">Blacksea Padel</span>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link active" href="#">Courts</a>
+      <a class="nav-link" href="#">Schedule</a>
+      <a class="nav-link" href="#">Membership</a>
+      <a class="nav-link" href="#">About</a>
+    </div>
+    <button class="nav-cta">Book Now</button>
+  </nav>
+  <div class="divider"></div>
+  <div class="tag tag2">Mobile Nav</div>
+  <nav class="mobile">
+    <div class="nav-logo">
+      <img class="nav-logo-img" src="../assets/logo.jpg" alt="Blacksea Padel" />
+      <span class="nav-brand">Blacksea Padel</span>
+    </div>
+    <button class="nav-cta">Book</button>
+  </nav>
+</body>
+</html>

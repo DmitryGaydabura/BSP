@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; align-items: flex-start; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; }
+  .divider { height: 1px; background: var(--border-divider); margin: 8px 0 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'Raleway', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 9999px; padding: 4px 12px; }
+  .badge-gold { background: rgba(201,168,76,0.15); color: #C9A84C; border: 1px solid rgba(201,168,76,0.35); }
+  .badge-sea { background: rgba(42,100,150,0.2); color: #6AADD3; border: 1px solid rgba(42,100,150,0.4); }
+  .badge-success { background: rgba(46,139,87,0.15); color: #3BAA6A; border: 1px solid rgba(46,139,87,0.35); }
+  .badge-error { background: rgba(192,57,43,0.15); color: #E05545; border: 1px solid rgba(192,57,43,0.3); }
+  .badge-neutral { background: rgba(143,163,184,0.1); color: #8FA3B8; border: 1px solid rgba(143,163,184,0.2); }
+  .badge-solid { background: linear-gradient(135deg, #C9A84C, #9B7A2E); color: #0D1B2E; border: none; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+</style>
+</head>
+<body>
+  <div class="tag">Status Badges</div>
+  <div class="row">
+    <span class="badge badge-success"><span class="dot"></span>Available</span>
+    <span class="badge badge-error"><span class="dot"></span>Booked</span>
+    <span class="badge badge-gold"><span class="dot"></span>Limited</span>
+    <span class="badge badge-neutral"><span class="dot"></span>Maintenance</span>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Label Badges</div>
+  <div class="row">
+    <span class="badge badge-gold">★ Premium</span>
+    <span class="badge badge-sea">Indoor</span>
+    <span class="badge badge-neutral">Outdoor</span>
+    <span class="badge badge-solid">Club Member</span>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Court Tags</div>
+  <div class="row">
+    <span class="badge badge-sea">Court 1</span>
+    <span class="badge badge-sea">Court 2</span>
+    <span class="badge badge-sea">Court 3</span>
+    <span class="badge badge-neutral">Lighting: Yes</span>
+    <span class="badge badge-neutral">Glass Walls</span>
+  </div>
+</body>
+</html>

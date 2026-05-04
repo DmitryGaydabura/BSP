@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blacksea Padel — Website UI Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: #0D1B2E;
+    color: #F5F0E8;
+    font-family: 'Raleway', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  select, input { font-family: 'Raleway', sans-serif; }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+  a { cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="Header.jsx"></script>
+<script type="text/babel" src="Hero.jsx"></script>
+<script type="text/babel" src="CourtsSection.jsx"></script>
+<script type="text/babel" src="BookingCard.jsx"></script>
+<script type="text/babel" src="Footer.jsx"></script>
+
+<script type="text/babel">
+// ─── Membership Section ──────────────────────────────────────────────────────
+const MembershipSection = ({ onNavigate }) => {
+  const plans = [
+    {
+      name: 'Day Pass',
+      price: '250',
+      currency: '₴',
+      period: 'per session',
+      features: ['1 court session (90 min)', 'Guest access', 'Equipment rental available'],
+      cta: 'Book Now',
+      highlight: false,
+    },
+    {
+      name: 'Monthly',
+      price: '1,800',
+      currency: '₴',
+      period: 'per month',
+      features: ['8 sessions per month', 'Priority booking', 'Locker access', 'Guest passes ×2'],
+      cta: 'Join Monthly',
+      highlight: true,
+    },
+    {
+      name: 'Annual',
+      price: '16,000',
+      currency: '₴',
+      period: 'per year',
+      features: ['Unlimited sessions', 'Priority booking', 'Locker + storage', 'Guest passes ×4', 'Club events access'],
+      cta: 'Join Annual',
+      highlight: false,
+    },
+  ];
+
+  return (
+    <section style={{ background: '#0D1B2E', padding: '80px 0' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div style={{ fontFamily: "'Raleway',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: 12 }}>
+            Membership
+          </div>
+          <h2 style={{ fontFamily: "'Cinzel',Georgia,serif", fontSize: 36, fontWeight: 700, color: '#F5F0E8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>
+            Join the Club
+          </h2>
+          <p style={{ fontFamily: "'Raleway',sans-serif", fontSize: 16, fontWeight: 300, color: '#8FA3B8', maxWidth: 420, margin: '0 auto', lineHeight: 1.7 }}>
+            Flexible plans for every level of player.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 24 }}>
+          {plans.map((p, i) => (
+            <div key={i} style={{
+              background: p.highlight ? 'linear-gradient(160deg,#1A2F4A,#243D5C)' : '#1A2F4A',
+              border: p.highlight ? '1px solid rgba(201,168,76,0.5)' : '1px solid rgba(201,168,76,0.2)',
+              borderRadius: 8, padding: 32,
+              boxShadow: p.highlight ? '0 4px 24px rgba(0,0,0,0.4),0 0 20px rgba(201,168,76,0.15)' : '0 4px 20px rgba(0,0,0,0.35)',
+              display: 'flex', flexDirection: 'column', gap: 20,
+              position: 'relative',
+            }}>
+              {p.highlight && (
+                <div style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', background:'linear-gradient(135deg,#C9A84C,#9B7A2E)', color:'#0D1B2E', fontFamily:"'Raleway',sans-serif", fontSize:10, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase', padding:'4px 14px', borderRadius:9999 }}>
+                  Most Popular
+                </div>
+              )}
+              <div>
+                <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:10, fontWeight:700, letterSpacing:'0.2em', textTransform:'uppercase', color:'#C9A84C', marginBottom:8 }}>{p.name}</div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+                  <span style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:36, fontWeight:700, color:'#F5F0E8' }}>{p.currency}{p.price}</span>
+                </div>
+                <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:12, color:'#8FA3B8', marginTop:2 }}>{p.period}</div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8, flex:1 }}>
+                {p.features.map((f,j) => (
+                  <div key={j} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ color:'#C9A84C', fontSize:10 }}>★</span>
+                    <span style={{ fontFamily:"'Raleway',sans-serif", fontSize:13, color:'#B8C8D8' }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => onNavigate('booking')}
+                style={{
+                  fontFamily:"'Raleway',sans-serif", fontSize:12, fontWeight:700,
+                  letterSpacing:'0.1em', textTransform:'uppercase',
+                  background: p.highlight ? 'linear-gradient(135deg,#C9A84C,#9B7A2E)' : 'transparent',
+                  color: p.highlight ? '#0D1B2E' : '#C9A84C',
+                  border: p.highlight ? 'none' : '1.5px solid #C9A84C',
+                  borderRadius:4, padding:'12px 24px', cursor:'pointer',
+                }}
+              >
+                {p.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// ─── About / Booking page ────────────────────────────────────────────────────
+const BookingPage = ({ onNavigate }) => (
+  <div style={{ background: '#0D1B2E', padding: '80px 32px', minHeight: '60vh' }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      <div style={{ textAlign:'center', marginBottom: 48 }}>
+        <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C9A84C', marginBottom:10 }}>
+          Reserve Your Session
+        </div>
+        <h1 style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:40, fontWeight:700, color:'#F5F0E8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+          Book a Court
+        </h1>
+      </div>
+      <BookingCard onSuccess={() => onNavigate('home')} />
+    </div>
+  </div>
+);
+
+// ─── Courts page ─────────────────────────────────────────────────────────────
+const CourtsPage = ({ onNavigate }) => (
+  <div>
+    <div style={{ background:'linear-gradient(160deg,#0D1B2E,#1A2F4A)', padding:'60px 32px 40px', textAlign:'center', borderBottom:'1px solid rgba(201,168,76,0.1)' }}>
+      <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C9A84C', marginBottom:10 }}>
+        Our Facilities
+      </div>
+      <h1 style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:40, fontWeight:700, color:'#F5F0E8', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+        The Courts
+      </h1>
+    </div>
+    <CourtsSection onBook={() => onNavigate('booking')} />
+  </div>
+);
+
+// ─── Schedule page ───────────────────────────────────────────────────────────
+const SchedulePage = () => {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const slots = ['08:00','10:00','12:00','14:00','16:00','18:00','20:00'];
+  const bookings = {
+    'Mon-08:00': { court: 1, players: 'Oleksandr / Dmytro' },
+    'Mon-14:00': { court: 2, players: 'Open session' },
+    'Tue-10:00': { court: 3, players: 'Tournament' },
+    'Wed-18:00': { court: 1, players: 'League match' },
+    'Thu-08:00': { court: 2, players: 'Training' },
+    'Fri-20:00': { court: 1, players: 'Club night' },
+    'Sat-10:00': { court: 1, players: 'Tournament' },
+    'Sat-12:00': { court: 2, players: 'Open session' },
+    'Sun-14:00': { court: 3, players: 'Members' },
+  };
+
+  return (
+    <div style={{ background:'#0D1B2E', padding:'60px 32px', minHeight:'60vh' }}>
+      <div style={{ maxWidth:1280, margin:'0 auto' }}>
+        <div style={{ textAlign:'center', marginBottom:40 }}>
+          <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.25em', textTransform:'uppercase', color:'#C9A84C', marginBottom:10 }}>This Week</div>
+          <h1 style={{ fontFamily:"'Cinzel',Georgia,serif", fontSize:36, fontWeight:700, color:'#F5F0E8', textTransform:'uppercase' }}>Court Schedule</h1>
+        </div>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:700 }}>
+            <thead>
+              <tr>
+                <th style={{ fontFamily:"'Raleway',sans-serif", fontSize:10, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase', color:'#8FA3B8', padding:'10px 12px', textAlign:'left', borderBottom:'1px solid rgba(201,168,76,0.15)' }}>Time</th>
+                {days.map(d => (
+                  <th key={d} style={{ fontFamily:"'Raleway',sans-serif", fontSize:10, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase', color:'#C9A84C', padding:'10px 12px', textAlign:'center', borderBottom:'1px solid rgba(201,168,76,0.15)' }}>{d}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {slots.map(slot => (
+                <tr key={slot}>
+                  <td style={{ fontFamily:"'Courier Prime',monospace", fontSize:13, fontWeight:700, color:'#8FA3B8', padding:'8px 12px', borderBottom:'1px solid rgba(143,163,184,0.08)' }}>{slot}</td>
+                  {days.map(day => {
+                    const key = `${day}-${slot}`;
+                    const booking = bookings[key];
+                    return (
+                      <td key={day} style={{ padding:'6px 8px', borderBottom:'1px solid rgba(143,163,184,0.08)', textAlign:'center' }}>
+                        {booking ? (
+                          <div style={{ background:'rgba(201,168,76,0.12)', border:'1px solid rgba(201,168,76,0.25)', borderRadius:4, padding:'4px 8px' }}>
+                            <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:10, fontWeight:700, color:'#C9A84C' }}>C{booking.court}</div>
+                            <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:9, color:'#8FA3B8' }}>{booking.players}</div>
+                          </div>
+                        ) : (
+                          <div style={{ fontFamily:"'Raleway',sans-serif", fontSize:10, color:'rgba(58,170,106,0.5)' }}>Free</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Home page ───────────────────────────────────────────────────────────────
+const HomePage = ({ onNavigate }) => (
+  <div>
+    <Hero onNavigate={onNavigate} />
+    <CourtsSection onBook={() => onNavigate('booking')} />
+    <MembershipSection onNavigate={onNavigate} />
+  </div>
+);
+
+// ─── App shell ───────────────────────────────────────────────────────────────
+const App = () => {
+  const [page, setPage] = React.useState('home');
+
+  const navigate = (p) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const pages = {
+    home: <HomePage onNavigate={navigate} />,
+    courts: <CourtsPage onNavigate={navigate} />,
+    booking: <BookingPage onNavigate={navigate} />,
+    schedule: <SchedulePage />,
+    membership: <MembershipSection onNavigate={navigate} />,
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Header activePage={page} onNavigate={navigate} />
+      <main style={{ flex: 1 }}>
+        {pages[page] || pages.home}
+      </main>
+      <Footer onNavigate={navigate} />
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .scale { display: flex; align-items: flex-end; gap: 6px; flex-wrap: wrap; }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar { background: linear-gradient(180deg, var(--gold-primary), var(--gold-dark)); border-radius: 2px; width: 28px; }
+  .step-label { font-size: 9px; color: var(--text-muted); font-family: monospace; text-align: center; }
+  .step-val { font-size: 9px; color: var(--gold-light); font-family: monospace; text-align: center; }
+  .divider { height: 1px; background: var(--border-divider); margin: 12px 0; }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; }
+  .tokens { display: flex; flex-wrap: wrap; gap: 6px; }
+  .token { background: var(--navy-mid); border: 1px solid var(--border-subtle); border-radius: 4px; padding: 5px 10px; }
+  .token-name { font-size: 10px; color: var(--gold-primary); font-family: monospace; }
+  .token-val { font-size: 10px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+  <div class="tag">Spacing Scale (8px base unit)</div>
+  <div class="scale">
+    <div class="step"><div class="bar" style="height:4px;"></div><div class="step-label">--space-1</div><div class="step-val">4px</div></div>
+    <div class="step"><div class="bar" style="height:8px;"></div><div class="step-label">--space-2</div><div class="step-val">8px</div></div>
+    <div class="step"><div class="bar" style="height:12px;"></div><div class="step-label">--space-3</div><div class="step-val">12px</div></div>
+    <div class="step"><div class="bar" style="height:16px;"></div><div class="step-label">--space-4</div><div class="step-val">16px</div></div>
+    <div class="step"><div class="bar" style="height:20px;"></div><div class="step-label">--space-5</div><div class="step-val">20px</div></div>
+    <div class="step"><div class="bar" style="height:24px;"></div><div class="step-label">--space-6</div><div class="step-val">24px</div></div>
+    <div class="step"><div class="bar" style="height:32px;"></div><div class="step-label">--space-8</div><div class="step-val">32px</div></div>
+    <div class="step"><div class="bar" style="height:40px;"></div><div class="step-label">--space-10</div><div class="step-val">40px</div></div>
+    <div class="step"><div class="bar" style="height:48px;"></div><div class="step-label">--space-12</div><div class="step-val">48px</div></div>
+    <div class="step"><div class="bar" style="height:64px;"></div><div class="step-label">--space-16</div><div class="step-val">64px</div></div>
+    <div class="step"><div class="bar" style="height:80px;"></div><div class="step-label">--space-20</div><div class="step-val">80px</div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Border Radius Tokens</div>
+  <div class="tokens">
+    <div class="token"><div class="token-name">--radius-sm</div><div class="token-val">4px — buttons, inputs</div></div>
+    <div class="token"><div class="token-name">--radius-md</div><div class="token-val">8px — cards, panels</div></div>
+    <div class="token"><div class="token-name">--radius-lg</div><div class="token-val">16px — modals</div></div>
+    <div class="token"><div class="token-name">--radius-pill</div><div class="token-val">9999px — badges, chips</div></div>
+    <div class="token"><div class="token-name">--radius-circle</div><div class="token-val">50% — avatars</div></div>
+  </div>
+</body>
+</html>

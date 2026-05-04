@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { background: var(--navy-deep); padding: 20px; font-family: var(--font-body); }
+  .tag { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: monospace; text-align: center; }
+  .divider { height: 1px; background: var(--border-divider); margin: 10px 0 14px; }
+  .logo-wrap { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .logo-circle { border-radius: 50%; overflow: hidden; border: 2px solid rgba(201,168,76,0.4); box-shadow: 0 0 16px rgba(201,168,76,0.2); }
+  .logo-circle img { display: block; }
+  .brand-name { font-family: 'Cinzel', Georgia, serif; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
+  .brand-tagline { font-family: 'Raleway', sans-serif; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: #8FA3B8; }
+  .brand-divider { width: 40px; height: 1px; background: linear-gradient(90deg, transparent, #C9A84C, transparent); margin: 4px auto; }
+  .wave-decoration { display: flex; gap: 2px; align-items: flex-end; margin-top: 4px; }
+  .wave-bar { background: linear-gradient(180deg, #4A8AB5, #1A4B72); border-radius: 1px; }
+</style>
+</head>
+<body>
+  <div class="tag">Logo — Size Variants</div>
+  <div class="logo-wrap">
+    <div class="logo-circle" style="width:80px;height:80px;"><img src="../assets/logo.jpg" width="80" height="80" alt="Blacksea Padel"></div>
+    <div class="logo-circle" style="width:56px;height:56px;"><img src="../assets/logo.jpg" width="56" height="56" alt="Blacksea Padel"></div>
+    <div class="logo-circle" style="width:40px;height:40px;"><img src="../assets/logo.jpg" width="40" height="40" alt="Blacksea Padel"></div>
+    <div class="logo-circle" style="width:28px;height:28px;"><img src="../assets/logo.jpg" width="28" height="28" alt="Blacksea Padel"></div>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Wordmark + Lockup</div>
+  <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:center; justify-content:center;">
+    <div style="text-align:center;">
+      <div class="brand-name" style="font-size:28px; color:#C9A84C;">BLACKSEA</div>
+      <div class="brand-divider"></div>
+      <div class="brand-name" style="font-size:18px; color:#F5F0E8; font-weight:400;">PADEL</div>
+      <div class="brand-tagline" style="font-size:10px; margin-top:3px;">ODESA • UKRAINE</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="logo-circle" style="width:52px;height:52px;"><img src="../assets/logo.jpg" width="52" height="52" alt=""></div>
+      <div>
+        <div class="brand-name" style="font-size:16px; color:#C9A84C;">BLACKSEA PADEL</div>
+        <div class="brand-tagline" style="font-size:10px;">★ ODESA ★</div>
+      </div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="tag">Wave Motif</div>
+  <div class="wave-decoration" style="justify-content:center;">
+    <div class="wave-bar" style="height:8px; width:4px;"></div>
+    <div class="wave-bar" style="height:14px; width:4px;"></div>
+    <div class="wave-bar" style="height:10px; width:4px;"></div>
+    <div class="wave-bar" style="height:18px; width:4px;"></div>
+    <div class="wave-bar" style="height:12px; width:4px;"></div>
+    <div class="wave-bar" style="height:16px; width:4px;"></div>
+    <div class="wave-bar" style="height:9px; width:4px;"></div>
+    <div class="wave-bar" style="height:14px; width:4px;"></div>
+    <div class="wave-bar" style="height:11px; width:4px;"></div>
+    <div class="wave-bar" style="height:17px; width:4px;"></div>
+  </div>
+</body>
+</html>
