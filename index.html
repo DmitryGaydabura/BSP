@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0D1B2E">
+  <title>Blacksea Padel</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design Tokens ─────────────────────────────────────────── */
+    :root {
+      --navy-deep:    #0D1B2E;
+      --navy-mid:     #1A2F4A;
+      --navy-light:   #243D5C;
+      --navy-subtle:  #2E4D72;
+      --gold:         #C9A84C;
+      --gold-light:   #E8C97A;
+      --gold-dark:    #9B7A2E;
+      --sea:          #2A6496;
+      --sea-light:    #4A8AB5;
+      --white-warm:   #F5F0E8;
+      --text-sec:     #B8C8D8;
+      --text-muted:   #8FA3B8;
+      --text-dim:     #4A6070;
+      --success:      #3BAA6A;
+      --error:        #E05545;
+      --border-sub:   rgba(201,168,76,0.15);
+      --border-def:   rgba(201,168,76,0.25);
+      --border-str:   rgba(201,168,76,0.5);
+      --shadow-md:    0 4px 20px rgba(0,0,0,0.4);
+      --shadow-lg:    0 8px 40px rgba(0,0,0,0.5);
+      --shadow-gold:  0 0 16px rgba(201,168,76,0.3);
+      --font-brand:   'Cinzel', Georgia, serif;
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body:    'Montserrat', system-ui, sans-serif;
+      --font-mono:    'Courier Prime', 'Courier New', monospace;
+      --ease:         cubic-bezier(0.25,0.46,0.45,0.94);
+      --nav-h:        60px;
+      --header-h:     56px;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      height: 100%;
+      background: var(--navy-deep);
+      color: var(--white-warm);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    button { border: none; cursor: pointer; background: none; font-family: var(--font-body); }
+    a { color: var(--sea-light); text-decoration: none; }
+    img { display: block; }
+
+    /* ── App Shell ─────────────────────────────────────────────── */
+    #app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+    /* ── Header ────────────────────────────────────────────────── */
+    #header {
+      flex-shrink: 0;
+      height: var(--header-h);
+      background: rgba(13,27,46,0.97);
+      border-bottom: 1px solid var(--border-sub);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      position: relative;
+      z-index: 10;
+    }
+    #header .logo-img {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-str);
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    #header .logo-text { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+    #header .logo-name {
+      font-family: var(--font-brand);
+      font-size: 14px; font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    #header .logo-sub {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    #header .header-badge {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--navy-deep);
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* ── Content ────────────────────────────────────────────────── */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      position: relative;
+    }
+
+    .tab-panel { display: none; padding-bottom: 24px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Bottom Navigation ─────────────────────────────────────── */
+    #bottom-nav {
+      flex-shrink: 0;
+      height: var(--nav-h);
+      background: rgba(13,27,46,0.98);
+      border-top: 1px solid var(--border-sub);
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      z-index: 10;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 200ms var(--ease);
+      position: relative;
+      padding-bottom: 2px;
+    }
+    .nav-tab .nav-icon {
+      width: 22px; height: 22px;
+      transition: all 200ms var(--ease);
+    }
+    .nav-tab .nav-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--text-dim);
+      transition: color 200ms var(--ease);
+    }
+    .nav-tab.active .nav-label { color: var(--gold); }
+    .nav-tab.active::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 25%; right: 25%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-dark));
+      border-radius: 0 0 2px 2px;
+    }
+
+    /* ── Section Header Pattern ────────────────────────────────── */
+    .section-eyebrow {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 26px; font-weight: 700;
+      color: var(--white-warm);
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .section-sub {
+      font-size: 13px; font-weight: 300;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: var(--shadow-md);
+    }
+
+    /* ── Divider ────────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: var(--border-sub);
+      margin: 0;
+    }
+
+    /* ── Gold gradient line ─────────────────────────────────────── */
+    .gold-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 20px 0;
+      opacity: 0.4;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TAB 1 — КЛУБ
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* Hero */
+    .club-hero {
+      position: relative;
+      overflow: hidden;
+      padding: 32px 16px 28px;
+      background: linear-gradient(160deg, #0D1B2E 0%, #1A2F4A 60%, #0D1B2E 100%);
+    }
+    .club-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 80% 50%, rgba(42,100,150,0.2) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 10% 80%, rgba(201,168,76,0.08) 0%, transparent 60%);
+    }
+    .club-hero-watermark {
+      position: absolute;
+      right: -20px; top: 50%;
+      transform: translateY(-50%);
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+    .club-hero-inner { position: relative; z-index: 1; }
+    .club-eyebrow {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px;
+    }
+    .club-eyebrow-line {
+      height: 1px; width: 28px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+      display: block;
+    }
+    .club-eyebrow-text {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .club-headline {
+      font-family: var(--font-brand);
+      font-size: clamp(32px, 9vw, 52px);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .club-headline-gold { color: var(--gold); display: block; }
+    .club-headline-white { color: var(--white-warm); display: block; letter-spacing: 0.15em; }
+    .club-tagline {
+      font-size: 13px; font-weight: 300;
+      color: var(--text-sec);
+      line-height: 1.7;
+      margin-bottom: 24px;
+      max-width: 280px;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border-def);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--navy-mid);
+    }
+    .stat-cell {
+      flex: 1;
+      padding: 14px 8px;
+      text-align: center;
+      position: relative;
+    }
+    .stat-cell + .stat-cell::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 20%; bottom: 20%;
+      width: 1px;
+      background: var(--border-sub);
+    }
+    .stat-value {
+      font-family: var(--font-brand);
+      font-size: 22px; font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* About body */
+    .club-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+
+    .info-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .info-card-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .info-card-icon { width: 20px; height: 20px; flex-shrink: 0; }
+    .info-card-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .info-card-body { padding: 14px 16px; }
+    .info-row {
+      display: flex; align-items: flex-start;
+      gap: 10px; padding: 7px 0;
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-row-label {
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      width: 80px; flex-shrink: 0;
+    }
+    .info-row-val {
+      font-size: 13px; font-weight: 500;
+      color: var(--white-warm);
+      flex: 1;
+    }
+
+    .about-text {
+      font-size: 14px; font-weight: 400;
+      color: var(--text-sec);
+      line-height: 1.8;
+    }
+    .about-text strong { color: var(--white-warm); font-weight: 600; }
+
+    /* Courts mini-grid */
+    .courts-grid { display: flex; flex-direction: column; gap: 10px; }
+    .court-row {
+      display: flex; align-items: center;
+      background: var(--navy-light);
+      border: 1px solid var(--border-sub);
+      border-radius: 8px;
+      padding: 12px 14px;
+      gap: 12px;
+    }
+    .court-num {
+      font-family: var(--font-brand);
+      font-size: 20px; font-weight: 700;
+      color: var(--gold);
+      width: 28px; text-align: center; flex-shrink: 0;
+    }
+    .court-info { flex: 1; }
+    .court-name {
+      font-size: 13px; font-weight: 600;
+      color: var(--white-warm);
+      margin-bottom: 2px;
+    }
+    .court-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .court-tag {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted);
+      background: rgba(143,163,184,0.1);
+      border: 1px solid rgba(143,163,184,0.15);
+      padding: 2px 7px; border-radius: 4px;
+    }
+    .court-status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TAB 2 — РЕЗУЛЬТАТИ
+    ═══════════════════════════════════════════════════════════════ */
+    .results-header {
+      padding: 24px 16px 16px;
+      background: linear-gradient(180deg, var(--navy-mid) 0%, var(--navy-deep) 100%);
+      border-bottom: 1px solid var(--border-sub);
+    }
+
+    .filter-row {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .filter-chip {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 6px 12px; border-radius: 20px;
+      border: 1px solid var(--border-def);
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 200ms var(--ease);
+    }
+    .filter-chip.active {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-deep);
+      border-color: transparent;
+    }
+
+    .results-list { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .tournament-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+    .tournament-card-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .tournament-medal {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+    .tournament-medal.gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      box-shadow: var(--shadow-gold);
+    }
+    .tournament-medal.silver {
+      background: linear-gradient(135deg, #C0C0C0, #888);
+    }
+    .tournament-medal.bronze {
+      background: linear-gradient(135deg, #CD7F32, #8B4513);
+    }
+    .tournament-meta { flex: 1; min-width: 0; }
+    .tournament-name {
+      font-family: var(--font-display);
+      font-size: 15px; font-weight: 700;
+      color: var(--white-warm);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .tournament-date-cat {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tournament-date {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .tournament-cat {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--navy-deep);
+      background: var(--sea-light);
+      padding: 2px 7px; border-radius: 4px;
+    }
+
+    .results-table { width: 100%; }
+    .results-row {
+      display: flex; align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-sub);
+      gap: 10px;
+    }
+    .results-row:last-child { border-bottom: none; }
+    .results-pos {
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 700;
+      color: var(--text-dim);
+      width: 22px; text-align: center; flex-shrink: 0;
+    }
+    .results-pos.pos-1 { color: var(--gold); }
+    .results-pos.pos-2 { color: #C0C0C0; }
+    .results-pos.pos-3 { color: #CD7F32; }
+    .results-pair { flex: 1; min-width: 0; }
+    .results-pair-names {
+      font-size: 13px; font-weight: 500;
+      color: var(--white-warm);
+      line-height: 1.4;
+    }
+    .results-pair-names .separator { color: var(--text-dim); margin: 0 4px; }
+    .results-score {
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 700;
+      color: var(--text-sec);
+      white-space: nowrap;
+      letter-spacing: 0.05em;
+    }
+    .results-pts {
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 700;
+      color: var(--gold);
+      white-space: nowrap;
+      text-align: right;
+      min-width: 48px;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TAB 3 — РЕЙТИНГ
+    ═══════════════════════════════════════════════════════════════ */
+    .ratings-header {
+      padding: 24px 16px 16px;
+      background: linear-gradient(180deg, var(--navy-mid) 0%, var(--navy-deep) 100%);
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .ratings-updated {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    /* Podium */
+    .podium {
+      padding: 20px 16px 0;
+      display: flex; align-items: flex-end;
+      justify-content: center; gap: 8px;
+    }
+    .podium-place {
+      flex: 1; max-width: 110px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .podium-avatar {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 2px solid var(--border-def);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand);
+      font-size: 18px; font-weight: 700;
+      color: var(--gold);
+      position: relative;
+    }
+    .podium-avatar.p1 { border-color: var(--gold); box-shadow: 0 0 16px rgba(201,168,76,0.3); }
+    .podium-avatar.p2 { border-color: #C0C0C0; }
+    .podium-avatar.p3 { border-color: #CD7F32; }
+    .podium-crown {
+      position: absolute; top: -12px;
+      font-size: 14px; line-height: 1;
+    }
+    .podium-name {
+      font-size: 11px; font-weight: 600;
+      color: var(--white-warm);
+      text-align: center;
+      line-height: 1.3;
+    }
+    .podium-pts {
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 700;
+      color: var(--gold);
+    }
+    .podium-block {
+      width: 100%;
+      border-radius: 6px 6px 0 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .podium-rank {
+      font-family: var(--font-brand);
+      font-size: 18px; font-weight: 700;
+    }
+    .pb-1 { height: 60px; background: linear-gradient(180deg, var(--gold-dark), rgba(201,168,76,0.2)); }
+    .pb-2 { height: 44px; background: linear-gradient(180deg, rgba(192,192,192,0.6), rgba(192,192,192,0.1)); }
+    .pb-3 { height: 32px; background: linear-gradient(180deg, rgba(205,127,50,0.5), rgba(205,127,50,0.1)); }
+    .pr-1 { color: var(--gold); }
+    .pr-2 { color: #C0C0C0; }
+    .pr-3 { color: #CD7F32; }
+
+    /* Full leaderboard */
+    .leaderboard { padding: 16px; display: flex; flex-direction: column; gap: 0; }
+    .leaderboard-header {
+      display: flex; align-items: center;
+      padding: 8px 14px 8px;
+      gap: 10px;
+    }
+    .lb-rank-h { width: 30px; text-align: center; }
+    .lb-col-h {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .lb-name-h { flex: 1; }
+    .lb-pts-h { width: 48px; text-align: right; }
+    .lb-wl-h { width: 48px; text-align: center; }
+    .lb-ratio-h { width: 40px; text-align: right; }
+
+    .lb-row {
+      display: flex; align-items: center;
+      padding: 11px 14px;
+      gap: 10px;
+      border-radius: 8px;
+      transition: background 200ms var(--ease);
+      position: relative;
+    }
+    .lb-row:nth-child(odd) { background: rgba(26,47,74,0.4); }
+    .lb-row.top3 { background: rgba(201,168,76,0.06); border: 1px solid rgba(201,168,76,0.12); margin-bottom: 2px; }
+
+    .lb-rank {
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 700;
+      width: 30px; text-align: center; flex-shrink: 0;
+      color: var(--text-dim);
+    }
+    .lb-rank.r1 { color: var(--gold); }
+    .lb-rank.r2 { color: #C0C0C0; }
+    .lb-rank.r3 { color: #CD7F32; }
+
+    .lb-name { flex: 1; min-width: 0; }
+    .lb-name-text {
+      font-size: 13px; font-weight: 600;
+      color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .lb-name-extra {
+      font-size: 10px; font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .lb-pts {
+      font-family: var(--font-mono);
+      font-size: 13px; font-weight: 700;
+      color: var(--gold);
+      width: 48px; text-align: right; flex-shrink: 0;
+    }
+    .lb-wl {
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 600;
+      color: var(--text-sec);
+      width: 48px; text-align: center; flex-shrink: 0;
+    }
+    .lb-ratio {
+      font-family: var(--font-mono);
+      font-size: 11px; font-weight: 700;
+      width: 40px; text-align: right; flex-shrink: 0;
+    }
+    .ratio-high { color: var(--success); }
+    .ratio-mid  { color: var(--gold); }
+    .ratio-low  { color: var(--text-muted); }
+
+    /* Change badges */
+    .lb-change {
+      position: absolute;
+      right: -4px; top: -4px;
+      width: 16px; height: 16px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700;
+    }
+    .lb-change.up { background: rgba(59,170,106,0.2); color: var(--success); }
+    .lb-change.down { background: rgba(224,85,69,0.2); color: var(--error); }
+    .lb-change.same { background: rgba(143,163,184,0.1); color: var(--text-dim); }
+
+    /* Category filter */
+    .cat-filter { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .cat-filter::-webkit-scrollbar { display: none; }
+
+    /* Empty state */
+    .empty-state {
+      padding: 40px 16px;
+      text-align: center;
+    }
+    .empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-state-text { font-size: 14px; color: var(--text-muted); }
+
+    /* ── Loading skeleton ────────────────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header id="header">
+    <img class="logo-img" src="assets/logo.jpg" alt="Blacksea Padel">
+    <div class="logo-text">
+      <span class="logo-name">Blacksea Padel</span>
+      <span class="logo-sub">★ Odesa, Ukraine ★</span>
+    </div>
+    <span class="header-badge">Club</span>
+  </header>
+
+  <!-- Content -->
+  <main id="content">
+
+    <!-- ═══ TAB: КЛУБ ═══════════════════════════════════════════ -->
+    <div id="tab-club" class="tab-panel active">
+
+      <!-- Hero -->
+      <div class="club-hero">
+        <img class="club-hero-watermark" src="assets/logo.jpg" alt="">
+        <div class="club-hero-inner">
+          <div class="club-eyebrow">
+            <span class="club-eyebrow-line"></span>
+            <span class="club-eyebrow-text">Odesa • Ukraine • 2023</span>
+          </div>
+          <h1 class="club-headline">
+            <span class="club-headline-gold">Blacksea</span>
+            <span class="club-headline-white">Padel</span>
+          </h1>
+          <p class="club-tagline">Там, де море зустрічає спорт. Прем'єрний паделний клуб Одеси.</p>
+
+          <!-- Stats -->
+          <div class="stats-row">
+            <div class="stat-cell">
+              <div class="stat-value">3</div>
+              <div class="stat-label">Корти</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-value" id="member-count">—</div>
+              <div class="stat-label">Учасники</div>
+            </div>
+            <div class="stat-cell">
+              <div class="stat-value">7 днів</div>
+              <div class="stat-label">Відкрито</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="club-body">
+
+        <!-- About text -->
+        <div class="card">
+          <div class="section-eyebrow">Про клуб</div>
+          <p class="about-text">
+            <strong>Blacksea Padel</strong> — перший і найбільший паделний клуб Одеси. Розташований на чорноморському узбережжі, клуб об'єднує атлетизм, спільноту та дух міста.<br><br>
+            Ми надаємо три кваліфіковані корти міжнародного стандарту — криті скляні та відкриті — для гравців будь-якого рівня: від початківців до турнірних гравців.
+          </p>
+        </div>
+
+        <!-- Courts -->
+        <div>
+          <div class="section-eyebrow" style="padding: 0 2px 10px">Корти</div>
+          <div class="courts-grid">
+            <div class="court-row">
+              <div class="court-num">1</div>
+              <div class="court-info">
+                <div class="court-name">Court 1 — Championship</div>
+                <div class="court-tags">
+                  <span class="court-tag">Indoor Glass</span>
+                  <span class="court-tag">LED</span>
+                  <span class="court-tag">Клімат</span>
+                </div>
+              </div>
+              <div class="court-status-dot"></div>
+            </div>
+            <div class="court-row">
+              <div class="court-num">2</div>
+              <div class="court-info">
+                <div class="court-name">Court 2 — Panoramic</div>
+                <div class="court-tags">
+                  <span class="court-tag">Indoor Glass</span>
+                  <span class="court-tag">Sea View</span>
+                </div>
+              </div>
+              <div class="court-status-dot"></div>
+            </div>
+            <div class="court-row">
+              <div class="court-num">3</div>
+              <div class="court-info">
+                <div class="court-name">Court 3 — Outdoor</div>
+                <div class="court-tags">
+                  <span class="court-tag">Outdoor</span>
+                  <span class="court-tag">Floodlit</span>
+                </div>
+              </div>
+              <div class="court-status-dot" style="background:var(--gold);box-shadow:0 0 6px var(--gold)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="info-card-title">Розклад роботи</span>
+          </div>
+          <div class="info-card-body">
+            <div class="info-row">
+              <span class="info-row-label">Пн – Пт</span>
+              <span class="info-row-val">07:00 – 22:00</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label">Сб – Нд</span>
+              <span class="info-row-val">08:00 – 22:00</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label">Свята</span>
+              <span class="info-row-val">09:00 – 20:00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-header">
+            <svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="info-card-title">Контакти</span>
+          </div>
+          <div class="info-card-body">
+            <div class="info-row">
+              <span class="info-row-label">Адреса</span>
+              <span class="info-row-val">Одеса, Україна</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label">Телефон</span>
+              <span class="info-row-val" style="color:var(--sea-light)">+380 48 XXX XXXX</span>
+            </div>
+            <div class="info-row">
+              <span class="info-row-label">Telegram</span>
+              <span class="info-row-val" style="color:var(--sea-light)">@BlackseaPadel</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ TAB: РЕЗУЛЬТАТИ ═══════════════════════════════════════ -->
+    <div id="tab-results" class="tab-panel">
+      <div class="results-header">
+        <div class="section-eyebrow">Турніри</div>
+        <div class="section-title">Результати</div>
+        <div class="filter-row" id="results-filter">
+          <button class="filter-chip active" data-filter="all">Всі</button>
+          <button class="filter-chip" data-filter="2026">2026</button>
+          <button class="filter-chip" data-filter="2025">2025</button>
+          <button class="filter-chip" data-filter="open">Open</button>
+          <button class="filter-chip" data-filter="mixed">Mixed</button>
+        </div>
+      </div>
+      <div class="results-list" id="results-list">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ═══ TAB: РЕЙТИНГ ══════════════════════════════════════════ -->
+    <div id="tab-ratings" class="tab-panel">
+      <div class="ratings-header">
+        <div class="section-eyebrow">Blacksea Padel</div>
+        <div class="section-title">Рейтинг гравців</div>
+        <div class="filter-row cat-filter" id="ratings-filter">
+          <button class="filter-chip active" data-cat="all">Всі</button>
+          <button class="filter-chip" data-cat="men">Чоловіки</button>
+          <button class="filter-chip" data-cat="women">Жінки</button>
+          <button class="filter-chip" data-cat="mixed">Mixed</button>
+        </div>
+        <div class="ratings-updated" id="ratings-updated"></div>
+      </div>
+
+      <!-- Podium top-3 -->
+      <div class="podium" id="podium">
+        <!-- rendered by JS -->
+      </div>
+
+      <!-- Full table -->
+      <div class="leaderboard">
+        <div class="leaderboard-header">
+          <span class="lb-col-h lb-rank-h">#</span>
+          <span class="lb-col-h lb-name-h">Гравець</span>
+          <span class="lb-col-h lb-pts-h">Очки</span>
+          <span class="lb-col-h lb-wl-h">В/П</span>
+          <span class="lb-col-h lb-ratio-h">%</span>
+        </div>
+        <div id="leaderboard-rows">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav id="bottom-nav">
+    <button class="nav-tab active" data-tab="club">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span class="nav-label">Клуб</span>
+    </button>
+    <button class="nav-tab" data-tab="results">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+      </svg>
+      <span class="nav-label">Результати</span>
+    </button>
+    <button class="nav-tab" data-tab="ratings">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </svg>
+      <span class="nav-label">Рейтинг</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+/* ── Telegram WebApp init ──────────────────────────────────────── */
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0D1B2E');
+  tg.setBackgroundColor('#0D1B2E');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DATA
+   Update these arrays to reflect real tournament/rating data.
+════════════════════════════════════════════════════════════════ */
+
+const TOURNAMENTS = [
+  {
+    id: 1,
+    name: 'Blacksea Open — Весна 2026',
+    date: '2026-04-12',
+    year: '2026',
+    category: 'open',
+    categoryLabel: 'Open',
+    results: [
+      { pos: 1, pair: ['Oleksandr Koval', 'Dmytro Melnyk'],   score: '6–3  6–4', pts: 100 },
+      { pos: 2, pair: ['Ivan Petrenko', 'Mykola Bondar'],     score: '3–6  4–6', pts: 60  },
+      { pos: 3, pair: ['Artem Shevchenko', 'Vasyl Tkachuk'], score: '6–4  4–6  10–7', pts: 40  },
+      { pos: 4, pair: ['Serhiy Levchenko', 'Andriy Hrytsenko'], score: '',      pts: 30  },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Mixed Doubles Cup — Зима 2026',
+    date: '2026-02-08',
+    year: '2026',
+    category: 'mixed',
+    categoryLabel: 'Mixed',
+    results: [
+      { pos: 1, pair: ['Oleksiy Savchenko', 'Kateryna Mova'],   score: '6–2  6–3', pts: 100 },
+      { pos: 2, pair: ['Volodymyr Kravets', 'Yulia Bondarenko'], score: '2–6  3–6', pts: 60  },
+      { pos: 3, pair: ['Roman Marchenko', 'Iryna Kovalenko'],   score: '6–3  3–6  10–5', pts: 40  },
+      { pos: 4, pair: ['Pavlo Sydorenko', 'Natalia Rudenko'],   score: '',        pts: 30  },
+    ],
+  },
+  {
+    id: 3,
+    name: 'Blacksea Cup — Осінь 2025',
+    date: '2025-10-19',
+    year: '2025',
+    category: 'open',
+    categoryLabel: 'Open',
+    results: [
+      { pos: 1, pair: ['Dmytro Melnyk', 'Artem Shevchenko'],   score: '7–5  6–4', pts: 100 },
+      { pos: 2, pair: ['Oleksandr Koval', 'Vasyl Tkachuk'],    score: '5–7  4–6', pts: 60  },
+      { pos: 3, pair: ['Ivan Petrenko', 'Serhiy Levchenko'],   score: '6–2  6–1', pts: 40  },
+      { pos: 4, pair: ['Mykola Bondar', 'Andriy Hrytsenko'],   score: '',         pts: 30  },
+    ],
+  },
+  {
+    id: 4,
+    name: 'Літній Open — Одеса 2025',
+    date: '2025-07-05',
+    year: '2025',
+    category: 'open',
+    categoryLabel: 'Open',
+    results: [
+      { pos: 1, pair: ['Oleksandr Koval', 'Oleksiy Savchenko'], score: '6–4  7–6', pts: 100 },
+      { pos: 2, pair: ['Dmytro Melnyk', 'Ivan Petrenko'],        score: '4–6  6–7', pts: 60  },
+      { pos: 3, pair: ['Roman Marchenko', 'Pavlo Sydorenko'],    score: '6–3  6–2', pts: 40  },
+      { pos: 4, pair: ['Vasyl Tkachuk', 'Mykola Bondar'],        score: '',          pts: 30  },
+    ],
+  },
+];
+
+const RATINGS = [
+  /* name, pts, wins, losses, change('+1'/'-2'/'='), cat */
+  { name: 'Oleksandr Koval',      pts: 580, wins: 24, losses:  6, change: '=',  cat: ['all','men'] },
+  { name: 'Dmytro Melnyk',        pts: 520, wins: 21, losses:  8, change: '+1', cat: ['all','men'] },
+  { name: 'Oleksiy Savchenko',    pts: 460, wins: 19, losses:  9, change: '-1', cat: ['all','men'] },
+  { name: 'Artem Shevchenko',     pts: 410, wins: 17, losses: 11, change: '+2', cat: ['all','men'] },
+  { name: 'Ivan Petrenko',        pts: 370, wins: 15, losses: 12, change: '=',  cat: ['all','men'] },
+  { name: 'Kateryna Mova',        pts: 340, wins: 14, losses:  8, change: '+1', cat: ['all','women'] },
+  { name: 'Vasyl Tkachuk',        pts: 320, wins: 13, losses: 14, change: '-1', cat: ['all','men'] },
+  { name: 'Yulia Bondarenko',     pts: 290, wins: 12, losses:  9, change: '+3', cat: ['all','women'] },
+  { name: 'Roman Marchenko',      pts: 260, wins: 11, losses: 15, change: '=',  cat: ['all','men'] },
+  { name: 'Mykola Bondar',        pts: 240, wins: 10, losses: 16, change: '-1', cat: ['all','men'] },
+  { name: 'Iryna Kovalenko',      pts: 220, wins:  9, losses: 10, change: '+1', cat: ['all','women'] },
+  { name: 'Serhiy Levchenko',     pts: 200, wins:  8, losses: 17, change: '=',  cat: ['all','men'] },
+  { name: 'Andriy Hrytsenko',     pts: 175, wins:  7, losses: 18, change: '-2', cat: ['all','men'] },
+  { name: 'Volodymyr Kravets',    pts: 155, wins:  6, losses: 14, change: '+1', cat: ['all','men'] },
+  { name: 'Natalia Rudenko',      pts: 140, wins:  6, losses: 12, change: '=',  cat: ['all','women'] },
+  { name: 'Pavlo Sydorenko',      pts: 120, wins:  5, losses: 16, change: '-1', cat: ['all','men'] },
+];
+
+/* ════════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════════ */
+
+function fmt(date) {
+  const d = new Date(date);
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function initials(name) {
+  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function ratioClass(wins, losses) {
+  const total = wins + losses;
+  if (!total) return 'ratio-mid';
+  const r = wins / total;
+  if (r >= 0.65) return 'ratio-high';
+  if (r >= 0.40) return 'ratio-mid';
+  return 'ratio-low';
+}
+
+function pct(wins, losses) {
+  const total = wins + losses;
+  if (!total) return '—';
+  return Math.round((wins / total) * 100) + '%';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER — RESULTS
+════════════════════════════════════════════════════════════════ */
+
+let activeResultFilter = 'all';
+
+function renderResults() {
+  const list = document.getElementById('results-list');
+  const filtered = activeResultFilter === 'all'
+    ? TOURNAMENTS
+    : TOURNAMENTS.filter(t => t.year === activeResultFilter || t.category === activeResultFilter);
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-text">Немає турнірів за цим фільтром</div></div>`;
+    return;
+  }
+
+  const medalEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const medalClass = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+
+  list.innerHTML = filtered.map(t => `
+    <div class="tournament-card">
+      <div class="tournament-card-header">
+        <div class="tournament-medal ${medalClass[1]}">${medalEmoji[1]}</div>
+        <div class="tournament-meta">
+          <div class="tournament-name">${t.name}</div>
+          <div class="tournament-date-cat">
+            <span class="tournament-date">${fmt(t.date)}</span>
+            <span class="tournament-cat">${t.categoryLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="results-table">
+        ${t.results.map(r => `
+          <div class="results-row">
+            <span class="results-pos pos-${r.pos}">${r.pos === 1 ? '★' : r.pos}</span>
+            <div class="results-pair">
+              <div class="results-pair-names">
+                ${r.pair[0]}<span class="separator">/</span>${r.pair[1]}
+              </div>
+            </div>
+            ${r.score ? `<span class="results-score">${r.score}</span>` : ''}
+            <span class="results-pts">+${r.pts}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('results-filter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#results-filter .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeResultFilter = chip.dataset.filter;
+  renderResults();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER — RATINGS
+════════════════════════════════════════════════════════════════ */
+
+let activeRatCat = 'all';
+
+function renderRatings() {
+  const filtered = RATINGS.filter(p => p.cat.includes(activeRatCat));
+
+  /* Podium */
+  const top3 = filtered.slice(0, 3);
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean); // 2nd | 1st | 3rd
+  const podiumRanks = [2, 1, 3];
+  const podiumBlocks = ['pb-2', 'pb-1', 'pb-3'];
+  const podiumRankCls = ['pr-2', 'pr-1', 'pr-3'];
+  const podiumAvatarCls = ['p2', 'p1', 'p3'];
+  const crowns = ['', '★', ''];
+
+  document.getElementById('podium').innerHTML = podiumOrder.map((p, i) => {
+    if (!p) return '';
+    const globalRank = filtered.indexOf(p) + 1;
+    return `
+      <div class="podium-place">
+        <div class="podium-avatar ${podiumAvatarCls[i]}">
+          ${crowns[i] ? `<span class="podium-crown">${crowns[i]}</span>` : ''}
+          ${initials(p.name)}
+        </div>
+        <div class="podium-name">${p.name.split(' ')[0]}<br>${p.name.split(' ')[1] || ''}</div>
+        <div class="podium-pts">${p.pts}</div>
+        <div class="podium-block ${podiumBlocks[i]}">
+          <span class="podium-rank ${podiumRankCls[i]}">${podiumRanks[i]}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  /* Full leaderboard (skip top 3, they're in podium) */
+  document.getElementById('leaderboard-rows').innerHTML = filtered.map((p, i) => {
+    const rank = i + 1;
+    const rankCls = rank <= 3 ? `r${rank}` : '';
+    const top3cls = rank <= 3 ? 'top3' : '';
+    const changeSign = p.change === '=' ? '–' : p.change;
+    const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
+    return `
+      <div class="lb-row ${top3cls}">
+        <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
+        <div class="lb-name">
+          <div class="lb-name-text">${p.name}</div>
+        </div>
+        <span class="lb-pts">${p.pts}</span>
+        <span class="lb-wl">${p.wins}/${p.losses}</span>
+        <span class="lb-ratio ${ratioClass(p.wins, p.losses)}">${pct(p.wins, p.losses)}</span>
+        <span class="lb-change ${changeCls}">${changeSign}</span>
+      </div>
+    `;
+  }).join('');
+
+  /* Updated date */
+  document.getElementById('ratings-updated').textContent =
+    'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+document.getElementById('ratings-filter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#ratings-filter .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeRatCat = chip.dataset.cat;
+  renderRatings();
+});
+
+/* ════════════════════════════════════════════════════════════════
+   MEMBER COUNT (derived from ratings data)
+════════════════════════════════════════════════════════════════ */
+document.getElementById('member-count').textContent = RATINGS.length + '+';
+
+/* ════════════════════════════════════════════════════════════════
+   TAB NAVIGATION
+════════════════════════════════════════════════════════════════ */
+
+const TABS = { club: 'tab-club', results: 'tab-results', ratings: 'tab-ratings' };
+let currentTab = 'club';
+let rendered = { club: true, results: false, ratings: false };
+
+function switchTab(tab) {
+  if (tab === currentTab) return;
+
+  /* Panels */
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(TABS[tab]).classList.add('active');
+
+  /* Nav buttons */
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.nav-tab[data-tab="${tab}"]`).classList.add('active');
+
+  /* Scroll to top */
+  document.getElementById('content').scrollTop = 0;
+
+  /* Lazy render */
+  if (!rendered[tab]) {
+    if (tab === 'results') renderResults();
+    if (tab === 'ratings') renderRatings();
+    rendered[tab] = true;
+  }
+
+  currentTab = tab;
+
+  /* Update nav icon stroke colors */
+  updateNavIcons();
+}
+
+function updateNavIcons() {
+  document.querySelectorAll('.nav-tab').forEach(btn => {
+    const active = btn.classList.contains('active');
+    btn.querySelectorAll('svg').forEach(svg => {
+      svg.style.stroke = active ? '#C9A84C' : '#4A6070';
+    });
+  });
+}
+
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+/* Initial icon state */
+updateNavIcons();
+
+/* ════════════════════════════════════════════════════════════════
+   TELEGRAM BACK BUTTON
+════════════════════════════════════════════════════════════════ */
+if (tg) {
+  tg.BackButton.onClick(() => {
+    if (currentTab !== 'club') {
+      switchTab('club');
+      tg.BackButton.hide();
+    } else {
+      tg.close();
+    }
+  });
+
+  /* Show back button when not on main tab */
+  document.querySelectorAll('.nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.tab !== 'club') {
+        tg.BackButton.show();
+      } else {
+        tg.BackButton.hide();
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>
