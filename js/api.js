@@ -9,7 +9,10 @@ const API = (() => {
   const isAuthenticated = () => !!getToken();
 
   async function request(method, path, body) {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    };
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
