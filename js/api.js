@@ -1,6 +1,6 @@
 /* ── Blacksea Padel API Client ────────────────────────────────── */
 const API = (() => {
-  const BASE_URL = 'http://localhost:8080/api';
+  const BASE_URL = window.BSP_API_URL || 'http://localhost:8080/api';
   const TOKEN_KEY = 'bsp_token';
 
   const getToken = () => localStorage.getItem(TOKEN_KEY);
