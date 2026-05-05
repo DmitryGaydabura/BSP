@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0D1B2E">
   <title>Blacksea Padel</title>
+  <script src="js/api.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -682,6 +683,309 @@
       0%   { background-position: -400px 0; }
       100% { background-position: 400px 0; }
     }
+
+    /* ── Loading / API state ────────────────────────────────────── */
+    .api-loading { opacity: 0.5; pointer-events: none; }
+    .api-banner {
+      margin: 12px 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .api-banner.warn {
+      background: rgba(201,168,76,0.12);
+      border: 1px solid var(--border-def);
+      color: var(--gold);
+    }
+    .api-banner.err {
+      background: rgba(224,85,69,0.1);
+      border: 1px solid rgba(224,85,69,0.3);
+      color: var(--error);
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TAB 4 — ПРОФІЛЬ
+    ═══════════════════════════════════════════════════════════════ */
+    .profile-section { padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Guest state */
+    .profile-guest {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 12px;
+      padding: 28px 20px;
+      text-align: center;
+    }
+    .profile-guest-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 2px solid var(--border-def);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand);
+      font-size: 24px; font-weight: 700;
+      color: var(--gold);
+      margin: 0 auto 14px;
+    }
+    .profile-guest-name {
+      font-size: 16px; font-weight: 600;
+      color: var(--white-warm);
+      margin-bottom: 4px;
+    }
+    .profile-guest-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-bottom: 20px; line-height: 1.6;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-deep);
+      font-family: var(--font-body);
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 12px 24px; border-radius: 8px;
+      border: none; cursor: pointer;
+      transition: opacity 200ms var(--ease);
+    }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; }
+    .btn-primary:active { opacity: 0.85; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 10px 18px; border-radius: 8px;
+      border: 1px solid var(--border-def); cursor: pointer;
+      transition: all 200ms var(--ease);
+    }
+    .btn-secondary:hover { border-color: var(--border-str); color: var(--white-warm); }
+    .btn-danger {
+      background: transparent;
+      color: var(--error);
+      border-color: rgba(224,85,69,0.3);
+    }
+    .btn-danger:hover { border-color: var(--error); }
+
+    /* Logged in profile */
+    .profile-hero {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .profile-avatar {
+      width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0;
+      background: var(--navy-light);
+      border: 2px solid var(--border-str);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand);
+      font-size: 22px; font-weight: 700; color: var(--gold);
+      overflow: hidden;
+    }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-info { flex: 1; min-width: 0; }
+    .profile-name {
+      font-family: var(--font-display);
+      font-size: 17px; font-weight: 700;
+      color: var(--white-warm);
+      margin-bottom: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .profile-username { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .profile-role-badge {
+      display: inline-block;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--navy-deep);
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      padding: 3px 8px; border-radius: 10px;
+    }
+    .profile-role-badge.player {
+      background: rgba(42,100,150,0.3);
+      color: var(--sea-light);
+    }
+
+    /* Stats card */
+    .profile-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 10px; overflow: hidden;
+    }
+    .profile-stat {
+      padding: 14px 8px;
+      text-align: center;
+      position: relative;
+    }
+    .profile-stat + .profile-stat::before {
+      content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+      width: 1px; background: var(--border-sub);
+    }
+    .profile-stat-value {
+      font-family: var(--font-brand);
+      font-size: 20px; font-weight: 700; color: var(--gold);
+      line-height: 1; margin-bottom: 4px;
+    }
+    .profile-stat-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* Admin panel */
+    .admin-panel {
+      background: var(--navy-mid);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 12px; overflow: hidden;
+    }
+    .admin-panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .admin-panel-title {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .admin-actions { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .admin-action-btn {
+      width: 100%;
+      display: flex; align-items: center; gap: 12px;
+      background: var(--navy-light);
+      border: 1px solid var(--border-sub);
+      border-radius: 8px; padding: 12px 14px;
+      cursor: pointer; color: var(--white-warm);
+      font-family: var(--font-body); font-size: 13px; font-weight: 500;
+      transition: all 200ms var(--ease); text-align: left;
+    }
+    .admin-action-btn:hover { border-color: var(--border-str); }
+    .admin-action-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .admin-action-label { flex: 1; }
+    .admin-action-arrow { color: var(--text-dim); font-size: 14px; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: flex-end;
+      opacity: 0; pointer-events: none;
+      transition: opacity 200ms var(--ease);
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-sheet {
+      width: 100%; max-height: 90vh; overflow-y: auto;
+      background: var(--navy-mid);
+      border-radius: 16px 16px 0 0;
+      border-top: 1px solid var(--border-def);
+      padding: 0 0 env(safe-area-inset-bottom, 16px);
+      transform: translateY(100%);
+      transition: transform 250ms var(--ease);
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    .modal-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--border-def);
+      margin: 12px auto 0;
+    }
+    .modal-header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border-sub);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title {
+      font-family: var(--font-display);
+      font-size: 17px; font-weight: 700; color: var(--white-warm);
+    }
+    .modal-close {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--navy-light); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); font-size: 16px; line-height: 1;
+    }
+    .modal-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Form controls */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--navy-deep);
+      border: 1px solid var(--border-def);
+      border-radius: 8px;
+      padding: 11px 14px;
+      color: var(--white-warm);
+      font-family: var(--font-body); font-size: 14px;
+      outline: none;
+      transition: border-color 200ms var(--ease);
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--gold); }
+    .form-select option { background: var(--navy-mid); }
+
+    /* Pair result rows in submit-results form */
+    .pair-row {
+      background: var(--navy-deep);
+      border: 1px solid var(--border-sub);
+      border-radius: 8px; padding: 12px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .pair-row-header {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pair-pos {
+      font-family: var(--font-brand);
+      font-size: 18px; font-weight: 700; color: var(--gold);
+      width: 28px; text-align: center; flex-shrink: 0;
+    }
+    .pair-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pair-fields-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+
+    /* User list in admin */
+    .user-list-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .user-list-item:last-child { border-bottom: none; }
+    .user-list-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 1px solid var(--border-def);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand);
+      font-size: 13px; font-weight: 700; color: var(--gold);
+      flex-shrink: 0; overflow: hidden;
+    }
+    .user-list-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-list-info { flex: 1; min-width: 0; }
+    .user-list-name {
+      font-size: 13px; font-weight: 600; color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .user-list-pts { font-size: 11px; color: var(--text-muted); }
+    .role-toggle {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 12px;
+      cursor: pointer; transition: all 200ms var(--ease);
+      border: 1px solid;
+    }
+    .role-toggle.is-admin {
+      color: var(--gold); border-color: var(--border-str);
+      background: rgba(201,168,76,0.1);
+    }
+    .role-toggle.is-player {
+      color: var(--text-muted); border-color: var(--border-sub);
+      background: transparent;
+    }
   </style>
 </head>
 <body>
@@ -889,7 +1193,86 @@
       </div>
     </div>
 
+    <!-- ═══ TAB: ПРОФІЛЬ ══════════════════════════════════════════ -->
+    <div id="tab-profile" class="tab-panel">
+      <div class="results-header">
+        <div class="section-eyebrow">Blacksea Padel</div>
+        <div class="section-title">Профіль</div>
+      </div>
+      <div class="profile-section" id="profile-content">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
   </main>
+
+  <!-- Modals -->
+  <div class="modal-overlay" id="modal-create-tournament">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Новий турнір</span>
+        <button class="modal-close" data-close="modal-create-tournament">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Назва турніру</label>
+          <input class="form-input" id="ct-name" type="text" placeholder="Blacksea Open — Весна 2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Дата</label>
+          <input class="form-input" id="ct-date" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Категорія</label>
+          <select class="form-select" id="ct-category">
+            <option value="OPEN">Open</option>
+            <option value="MEN">Men</option>
+            <option value="WOMEN">Women</option>
+            <option value="MIXED">Mixed</option>
+          </select>
+        </div>
+        <button class="btn-primary" id="ct-submit" style="width:100%;margin-top:4px">Створити</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-submit-results">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Результати турніру</span>
+        <button class="modal-close" data-close="modal-submit-results">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Турнір</label>
+          <select class="form-select" id="sr-tournament-select"></select>
+        </div>
+        <div id="sr-pairs-container">
+          <!-- pair rows injected by JS -->
+        </div>
+        <button class="btn-secondary" id="sr-add-pair" style="width:100%">+ Додати пару</button>
+        <button class="btn-primary" id="sr-submit" style="width:100%;margin-top:4px">Зберегти результати</button>
+        <button class="btn-primary" id="sr-finalize" style="width:100%;background:linear-gradient(135deg,var(--success),#2a8a55);margin-top:4px">Завершити та нарахувати рейтинг</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-users">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Учасники</span>
+        <button class="modal-close" data-close="modal-users">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="users-list">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
@@ -913,6 +1296,13 @@
       </svg>
       <span class="nav-label">Рейтинг</span>
     </button>
+    <button class="nav-tab" data-tab="profile">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span class="nav-label">Профіль</span>
+    </button>
   </nav>
 
 </div>
@@ -927,9 +1317,12 @@ if (tg) {
   tg.setBackgroundColor('#0D1B2E');
 }
 
+/* ── App state ─────────────────────────────────────────────────── */
+let currentUser = null;   // UserDto from API when logged in
+let apiAvailable = false; // whether the backend responded
+
 /* ════════════════════════════════════════════════════════════════
-   DATA
-   Update these arrays to reflect real tournament/rating data.
+   FALLBACK DATA (used when API is unavailable)
 ════════════════════════════════════════════════════════════════ */
 
 const TOURNAMENTS = [
@@ -1012,16 +1405,50 @@ const RATINGS = [
 ];
 
 /* ════════════════════════════════════════════════════════════════
+   API BOOTSTRAP — auto-login on startup
+════════════════════════════════════════════════════════════════ */
+
+async function apiBootstrap() {
+  // Try to restore session from stored token
+  if (API.isAuthenticated()) {
+    try {
+      currentUser = await API.users.me();
+      apiAvailable = true;
+      return;
+    } catch (e) {
+      if (e.status === 401) API.removeToken();
+    }
+  }
+
+  // Try to authenticate with Telegram initData
+  const initData = tg?.initData;
+  if (initData) {
+    try {
+      const res = await API.auth.loginWithTelegram(initData);
+      API.setToken(res.token);
+      currentUser = res.user;
+      apiAvailable = true;
+    } catch {
+      // Backend unavailable or invalid — continue with mock data
+    }
+  }
+
+  // Test if API is reachable at all
+  if (!apiAvailable) {
+    try {
+      await API.tournaments.list();
+      apiAvailable = true;
+    } catch { /* offline */ }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    HELPERS
 ════════════════════════════════════════════════════════════════ */
 
 function fmt(date) {
   const d = new Date(date);
   return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-function initials(name) {
-  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
 }
 
 function ratioClass(wins, losses) {
@@ -1044,12 +1471,50 @@ function pct(wins, losses) {
 ════════════════════════════════════════════════════════════════ */
 
 let activeResultFilter = 'all';
+let tournamentsData = null; // cached from API
 
-function renderResults() {
+function normalizeTournament(t) {
+  // Normalize API shape to match existing render logic
+  if (t.pairs) {
+    return {
+      id: t.id,
+      name: t.name,
+      date: t.date,
+      year: String(t.date).slice(0, 4),
+      category: t.category?.toLowerCase() || 'open',
+      categoryLabel: t.categoryLabel || t.category,
+      results: (t.pairs || [])
+        .sort((a, b) => (a.position || 99) - (b.position || 99))
+        .map(p => ({
+          pos: p.position || 0,
+          pair: [p.player1?.displayName || '?', p.player2?.displayName || '?'],
+          score: p.score || '',
+          pts: p.pointsEarned || 0,
+        })),
+    };
+  }
+  return t;
+}
+
+async function renderResults() {
   const list = document.getElementById('results-list');
+  list.innerHTML = '<div class="empty-state"><div class="empty-state-text">Завантаження...</div></div>';
+
+  let source = TOURNAMENTS;
+  if (apiAvailable && tournamentsData === null) {
+    try {
+      tournamentsData = (await API.tournaments.list()).map(normalizeTournament);
+    } catch { /* fallback */ }
+  }
+  if (tournamentsData) source = tournamentsData;
+
   const filtered = activeResultFilter === 'all'
-    ? TOURNAMENTS
-    : TOURNAMENTS.filter(t => t.year === activeResultFilter || t.category === activeResultFilter);
+    ? source
+    : source.filter(t =>
+        t.year === activeResultFilter ||
+        t.category === activeResultFilter ||
+        t.category?.toLowerCase() === activeResultFilter
+      );
 
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-text">Немає турнірів за цим фільтром</div></div>`;
@@ -1072,7 +1537,7 @@ function renderResults() {
         </div>
       </div>
       <div class="results-table">
-        ${t.results.map(r => `
+        ${(t.results || []).map(r => `
           <div class="results-row">
             <span class="results-pos pos-${r.pos}">${r.pos === 1 ? '★' : r.pos}</span>
             <div class="results-pair">
@@ -1103,9 +1568,30 @@ document.getElementById('results-filter').addEventListener('click', e => {
 ════════════════════════════════════════════════════════════════ */
 
 let activeRatCat = 'all';
+let ratingsData = null;
 
-function renderRatings() {
-  const filtered = RATINGS.filter(p => p.cat.includes(activeRatCat));
+function normalizeRating(r) {
+  // Map API RatingEntryDto to local shape
+  return {
+    name: r.name || r.displayName,
+    pts: r.ratingPoints,
+    wins: r.wins,
+    losses: r.losses,
+    change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
+    cat: ['all', 'men'], // TODO: extend API to return gender
+  };
+}
+
+async function renderRatings() {
+  let source = RATINGS;
+  if (apiAvailable && ratingsData === null) {
+    try {
+      ratingsData = (await API.ratings.list()).map(normalizeRating);
+    } catch { /* fallback */ }
+  }
+  if (ratingsData) source = ratingsData;
+
+  const filtered = source.filter(p => activeRatCat === 'all' || (p.cat && p.cat.includes(activeRatCat)));
 
   /* Podium */
   const top3 = filtered.slice(0, 3);
@@ -1170,42 +1656,386 @@ document.getElementById('ratings-filter').addEventListener('click', e => {
 });
 
 /* ════════════════════════════════════════════════════════════════
-   MEMBER COUNT (derived from ratings data)
+   MEMBER COUNT
 ════════════════════════════════════════════════════════════════ */
-document.getElementById('member-count').textContent = RATINGS.length + '+';
+async function updateMemberCount() {
+  let count = RATINGS.length;
+  if (apiAvailable) {
+    try { count = (await API.users.list().catch(() => [])).length || count; } catch {}
+  }
+  document.getElementById('member-count').textContent = count + '+';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER — PROFILE TAB
+════════════════════════════════════════════════════════════════ */
+
+function initials(name) {
+  return name ? name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() : '?';
+}
+
+function renderProfile() {
+  const container = document.getElementById('profile-content');
+
+  if (!apiAvailable) {
+    container.innerHTML = `
+      <div class="api-banner warn">
+        <span>⚠</span> Backend недоступний. Запустіть bsp-backend локально.
+      </div>
+      <div class="profile-guest">
+        <div class="profile-guest-avatar">BS</div>
+        <div class="profile-guest-name">Blacksea Padel</div>
+        <div class="profile-guest-hint">Підключіться до backend-сервера щоб увійти в профіль.</div>
+      </div>`;
+    return;
+  }
+
+  if (!currentUser) {
+    const tgUser = tg?.initDataUnsafe?.user;
+    const name = tgUser ? (tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')) : 'Гість';
+    container.innerHTML = `
+      <div class="profile-guest">
+        <div class="profile-guest-avatar">${initials(name)}</div>
+        <div class="profile-guest-name">${name}</div>
+        <div class="profile-guest-hint">Натисніть «Ввійти», щоб зберегти ваш профіль та статистику.</div>
+        <button class="btn-primary" id="login-btn">Ввійти через Telegram</button>
+      </div>`;
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('login-btn');
+      btn.disabled = true; btn.textContent = '...';
+      try {
+        const initData = tg?.initData || 'test';
+        const res = await API.auth.loginWithTelegram(initData);
+        API.setToken(res.token);
+        currentUser = res.user;
+        renderProfile();
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Ввійти через Telegram';
+        alert('Помилка входу: ' + (e.message || 'невідома'));
+      }
+    });
+    return;
+  }
+
+  const u = currentUser;
+  const total = u.wins + u.losses;
+  const winPct = total > 0 ? Math.round(u.wins / total * 100) + '%' : '—';
+  const isAdmin = u.role === 'ADMIN';
+
+  container.innerHTML = `
+    <div class="profile-hero">
+      <div class="profile-avatar">
+        ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
+      </div>
+      <div class="profile-info">
+        <div class="profile-name">${u.displayName}</div>
+        ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
+        <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
+      </div>
+    </div>
+
+    <div class="profile-stats">
+      <div class="profile-stat">
+        <div class="profile-stat-value">${u.ratingPoints}</div>
+        <div class="profile-stat-label">Очки</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">${u.wins}/${u.losses}</div>
+        <div class="profile-stat-label">В / П</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value">${winPct}</div>
+        <div class="profile-stat-label">Процент</div>
+      </div>
+    </div>
+
+    ${isAdmin ? renderAdminPanel() : ''}
+
+    <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
+  `;
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    API.removeToken();
+    currentUser = null;
+    renderProfile();
+  });
+
+  if (isAdmin) wireAdminPanel();
+}
+
+function renderAdminPanel() {
+  return `
+    <div class="admin-panel">
+      <div class="admin-panel-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        <span class="admin-panel-title">Адмін панель</span>
+      </div>
+      <div class="admin-actions">
+        <button class="admin-action-btn" id="btn-create-tournament">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+          <span class="admin-action-label">Створити турнір</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
+        <button class="admin-action-btn" id="btn-submit-results">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <span class="admin-action-label">Внести результати</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
+        <button class="admin-action-btn" id="btn-users">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          <span class="admin-action-label">Учасники</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ADMIN — WIRE ACTIONS
+════════════════════════════════════════════════════════════════ */
+
+function wireAdminPanel() {
+  document.getElementById('btn-create-tournament').addEventListener('click', () => openModal('modal-create-tournament'));
+  document.getElementById('btn-submit-results').addEventListener('click', openSubmitResults);
+  document.getElementById('btn-users').addEventListener('click', openUsersModal);
+}
+
+/* ── Modal helpers ──────────────────────────────────────────────── */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+/* ── Create tournament ──────────────────────────────────────────── */
+document.getElementById('ct-submit').addEventListener('click', async () => {
+  const name = document.getElementById('ct-name').value.trim();
+  const date = document.getElementById('ct-date').value;
+  const category = document.getElementById('ct-category').value;
+  if (!name || !date) { alert('Заповніть назву та дату'); return; }
+
+  const btn = document.getElementById('ct-submit');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await API.tournaments.create({ name, date, category });
+    tournamentsData = null; // invalidate cache
+    closeModal('modal-create-tournament');
+    document.getElementById('ct-name').value = '';
+    document.getElementById('ct-date').value = '';
+    alert('Турнір створено!');
+  } catch (e) {
+    alert('Помилка: ' + (e.message || 'unknown'));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Створити';
+  }
+});
+
+/* ── Submit results ─────────────────────────────────────────────── */
+let srPairCount = 2;
+
+async function openSubmitResults() {
+  openModal('modal-submit-results');
+  const sel = document.getElementById('sr-tournament-select');
+  sel.innerHTML = '<option>Завантаження...</option>';
+  try {
+    const all = await API.tournaments.list();
+    const active = all.filter(t => t.status !== 'FINISHED');
+    sel.innerHTML = active.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    if (!active.length) sel.innerHTML = '<option>Немає активних турнірів</option>';
+  } catch {
+    sel.innerHTML = '<option>Помилка завантаження</option>';
+  }
+
+  srPairCount = 2;
+  renderPairRows();
+}
+
+function renderPairRows() {
+  const c = document.getElementById('sr-pairs-container');
+  let html = '';
+  for (let i = 1; i <= srPairCount; i++) {
+    html += `
+      <div class="pair-row" id="pair-row-${i}">
+        <div class="pair-row-header">
+          <span class="pair-pos">${i}</span>
+          <span style="font-size:12px;color:var(--text-muted)">Місце ${i}</span>
+        </div>
+        <div class="pair-fields">
+          <input class="form-input" placeholder="Гравець 1" id="p${i}-p1">
+          <input class="form-input" placeholder="Гравець 2" id="p${i}-p2">
+        </div>
+        <div class="pair-fields-3">
+          <input class="form-input" placeholder="Рахунок" id="p${i}-score">
+          <input class="form-input" type="number" min="0" placeholder="Пер." id="p${i}-wins" value="0">
+          <input class="form-input" type="number" min="0" placeholder="Пор." id="p${i}-losses" value="0">
+        </div>
+      </div>`;
+  }
+  c.innerHTML = html;
+}
+
+document.getElementById('sr-add-pair').addEventListener('click', () => {
+  srPairCount++;
+  renderPairRows();
+});
+
+async function buildPairsPayload() {
+  const allUsers = await API.users.list();
+  const findUser = name => {
+    const n = name.trim().toLowerCase();
+    return allUsers.find(u =>
+      u.displayName.toLowerCase().includes(n) ||
+      (u.username || '').toLowerCase().includes(n)
+    );
+  };
+
+  const pairs = [];
+  for (let i = 1; i <= srPairCount; i++) {
+    const p1name = document.getElementById(`p${i}-p1`)?.value?.trim();
+    const p2name = document.getElementById(`p${i}-p2`)?.value?.trim();
+    if (!p1name) continue;
+    const p1 = findUser(p1name);
+    const p2 = p2name ? findUser(p2name) : null;
+    if (!p1) throw new Error(`Гравця "${p1name}" не знайдено`);
+    pairs.push({
+      player1Id: p1.id,
+      player2Id: p2?.id || null,
+      position: i,
+      score: document.getElementById(`p${i}-score`)?.value?.trim() || null,
+      matchWins: parseInt(document.getElementById(`p${i}-wins`)?.value || '0', 10),
+      matchLosses: parseInt(document.getElementById(`p${i}-losses`)?.value || '0', 10),
+    });
+  }
+  return pairs;
+}
+
+document.getElementById('sr-submit').addEventListener('click', async () => {
+  const tournamentId = document.getElementById('sr-tournament-select').value;
+  if (!tournamentId) return;
+  const btn = document.getElementById('sr-submit');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const pairs = await buildPairsPayload();
+    await API.tournaments.submitResults(tournamentId, { pairs });
+    tournamentsData = null;
+    alert('Результати збережено!');
+  } catch (e) {
+    alert('Помилка: ' + (e.message || 'unknown'));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Зберегти результати';
+  }
+});
+
+document.getElementById('sr-finalize').addEventListener('click', async () => {
+  const tournamentId = document.getElementById('sr-tournament-select').value;
+  if (!tournamentId) return;
+  if (!confirm('Завершити турнір і нарахувати рейтинг? Цю дію не можна скасувати.')) return;
+  const btn = document.getElementById('sr-finalize');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const pairs = await buildPairsPayload();
+    if (pairs.length) await API.tournaments.submitResults(tournamentId, { pairs });
+    await API.tournaments.finalize(tournamentId);
+    tournamentsData = null;
+    ratingsData = null;
+    closeModal('modal-submit-results');
+    alert('Турнір завершено! Рейтинги оновлено.');
+  } catch (e) {
+    alert('Помилка: ' + (e.message || 'unknown'));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Завершити та нарахувати рейтинг';
+  }
+});
+
+/* ── Users modal ────────────────────────────────────────────────── */
+async function openUsersModal() {
+  openModal('modal-users');
+  const list = document.getElementById('users-list');
+  list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Завантаження...</div>';
+  try {
+    const users = await API.users.list();
+    list.innerHTML = users.map(u => `
+      <div class="user-list-item">
+        <div class="user-list-avatar">
+          ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
+        </div>
+        <div class="user-list-info">
+          <div class="user-list-name">${u.displayName}</div>
+          <div class="user-list-pts">${u.ratingPoints} pts · ${u.wins}W/${u.losses}L</div>
+        </div>
+        <button class="role-toggle ${u.role === 'ADMIN' ? 'is-admin' : 'is-player'}"
+                data-user-id="${u.id}" data-role="${u.role}">
+          ${u.role === 'ADMIN' ? 'Admin' : 'Player'}
+        </button>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.role-toggle').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const userId = btn.dataset.userId;
+        const newRole = btn.dataset.role === 'ADMIN' ? 'PLAYER' : 'ADMIN';
+        btn.disabled = true;
+        try {
+          await API.users.setRole(userId, newRole);
+          btn.dataset.role = newRole;
+          btn.textContent = newRole === 'ADMIN' ? 'Admin' : 'Player';
+          btn.className = `role-toggle ${newRole === 'ADMIN' ? 'is-admin' : 'is-player'}`;
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--error);font-size:13px">${e.message}</div>`;
+  }
+}
 
 /* ════════════════════════════════════════════════════════════════
    TAB NAVIGATION
 ════════════════════════════════════════════════════════════════ */
 
-const TABS = { club: 'tab-club', results: 'tab-results', ratings: 'tab-ratings' };
+const TABS = {
+  club: 'tab-club',
+  results: 'tab-results',
+  ratings: 'tab-ratings',
+  profile: 'tab-profile',
+};
 let currentTab = 'club';
-let rendered = { club: true, results: false, ratings: false };
+let rendered = { club: true, results: false, ratings: false, profile: false };
 
 function switchTab(tab) {
   if (tab === currentTab) return;
 
-  /* Panels */
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(TABS[tab]).classList.add('active');
 
-  /* Nav buttons */
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelector(`.nav-tab[data-tab="${tab}"]`).classList.add('active');
 
-  /* Scroll to top */
   document.getElementById('content').scrollTop = 0;
 
-  /* Lazy render */
   if (!rendered[tab]) {
     if (tab === 'results') renderResults();
     if (tab === 'ratings') renderRatings();
+    if (tab === 'profile') renderProfile();
     rendered[tab] = true;
+  } else if (tab === 'profile') {
+    renderProfile(); // always re-render profile to reflect auth state
   }
 
   currentTab = tab;
-
-  /* Update nav icon stroke colors */
   updateNavIcons();
 }
 
@@ -1222,7 +2052,6 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-/* Initial icon state */
 updateNavIcons();
 
 /* ════════════════════════════════════════════════════════════════
@@ -1238,17 +2067,20 @@ if (tg) {
     }
   });
 
-  /* Show back button when not on main tab */
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.tab !== 'club') {
-        tg.BackButton.show();
-      } else {
-        tg.BackButton.hide();
-      }
+      if (btn.dataset.tab !== 'club') tg.BackButton.show();
+      else tg.BackButton.hide();
     });
   });
 }
+
+/* ════════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════════ */
+apiBootstrap().then(() => {
+  updateMemberCount();
+});
 </script>
 </body>
 </html>
