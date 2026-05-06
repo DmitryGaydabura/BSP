@@ -36,19 +36,24 @@ const API = (() => {
     },
 
     users: {
-      me:      ()               => request('GET',  '/users/me'),
-      list:    ()               => request('GET',  '/users'),
-      setRole: (id, role)       => request('PUT',  `/users/${id}/role`, { role }),
+      me:                ()               => request('GET',  '/users/me'),
+      list:              ()               => request('GET',  '/users'),
+      setRole:           (id, role)       => request('PUT',  `/users/${id}/role`, { role }),
+      setStartingPoints: (id, level)      => request('PUT',  `/users/${id}/starting-points`, { level }),
     },
 
     tournaments: {
-      list:          ()              => request('GET',    '/tournaments'),
-      get:           id              => request('GET',    `/tournaments/${id}`),
-      create:        data            => request('POST',   '/tournaments', data),
-      activate:      id              => request('POST',   `/tournaments/${id}/activate`),
-      submitResults: (id, payload)   => request('POST',   `/tournaments/${id}/results`, payload),
-      finalize:      id              => request('POST',   `/tournaments/${id}/finalize`),
-      delete:        id              => request('DELETE', `/tournaments/${id}`),
+      list:             ()             => request('GET',    '/tournaments'),
+      get:              id             => request('GET',    `/tournaments/${id}`),
+      getLevels:        ()             => request('GET',    '/tournaments/levels'),
+      create:           data           => request('POST',   '/tournaments', data),
+      activate:         id             => request('POST',   `/tournaments/${id}/activate`),
+      submitResults:    (id, payload)  => request('POST',   `/tournaments/${id}/results`, payload),
+      finalize:         id             => request('POST',   `/tournaments/${id}/finalize`),
+      delete:           id             => request('DELETE', `/tournaments/${id}`),
+      getParticipants:  id             => request('GET',    `/tournaments/${id}/participants`),
+      addParticipant:   (id, userId)   => request('POST',   `/tournaments/${id}/participants/${userId}`),
+      removeParticipant:(id, userId)   => request('DELETE', `/tournaments/${id}/participants/${userId}`),
     },
 
     ratings: {
