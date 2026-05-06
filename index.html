@@ -888,6 +888,117 @@
     .admin-action-label { flex: 1; }
     .admin-action-arrow { color: var(--text-dim); font-size: 14px; }
 
+    /* Club intro block */
+    .club-intro-block {
+      display: flex; align-items: center; gap: 14px;
+      margin: 0 16px 4px;
+      background: var(--navy-mid);
+      border: 1px solid var(--border-sub);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .club-intro-logo {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 1.5px solid var(--border-str);
+      object-fit: cover; flex-shrink: 0;
+    }
+    .club-intro-body { flex: 1; min-width: 0; }
+    .club-intro-name {
+      font-family: var(--font-brand);
+      font-size: 13px; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .club-intro-desc {
+      font-size: 12px; color: var(--text-sec); line-height: 1.55;
+    }
+
+    /* Rating info block */
+    .rating-info-block {
+      margin: 8px 16px 16px;
+      background: var(--navy-mid);
+      border: 1px solid var(--border-sub);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .rating-info-title {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 10px;
+    }
+    .rating-info-text {
+      font-size: 12px; color: var(--text-sec); line-height: 1.65;
+      margin-bottom: 14px;
+    }
+    .rating-info-text strong { color: var(--white-warm); }
+    .rating-info-subtitle {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .points-matrix-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .points-matrix {
+      width: 100%; border-collapse: collapse;
+      font-size: 11px; white-space: nowrap;
+    }
+    .points-matrix th {
+      padding: 5px 8px;
+      background: var(--navy-light);
+      color: var(--text-muted);
+      font-weight: 600; font-size: 10px;
+      text-align: center; border: 1px solid var(--border-sub);
+    }
+    .points-matrix td {
+      padding: 5px 8px; text-align: center;
+      border: 1px solid var(--border-sub);
+      color: var(--white-warm); font-size: 11px;
+    }
+    .points-matrix .pm-level {
+      font-family: var(--font-brand);
+      font-weight: 700; color: var(--gold);
+      background: var(--navy-light);
+      text-align: left; letter-spacing: 0.04em;
+    }
+    .points-matrix tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+    /* Profile history card */
+    .history-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-sub);
+      border-radius: 12px; overflow: hidden;
+    }
+    .history-card-title {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-sub);
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .history-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-row-info { flex: 1; min-width: 0; }
+    .history-row-name {
+      font-size: 13px; font-weight: 500;
+      color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-row-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .history-row-pts {
+      font-size: 15px; font-weight: 700;
+      font-family: var(--font-mono);
+      flex-shrink: 0; margin-left: 12px;
+    }
+    .history-row-pts.pos { color: var(--success); }
+    .history-row-pts.neg { color: var(--error); }
+    .history-loading, .history-empty {
+      padding: 16px; text-align: center;
+      font-size: 12px; color: var(--text-muted);
+    }
+
     /* Modal overlay */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 100;
@@ -1184,13 +1295,16 @@
       <div class="ratings-header">
         <div class="section-eyebrow">Blacksea Padel</div>
         <div class="section-title">Рейтинг гравців</div>
-        <div class="filter-row cat-filter" id="ratings-filter">
-          <button class="filter-chip active" data-cat="all">Всі</button>
-          <button class="filter-chip" data-cat="men">Чоловіки</button>
-          <button class="filter-chip" data-cat="women">Жінки</button>
-          <button class="filter-chip" data-cat="mixed">Mixed</button>
-        </div>
         <div class="ratings-updated" id="ratings-updated"></div>
+      </div>
+
+      <!-- Club intro -->
+      <div class="club-intro-block">
+        <img class="club-intro-logo" src="images/logo.png" alt="BSP" onerror="this.style.display='none'">
+        <div class="club-intro-body">
+          <div class="club-intro-name">Blacksea Padel</div>
+          <div class="club-intro-desc">Падель-клуб на узбережжі Чорного моря. Ми організовуємо турніри, ведемо офіційний рейтинг та об'єднуємо гравців усіх рівнів — від початківців до майстрів.</div>
+        </div>
       </div>
 
       <!-- Podium top-3 -->
@@ -1209,6 +1323,37 @@
         </div>
         <div id="leaderboard-rows">
           <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Rating system explanation -->
+      <div class="rating-info-block">
+        <div class="rating-info-title">Система рейтингу</div>
+        <div class="rating-info-text">
+          Рейтинг гравця = <strong>стартові очки</strong> + сума <strong>10 найкращих</strong> результатів турнірів.<br>
+          Стартові очки призначаються адміністратором згідно з рівнем Raketo: D&nbsp;→&nbsp;1000, D+&nbsp;→&nbsp;1250, C−&nbsp;→&nbsp;1500, C&nbsp;→&nbsp;1750, C+&nbsp;→&nbsp;2000, B−&nbsp;→&nbsp;2250, B&nbsp;→&nbsp;2500, B+&nbsp;→&nbsp;2750.
+        </div>
+        <div class="rating-info-subtitle">Очки за місця на турнірах</div>
+        <div class="points-matrix-wrap">
+          <table class="points-matrix">
+            <thead>
+              <tr>
+                <th>Рівень</th>
+                <th>🥇 1</th><th>🥈 2</th><th>🥉 3</th>
+                <th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="pm-level">D</td>      <td>80</td><td>56</td><td>39</td><td>27</td><td>19</td><td>13</td><td>9</td><td>6</td></tr>
+              <tr><td class="pm-level">D+</td>     <td>100</td><td>70</td><td>49</td><td>34</td><td>24</td><td>17</td><td>12</td><td>8</td></tr>
+              <tr><td class="pm-level">C−</td>     <td>125</td><td>88</td><td>62</td><td>43</td><td>30</td><td>21</td><td>15</td><td>10</td></tr>
+              <tr><td class="pm-level">C</td>      <td>155</td><td>110</td><td>77</td><td>54</td><td>38</td><td>27</td><td>19</td><td>13</td></tr>
+              <tr><td class="pm-level">C+</td>     <td>195</td><td>137</td><td>96</td><td>67</td><td>47</td><td>33</td><td>23</td><td>16</td></tr>
+              <tr><td class="pm-level">B−</td>     <td>240</td><td>168</td><td>118</td><td>83</td><td>58</td><td>41</td><td>29</td><td>20</td></tr>
+              <tr><td class="pm-level">B</td>      <td>300</td><td>210</td><td>147</td><td>103</td><td>72</td><td>50</td><td>35</td><td>25</td></tr>
+              <tr><td class="pm-level">B+</td>     <td>375</td><td>263</td><td>184</td><td>129</td><td>90</td><td>63</td><td>44</td><td>31</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1342,12 +1487,12 @@
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
-    <button class="nav-tab" data-tab="club">
+    <button class="nav-tab active" data-tab="ratings">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
       </svg>
-      <span class="nav-label">Клуб</span>
+      <span class="nav-label">Рейтинг</span>
     </button>
     <button class="nav-tab" data-tab="results">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1355,12 +1500,12 @@
       </svg>
       <span class="nav-label">Результати</span>
     </button>
-    <button class="nav-tab active" data-tab="ratings">
+    <button class="nav-tab" data-tab="club">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-        <polyline points="17 6 23 6 23 12"/>
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
       </svg>
-      <span class="nav-label">Рейтинг</span>
+      <span class="nav-label">Клуб</span>
     </button>
     <button class="nav-tab" data-tab="profile">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1694,7 +1839,6 @@ document.getElementById('results-filter').addEventListener('click', e => {
    RENDER — RATINGS
 ════════════════════════════════════════════════════════════════ */
 
-let activeRatCat = 'all';
 let ratingsData = null;
 
 function normalizeRating(r) {
@@ -1718,7 +1862,7 @@ async function renderRatings() {
   }
   if (ratingsData) source = ratingsData;
 
-  const filtered = source.filter(p => activeRatCat === 'all' || (p.cat && p.cat.includes(activeRatCat)));
+  const filtered = source;
 
   /* Podium */
   const top3 = filtered.slice(0, 3);
@@ -1772,15 +1916,6 @@ async function renderRatings() {
   document.getElementById('ratings-updated').textContent =
     'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-
-document.getElementById('ratings-filter').addEventListener('click', e => {
-  const chip = e.target.closest('.filter-chip');
-  if (!chip) return;
-  document.querySelectorAll('#ratings-filter .filter-chip').forEach(c => c.classList.remove('active'));
-  chip.classList.add('active');
-  activeRatCat = chip.dataset.cat;
-  renderRatings();
-});
 
 /* ════════════════════════════════════════════════════════════════
    MEMBER COUNT
@@ -1878,6 +2013,11 @@ function renderProfile() {
 
     ${isAdmin ? renderAdminPanel() : ''}
 
+    <div class="history-card">
+      <div class="history-card-title">Історія турнірів</div>
+      <div id="history-list"><div class="history-loading">Завантаження...</div></div>
+    </div>
+
     <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
   `;
 
@@ -1888,6 +2028,39 @@ function renderProfile() {
   });
 
   if (isAdmin) wireAdminPanel();
+  loadHistory();
+}
+
+async function loadHistory() {
+  const container = document.getElementById('history-list');
+  if (!container) return;
+  if (!apiAvailable) {
+    container.innerHTML = '<div class="history-empty">Backend недоступний</div>';
+    return;
+  }
+  try {
+    const history = await API.users.history();
+    if (!history || history.length === 0) {
+      container.innerHTML = '<div class="history-empty">Немає записів</div>';
+      return;
+    }
+    container.innerHTML = history.map(h => {
+      const sign = h.pointsDelta >= 0 ? '+' : '';
+      const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
+      const date = new Date(h.createdAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+      return `
+        <div class="history-row">
+          <div class="history-row-info">
+            <div class="history-row-name">${h.tournamentName}</div>
+            <div class="history-row-meta">${h.tournamentLevel} · ${date}</div>
+          </div>
+          <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
+        </div>
+      `;
+    }).join('');
+  } catch {
+    container.innerHTML = '<div class="history-empty">Помилка завантаження</div>';
+  }
 }
 
 function renderAdminPanel() {
