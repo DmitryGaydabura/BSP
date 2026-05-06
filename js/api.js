@@ -54,6 +54,8 @@ const API = (() => {
       getParticipants:  id             => request('GET',    `/tournaments/${id}/participants`),
       addParticipant:   (id, userId)   => request('POST',   `/tournaments/${id}/participants/${userId}`),
       removeParticipant:(id, userId)   => request('DELETE', `/tournaments/${id}/participants/${userId}`),
+      join:             id             => request('POST',   `/tournaments/${id}/join`),
+      leave:            id             => request('DELETE', `/tournaments/${id}/leave`),
     },
 
     ratings: {

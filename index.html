@@ -1006,7 +1006,7 @@
   <main id="content">
 
     <!-- ═══ TAB: КЛУБ ═══════════════════════════════════════════ -->
-    <div id="tab-club" class="tab-panel active">
+    <div id="tab-club" class="tab-panel">
 
       <!-- Hero -->
       <div class="club-hero">
@@ -1161,7 +1161,7 @@
     </div>
 
     <!-- ═══ TAB: РЕЙТИНГ ══════════════════════════════════════════ -->
-    <div id="tab-ratings" class="tab-panel">
+    <div id="tab-ratings" class="tab-panel active">
       <div class="ratings-header">
         <div class="section-eyebrow">Blacksea Padel</div>
         <div class="section-title">Рейтинг гравців</div>
@@ -1230,6 +1230,27 @@
             <option value="">Завантаження...</option>
           </select>
           <div id="ct-level-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Тип турніру</label>
+          <select class="form-select" id="ct-type">
+            <option value="PAIR">Парний</option>
+            <option value="SINGLE">Одиночний</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Макс. учасників</label>
+          <input class="form-input" type="number" id="ct-max-participants" min="2" max="128" placeholder="необмежено">
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Рейтинг від</label>
+            <input class="form-input" type="number" id="ct-min-rating" placeholder="0" min="0">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Рейтинг до</label>
+            <input class="form-input" type="number" id="ct-max-rating" placeholder="без обм." min="0">
+          </div>
         </div>
         <button class="btn-primary" id="ct-submit" style="width:100%;margin-top:4px">Створити</button>
       </div>
@@ -1301,7 +1322,7 @@
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
-    <button class="nav-tab active" data-tab="club">
+    <button class="nav-tab" data-tab="club">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
         <polyline points="9 22 9 12 15 12 15 22"/>
@@ -1314,7 +1335,7 @@
       </svg>
       <span class="nav-label">Результати</span>
     </button>
-    <button class="nav-tab" data-tab="ratings">
+    <button class="nav-tab active" data-tab="ratings">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
         <polyline points="17 6 23 6 23 12"/>
@@ -1499,26 +1520,32 @@ let activeResultFilter = 'all';
 let tournamentsData = null; // cached from API
 
 function normalizeTournament(t) {
-  // Normalize API shape to match existing render logic
-  if (t.pairs) {
-    return {
-      id: t.id,
-      name: t.name,
-      date: t.date,
-      year: String(t.date).slice(0, 4),
-      category: t.category?.toLowerCase() || 'open',
-      categoryLabel: t.categoryLabel || t.category,
-      results: (t.pairs || [])
-        .sort((a, b) => (a.position || 99) - (b.position || 99))
-        .map(p => ({
-          pos: p.position || 0,
-          pair: [p.player1?.displayName || '?', p.player2?.displayName || '?'],
-          score: p.score || '',
-          pts: p.pointsEarned || 0,
-        })),
-    };
-  }
-  return t;
+  if (!t.pairs) return t;
+  return {
+    id: t.id,
+    name: t.name,
+    date: t.date,
+    year: String(t.date).slice(0, 4),
+    level: t.level,
+    levelLabel: t.levelLabel || t.level,
+    type: t.type || 'PAIR',
+    status: t.status,
+    maxParticipants: t.maxParticipants,
+    minRating: t.minRating,
+    maxRating: t.maxRating,
+    participantCount: t.participantCount || (t.participants || []).length,
+    participants: t.participants || [],
+    results: (t.pairs || [])
+      .sort((a, b) => (a.position || 99) - (b.position || 99))
+      .map(p => ({
+        pos: p.position || 0,
+        pair: p.player2?.displayName
+          ? [p.player1?.displayName || '?', p.player2?.displayName]
+          : [p.player1?.displayName || '?'],
+        score: p.score || '',
+        pts: p.pointsEarned || 0,
+      })),
+  };
 }
 
 async function renderResults() {
@@ -1546,37 +1573,98 @@ async function renderResults() {
     return;
   }
 
-  const medalEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
-  const medalClass = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+  const statusLabel = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено' };
+  const statusCls   = { DRAFT: 'color:var(--gold)', ACTIVE: 'color:var(--success)', FINISHED: 'color:var(--text-muted)' };
 
-  list.innerHTML = filtered.map(t => `
-    <div class="tournament-card">
-      <div class="tournament-card-header">
-        <div class="tournament-medal ${medalClass[1]}">${medalEmoji[1]}</div>
-        <div class="tournament-meta">
-          <div class="tournament-name">${t.name}</div>
-          <div class="tournament-date-cat">
-            <span class="tournament-date">${fmt(t.date)}</span>
-            <span class="tournament-cat">${t.categoryLabel}</span>
+  list.innerHTML = filtered.map(t => {
+    const isEnrolled = currentUser && (t.participants || []).some(p => p.id === currentUser.id);
+    const canJoin = currentUser && (t.status === 'DRAFT' || t.status === 'ACTIVE');
+    const ratingRange = [
+      t.minRating ? `від ${t.minRating}` : '',
+      t.maxRating ? `до ${t.maxRating}` : '',
+    ].filter(Boolean).join(' ');
+    const participantsInfo = t.maxParticipants
+      ? `${t.participantCount || 0}/${t.maxParticipants} уч.`
+      : (t.participantCount ? `${t.participantCount} уч.` : '');
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+
+    const joinBtn = canJoin
+      ? (isEnrolled
+          ? `<button class="btn-secondary sr-leave-btn" data-id="${t.id}"
+               style="font-size:11px;padding:4px 10px;height:28px;color:var(--error);border-color:var(--error)">
+               Вийти
+             </button>`
+          : `<button class="btn-primary sr-join-btn" data-id="${t.id}"
+               style="font-size:11px;padding:4px 10px;height:28px">
+               Приєднатись
+             </button>`)
+      : '';
+
+    const resultsHtml = (t.results || []).length > 0
+      ? `<div class="results-table">
+          ${(t.results || []).map(r => `
+            <div class="results-row">
+              <span class="results-pos pos-${r.pos}">${r.pos === 1 ? '★' : r.pos}</span>
+              <div class="results-pair">
+                <div class="results-pair-names">
+                  ${r.pair.join('<span class="separator">/</span>')}
+                </div>
+              </div>
+              ${r.score ? `<span class="results-score">${r.score}</span>` : ''}
+              <span class="results-pts">+${r.pts}</span>
+            </div>
+          `).join('')}
+        </div>`
+      : '';
+
+    return `
+      <div class="tournament-card" data-tournament-id="${t.id}">
+        <div class="tournament-card-header">
+          <div class="tournament-meta" style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div class="tournament-name">${t.name}</div>
+              ${joinBtn}
+            </div>
+            <div class="tournament-date-cat" style="gap:6px;flex-wrap:wrap">
+              <span class="tournament-date">${fmt(t.date)}</span>
+              <span class="tournament-cat">${t.levelLabel || ''} · ${typeLabel}</span>
+              ${ratingRange ? `<span style="font-size:11px;color:var(--text-muted)">${ratingRange} pts</span>` : ''}
+              ${participantsInfo ? `<span style="font-size:11px;color:var(--text-muted)">${participantsInfo}</span>` : ''}
+              <span style="font-size:11px;${statusCls[t.status] || ''}">${statusLabel[t.status] || t.status}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="results-table">
-        ${(t.results || []).map(r => `
-          <div class="results-row">
-            <span class="results-pos pos-${r.pos}">${r.pos === 1 ? '★' : r.pos}</span>
-            <div class="results-pair">
-              <div class="results-pair-names">
-                ${r.pair[0]}<span class="separator">/</span>${r.pair[1]}
-              </div>
-            </div>
-            ${r.score ? `<span class="results-score">${r.score}</span>` : ''}
-            <span class="results-pts">+${r.pts}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+        ${resultsHtml}
+      </div>`;
+  }).join('');
+
+  // Wire join/leave buttons
+  list.querySelectorAll('.sr-join-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await API.tournaments.join(btn.dataset.id);
+        tournamentsData = null;
+        await renderResults();
+      } catch (e) {
+        alert('Помилка: ' + (e.message || 'unknown'));
+        btn.disabled = false;
+      }
+    });
+  });
+  list.querySelectorAll('.sr-leave-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await API.tournaments.leave(btn.dataset.id);
+        tournamentsData = null;
+        await renderResults();
+      } catch (e) {
+        alert('Помилка: ' + (e.message || 'unknown'));
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 document.getElementById('results-filter').addEventListener('click', e => {
@@ -1881,7 +1969,10 @@ function updateLevelHint() {
   const hint = document.getElementById('ct-level-hint');
   if (!tournamentLevels || !sel.value) { hint.textContent = ''; return; }
   const lvl = tournamentLevels.find(l => l.value === sel.value);
-  if (lvl) hint.textContent = `Рейтинговий стелт: ${lvl.ratingCeiling} pts · Стартові очки: ${lvl.startingPoints}`;
+  if (!lvl) return;
+  hint.textContent = `Стартові очки: ${lvl.startingPoints}`;
+  const maxInput = document.getElementById('ct-max-rating');
+  if (!maxInput.value && lvl.ratingCeiling !== '—') maxInput.value = lvl.ratingCeiling;
 }
 
 document.getElementById('ct-level').addEventListener('change', updateLevelHint);
@@ -1890,16 +1981,23 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const name = document.getElementById('ct-name').value.trim();
   const date = document.getElementById('ct-date').value;
   const level = document.getElementById('ct-level').value;
+  const type = document.getElementById('ct-type').value;
   if (!name || !date || !level) { alert('Заповніть всі поля'); return; }
+  const maxParticipants = parseInt(document.getElementById('ct-max-participants').value) || null;
+  const minRating = parseInt(document.getElementById('ct-min-rating').value) || null;
+  const maxRating = parseInt(document.getElementById('ct-max-rating').value) || null;
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
-    await API.tournaments.create({ name, date, level });
+    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating });
     tournamentsData = null;
     closeModal('modal-create-tournament');
     document.getElementById('ct-name').value = '';
     document.getElementById('ct-date').value = '';
+    document.getElementById('ct-max-participants').value = '';
+    document.getElementById('ct-min-rating').value = '';
+    document.getElementById('ct-max-rating').value = '';
     alert('Турнір створено!');
   } catch (e) {
     alert('Помилка: ' + (e.message || 'unknown'));
@@ -1911,6 +2009,8 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
 /* ── Submit results ─────────────────────────────────────────────── */
 let srPairCount = 2;
 let srParticipants = [];
+let srTournamentType = 'PAIR';
+let srTournamentsAll = [];
 
 async function openSubmitResults() {
   openModal('modal-submit-results');
@@ -1918,9 +2018,12 @@ async function openSubmitResults() {
   sel.innerHTML = '<option>Завантаження...</option>';
   srParticipants = [];
   try {
-    const all = await API.tournaments.list();
-    const active = all.filter(t => t.status !== 'FINISHED');
-    sel.innerHTML = active.map(t => `<option value="${t.id}">${t.name} [${t.level || ''}]</option>`).join('');
+    srTournamentsAll = await API.tournaments.list();
+    const active = srTournamentsAll.filter(t => t.status !== 'FINISHED');
+    sel.innerHTML = active.map(t => {
+      const typeLabel = t.type === 'SINGLE' ? 'Один.' : 'Пар.';
+      return `<option value="${t.id}">${t.name} [${t.level || ''} ${typeLabel}]</option>`;
+    }).join('');
     if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
     await loadSrParticipants(sel.value);
   } catch {
@@ -1933,6 +2036,8 @@ async function openSubmitResults() {
 
 async function loadSrParticipants(tournamentId) {
   if (!tournamentId) { srParticipants = []; renderPairRows(); return; }
+  const t = srTournamentsAll.find(t => String(t.id) === String(tournamentId));
+  srTournamentType = t?.type || 'PAIR';
   try {
     srParticipants = await API.tournaments.getParticipants(tournamentId);
   } catch {
@@ -1956,14 +2061,15 @@ function participantOptions(excludeId) {
 function renderPairRows() {
   const c = document.getElementById('sr-pairs-container');
   const useDropdowns = srParticipants.length > 0;
+  const isSingle = srTournamentType === 'SINGLE';
   let html = '';
   for (let i = 1; i <= srPairCount; i++) {
     const p1Field = useDropdowns
       ? `<select class="form-select" id="p${i}-p1">${participantOptions('')}</select>`
-      : `<input class="form-input" placeholder="Гравець 1" id="p${i}-p1">`;
-    const p2Field = useDropdowns
+      : `<input class="form-input" placeholder="${isSingle ? 'Гравець' : 'Гравець 1'}" id="p${i}-p1">`;
+    const p2Field = isSingle ? '' : (useDropdowns
       ? `<select class="form-select" id="p${i}-p2">${participantOptions('')}</select>`
-      : `<input class="form-input" placeholder="Гравець 2" id="p${i}-p2">`;
+      : `<input class="form-input" placeholder="Гравець 2" id="p${i}-p2">`);
     html += `
       <div class="pair-row" id="pair-row-${i}">
         <div class="pair-row-header">
@@ -2240,8 +2346,8 @@ const TABS = {
   ratings: 'tab-ratings',
   profile: 'tab-profile',
 };
-let currentTab = 'club';
-let rendered = { club: true, results: false, ratings: false, profile: false };
+let currentTab = 'ratings';
+let rendered = { club: false, results: false, ratings: true, profile: false };
 
 function switchTab(tab) {
   if (tab === currentTab) return;
@@ -2287,8 +2393,8 @@ updateNavIcons();
 ════════════════════════════════════════════════════════════════ */
 if (tg) {
   tg.BackButton.onClick(() => {
-    if (currentTab !== 'club') {
-      switchTab('club');
+    if (currentTab !== 'ratings') {
+      switchTab('ratings');
       tg.BackButton.hide();
     } else {
       tg.close();
@@ -2297,7 +2403,7 @@ if (tg) {
 
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.tab !== 'club') tg.BackButton.show();
+      if (btn.dataset.tab !== 'ratings') tg.BackButton.show();
       else tg.BackButton.hide();
     });
   });
@@ -2308,6 +2414,7 @@ if (tg) {
 ════════════════════════════════════════════════════════════════ */
 apiBootstrap().then(() => {
   updateMemberCount();
+  renderRatings(); // default tab — render immediately after auth resolves
 });
 </script>
 </body>
