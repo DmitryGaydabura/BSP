@@ -1709,15 +1709,13 @@
 
         <!-- Raketo search -->
         <div class="form-group">
-          <label class="form-label">Знайдіть себе в Raketo (Одеса)</label>
+          <label class="form-label">Знайдіть себе в Raketo за прізвищем</label>
           <div style="display:flex;gap:8px">
-            <input class="form-input" id="cp-search" type="text" placeholder="Введіть ваше ім'я..." autocomplete="off" style="flex:1">
+            <input class="form-input" id="cp-search" type="text" placeholder="Введіть прізвище..." autocomplete="off" style="flex:1">
             <button class="btn-primary" id="cp-search-btn" style="padding:0 18px;flex-shrink:0;font-size:16px">🔍</button>
           </div>
         </div>
         <div id="cp-results"></div>
-
-        <div class="claim-divider">або введіть вручну</div>
 
         <!-- Gender -->
         <div class="form-group">
@@ -1728,45 +1726,8 @@
           </div>
         </div>
 
-        <!-- Raketo rating -->
-        <div class="form-group">
-          <label class="form-label">Рейтинг Raketo <span id="cp-rating-val" style="color:var(--gold);margin-left:6px">1.5</span></label>
-          <input class="claim-slider" id="cp-rating" type="range" min="0.0" max="7.0" step="0.1" value="1.5">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:2px">
-            <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
-          </div>
-        </div>
-
-        <!-- Colour confidence -->
-        <div class="form-group">
-          <label class="form-label">Колір рейтингу</label>
-          <div class="claim-color-chips" id="cp-color">
-            <button class="claim-color-chip" data-val="RED">
-              <span class="color-dot red"></span>
-              <span class="color-info">
-                <span class="color-name">Червоний</span>
-                <span class="color-desc">менше 16 матчів</span>
-              </span>
-            </button>
-            <button class="claim-color-chip" data-val="YELLOW">
-              <span class="color-dot yellow"></span>
-              <span class="color-info">
-                <span class="color-name">Жовтий</span>
-                <span class="color-desc">менше 40 матчів</span>
-              </span>
-            </button>
-            <button class="claim-color-chip" data-val="GREEN">
-              <span class="color-dot green"></span>
-              <span class="color-info">
-                <span class="color-name">Зелений</span>
-                <span class="color-desc">40+ матчів</span>
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Preview -->
-        <div class="claim-preview" id="cp-preview">
+        <!-- Preview (shown after Raketo user selected) -->
+        <div class="claim-preview" id="cp-preview" style="display:none">
           <div class="claim-preview-label">Ваші стартові очки</div>
           <div class="claim-preview-pts" id="cp-preview-pts">—</div>
           <div class="claim-preview-level" id="cp-preview-level"></div>
@@ -2501,44 +2462,31 @@ function renderRaketoResults(users) {
 
 function openClaimPointsModal() {
   openModal('modal-claim-points');
-  let gender = null, color = null;
+  let gender = null, selectedRating = null, selectedColor = null;
 
-  const slider    = document.getElementById('cp-rating');
-  const ratingVal = document.getElementById('cp-rating-val');
+  const previewBox   = document.getElementById('cp-preview');
   const previewPts   = document.getElementById('cp-preview-pts');
   const previewLevel = document.getElementById('cp-preview-level');
   const submitBtn    = document.getElementById('cp-submit');
   const resultsBox   = document.getElementById('cp-results');
 
   function updatePreview() {
-    const rating = parseFloat(slider.value);
-    ratingVal.textContent = rating.toFixed(1);
-    if (color) {
-      const p = raketoPreview(rating, color);
+    submitBtn.disabled = !(gender && selectedRating !== null);
+    if (selectedRating !== null && selectedColor) {
+      const p = raketoPreview(selectedRating, selectedColor);
       previewPts.textContent = p.pts;
       previewLevel.textContent = `Рівень BSP: ${p.level}`;
-    } else {
-      previewPts.textContent = '—';
-      previewLevel.textContent = 'Оберіть колір рейтингу';
+      previewBox.style.display = '';
     }
-    submitBtn.disabled = !(gender && color);
-  }
-
-  function selectColor(val) {
-    color = val;
-    document.querySelectorAll('#cp-color .claim-color-chip').forEach(b => {
-      b.classList.toggle('active', b.dataset.val === val);
-    });
-    updatePreview();
   }
 
   function applyRaketoUser(u) {
-    slider.value = Math.min(7, Math.max(0, u.padelRating));
-    selectColor(u.color);
+    selectedRating = u.padelRating;
+    selectedColor  = u.color;
     updatePreview();
   }
 
-  // Raketo search
+  // Search
   let searchTimer = null;
   let lastQuery = '';
 
@@ -2574,8 +2522,6 @@ function openClaimPointsModal() {
   searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(); } });
   document.getElementById('cp-search-btn').onclick = () => { clearTimeout(searchTimer); doSearch(); };
 
-  slider.addEventListener('input', updatePreview);
-
   document.querySelectorAll('#cp-gender .claim-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#cp-gender .claim-chip').forEach(b => b.classList.remove('active'));
@@ -2585,19 +2531,15 @@ function openClaimPointsModal() {
     });
   });
 
-  document.querySelectorAll('#cp-color .claim-color-chip').forEach(btn => {
-    btn.addEventListener('click', () => { selectColor(btn.dataset.val); });
-  });
-
   submitBtn.onclick = async () => {
-    if (!gender || !color) return;
+    if (!gender || selectedRating === null) return;
     submitBtn.disabled = true;
     submitBtn.textContent = '...';
     try {
       currentUser = await API.users.claimInitialPoints({
         gender,
-        raketoRating: parseFloat(slider.value),
-        raketoColor: color,
+        raketoRating: selectedRating,
+        raketoColor: selectedColor,
       });
       closeModal('modal-claim-points');
       renderProfile();
@@ -2607,8 +2549,6 @@ function openClaimPointsModal() {
       submitBtn.textContent = 'Отримати стартові очки';
     }
   };
-
-  updatePreview();
 }
 
 function renderAdminPanel() {
