@@ -126,34 +126,34 @@
     /* ── Bottom Navigation ─────────────────────────────────────── */
     #bottom-nav {
       flex-shrink: 0;
-      background: rgba(13,27,46,0.99);
-      border-top: 1px solid var(--border-def);
-      box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+      background: rgba(13,27,46,0.98);
+      border-top: 1px solid var(--border-sub);
+      box-shadow: 0 -6px 24px rgba(0,0,0,0.35);
       display: flex;
       align-items: flex-start;
       position: relative;
       z-index: 10;
-      padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+      padding-bottom: env(safe-area-inset-bottom, 4px);
     }
     .nav-tab {
       flex: 1;
-      height: 62px;
+      height: 52px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
       transition: all 200ms var(--ease);
       position: relative;
     }
     .nav-tab .nav-icon {
-      width: 24px; height: 24px;
+      width: 22px; height: 22px;
       transition: all 200ms var(--ease);
     }
     .nav-tab .nav-label {
-      font-size: 10px; font-weight: 700;
-      letter-spacing: 0.1em; text-transform: uppercase;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
       color: var(--text-dim);
       transition: color 200ms var(--ease);
     }
@@ -518,95 +518,9 @@
     /* ════════════════════════════════════════════════════════════
        TAB 3 — РЕЙТИНГ
     ═══════════════════════════════════════════════════════════════ */
-    /* Club intro banner */
-    .club-intro {
-      padding: 20px 16px 16px;
-      background: linear-gradient(180deg, var(--navy-mid) 0%, var(--navy-deep) 100%);
-      border-bottom: 1px solid var(--border-sub);
-      text-align: center;
-    }
-    .club-intro-logo {
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      margin-bottom: 8px;
-    }
-    .club-intro-logo img { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--border-str); }
-    .club-intro-name {
-      font-family: var(--font-brand);
-      font-size: 17px; font-weight: 700; letter-spacing: 0.06em;
-      color: var(--gold); text-transform: uppercase;
-    }
-    .club-intro-text {
-      font-size: 12px; line-height: 1.6;
-      color: var(--text-sec);
-      max-width: 340px; margin: 0 auto;
-    }
-
-    /* Rating system section */
-    .rating-system {
-      padding: 20px 16px;
-      border-top: 1px solid var(--border-sub);
-    }
-    .rating-system-title {
-      font-family: var(--font-brand);
-      font-size: 13px; font-weight: 700;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      color: var(--gold); margin-bottom: 10px;
-    }
-    .rating-system-desc {
-      font-size: 12px; line-height: 1.7; color: var(--text-sec);
-      margin-bottom: 16px;
-    }
-    .rating-system-desc strong { color: var(--white-warm); }
-    .points-matrix {
-      width: 100%; border-collapse: collapse;
-      font-size: 11px; font-family: var(--font-mono);
-    }
-    .points-matrix th {
-      padding: 6px 4px; text-align: center;
-      font-size: 10px; font-weight: 700; letter-spacing: 0.05em;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-sub);
-    }
-    .points-matrix th:first-child { text-align: left; }
-    .points-matrix td {
-      padding: 5px 4px; text-align: center;
-      color: var(--text-sec); border-bottom: 1px solid rgba(30,50,74,0.5);
-    }
-    .points-matrix td:first-child {
-      text-align: left; color: var(--gold); font-weight: 700;
-    }
-    .points-matrix td.pts-top { color: var(--white-warm); font-weight: 700; }
-    .points-matrix tr:last-child td { border-bottom: none; }
-
-    /* Rating history */
-    .history-section {
-      padding: 0 16px 24px;
-    }
-    .history-title {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--text-muted); margin-bottom: 10px; padding-top: 16px;
-      border-top: 1px solid var(--border-sub);
-    }
-    .history-row {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 0; border-bottom: 1px solid rgba(30,50,74,0.5);
-    }
-    .history-row:last-child { border-bottom: none; }
-    .history-level {
-      font-size: 10px; font-weight: 700;
-      padding: 2px 7px; border-radius: 10px;
-      background: rgba(201,168,76,0.12); color: var(--gold);
-      flex-shrink: 0;
-    }
-    .history-name { flex: 1; font-size: 12px; color: var(--white-warm); }
-    .history-date { font-size: 10px; color: var(--text-dim); }
-    .history-pts {
-      font-family: var(--font-mono); font-size: 13px; font-weight: 700;
-      color: var(--success); flex-shrink: 0;
-    }
-
     .ratings-header {
-      padding: 16px 16px 12px;
+      padding: 24px 16px 16px;
+      background: linear-gradient(180deg, var(--navy-mid) 0%, var(--navy-deep) 100%);
       border-bottom: 1px solid var(--border-sub);
     }
     .ratings-updated {
@@ -1095,7 +1009,7 @@
   </style>
 </head>
 <body>
-2<div id="app">
+<div id="app">
 
   <!-- Header -->
   <header id="header">
@@ -1267,22 +1181,15 @@
 
     <!-- ═══ TAB: РЕЙТИНГ ══════════════════════════════════════════ -->
     <div id="tab-ratings" class="tab-panel active">
-
-      <!-- Club intro -->
-      <div class="club-intro">
-        <div class="club-intro-logo">
-          <img src="logo.png" alt="BSP" onerror="this.style.display='none'">
-          <div class="club-intro-name">Blacksea Padel</div>
-        </div>
-        <div class="club-intro-text">
-          Padel-клуб на березі Чорного моря. Ми об'єднуємо гравців усіх рівнів — від початківців до досвідчених — у дружній атмосфері змагань і розвитку.
-        </div>
-      </div>
-
-      <!-- Rating header + filters -->
       <div class="ratings-header">
-        <div class="section-eyebrow">Рейтинг гравців</div>
-        <div class="section-title">Таблиця лідерів</div>
+        <div class="section-eyebrow">Blacksea Padel</div>
+        <div class="section-title">Рейтинг гравців</div>
+        <div class="filter-row cat-filter" id="ratings-filter">
+          <button class="filter-chip active" data-cat="all">Всі</button>
+          <button class="filter-chip" data-cat="men">Чоловіки</button>
+          <button class="filter-chip" data-cat="women">Жінки</button>
+          <button class="filter-chip" data-cat="mixed">Mixed</button>
+        </div>
         <div class="ratings-updated" id="ratings-updated"></div>
       </div>
 
@@ -1304,35 +1211,6 @@
           <!-- rendered by JS -->
         </div>
       </div>
-
-      <!-- Rating system explanation -->
-      <div class="rating-system">
-        <div class="rating-system-title">Як рахується рейтинг</div>
-        <div class="rating-system-desc">
-          Рейтинг кожного гравця = <strong>стартові очки</strong> + сума <strong>10 найкращих</strong> результатів з усіх зіграних турнірів.<br><br>
-          Стартові очки визначаються рівнем гравця за шкалою Raketo (D = 1000 pts, D+ = 1250, C− = 1500, … B+ = 2750).<br><br>
-          Очки за турнір залежать від <strong>рівня турніру</strong> та зайнятого місця. Чим вищий рівень — тим більше балів.
-        </div>
-        <table class="points-matrix">
-          <thead>
-            <tr>
-              <th>Рівень</th>
-              <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>D</td>      <td class="pts-top">80</td> <td>56</td><td>39</td><td>27</td><td>19</td><td>13</td><td>9</td><td>6</td></tr>
-            <tr><td>D+</td>     <td class="pts-top">100</td><td>70</td><td>49</td><td>34</td><td>24</td><td>17</td><td>12</td><td>8</td></tr>
-            <tr><td>C−</td>     <td class="pts-top">125</td><td>88</td><td>62</td><td>43</td><td>30</td><td>21</td><td>15</td><td>10</td></tr>
-            <tr><td>C</td>      <td class="pts-top">155</td><td>110</td><td>77</td><td>54</td><td>38</td><td>27</td><td>19</td><td>13</td></tr>
-            <tr><td>C+</td>     <td class="pts-top">195</td><td>137</td><td>96</td><td>67</td><td>47</td><td>33</td><td>23</td><td>16</td></tr>
-            <tr><td>B−</td>     <td class="pts-top">240</td><td>168</td><td>118</td><td>83</td><td>58</td><td>41</td><td>29</td><td>20</td></tr>
-            <tr><td>B</td>      <td class="pts-top">300</td><td>210</td><td>147</td><td>103</td><td>72</td><td>50</td><td>35</td><td>25</td></tr>
-            <tr><td>B+</td>     <td class="pts-top">375</td><td>263</td><td>184</td><td>129</td><td>90</td><td>63</td><td>44</td><td>31</td></tr>
-          </tbody>
-        </table>
-      </div>
-
     </div>
 
     <!-- ═══ TAB: ПРОФІЛЬ ══════════════════════════════════════════ -->
@@ -1816,16 +1694,18 @@ document.getElementById('results-filter').addEventListener('click', e => {
    RENDER — RATINGS
 ════════════════════════════════════════════════════════════════ */
 
+let activeRatCat = 'all';
 let ratingsData = null;
 
 function normalizeRating(r) {
+  // Map API RatingEntryDto to local shape
   return {
     name: r.name || r.displayName,
     pts: r.ratingPoints,
-    startingPts: r.startingPoints || 0,
     wins: r.wins,
     losses: r.losses,
     change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
+    cat: ['all', 'men'], // TODO: extend API to return gender
   };
 }
 
@@ -1838,7 +1718,7 @@ async function renderRatings() {
   }
   if (ratingsData) source = ratingsData;
 
-  const filtered = source;
+  const filtered = source.filter(p => activeRatCat === 'all' || (p.cat && p.cat.includes(activeRatCat)));
 
   /* Podium */
   const top3 = filtered.slice(0, 3);
@@ -1879,7 +1759,6 @@ async function renderRatings() {
         <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
         <div class="lb-name">
           <div class="lb-name-text">${p.name}</div>
-          ${p.startingPts ? `<div class="lb-name-extra">старт ${p.startingPts}</div>` : ''}
         </div>
         <span class="lb-pts">${p.pts}</span>
         <span class="lb-wl">${p.wins}/${p.losses}</span>
@@ -1894,6 +1773,14 @@ async function renderRatings() {
     'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+document.getElementById('ratings-filter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#ratings-filter .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeRatCat = chip.dataset.cat;
+  renderRatings();
+});
 
 /* ════════════════════════════════════════════════════════════════
    MEMBER COUNT
@@ -1977,11 +1864,7 @@ function renderProfile() {
     <div class="profile-stats">
       <div class="profile-stat">
         <div class="profile-stat-value">${u.ratingPoints}</div>
-        <div class="profile-stat-label">Рейтинг</div>
-      </div>
-      <div class="profile-stat">
-        <div class="profile-stat-value">${u.startingPoints || 0}</div>
-        <div class="profile-stat-label">Старт</div>
+        <div class="profile-stat-label">Очки</div>
       </div>
       <div class="profile-stat">
         <div class="profile-stat-value">${u.wins}/${u.losses}</div>
@@ -1989,18 +1872,13 @@ function renderProfile() {
       </div>
       <div class="profile-stat">
         <div class="profile-stat-value">${winPct}</div>
-        <div class="profile-stat-label">%</div>
+        <div class="profile-stat-label">Процент</div>
       </div>
-    </div>
-
-    <div class="history-section" id="history-section">
-      <div class="history-title">Історія турнірів</div>
-      <div id="history-rows" style="color:var(--text-muted);font-size:12px">Завантаження...</div>
     </div>
 
     ${isAdmin ? renderAdminPanel() : ''}
 
-    <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:8px">Вийти</button>
+    <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
   `;
 
   document.getElementById('logout-btn').addEventListener('click', () => {
@@ -2010,28 +1888,6 @@ function renderProfile() {
   });
 
   if (isAdmin) wireAdminPanel();
-
-  // Load history async
-  API.users.history().then(history => {
-    const el = document.getElementById('history-rows');
-    if (!el) return;
-    if (!history.length) { el.textContent = 'Турнірів ще немає'; return; }
-    el.innerHTML = history.map(h => {
-      const d = new Date(h.createdAt);
-      const dateStr = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
-      return `<div class="history-row">
-        <span class="history-level">${h.tournamentLevel}</span>
-        <div>
-          <div class="history-name">${h.tournamentName}</div>
-          <div class="history-date">${dateStr}</div>
-        </div>
-        <span class="history-pts">+${h.pointsDelta}</span>
-      </div>`;
-    }).join('');
-  }).catch(() => {
-    const el = document.getElementById('history-rows');
-    if (el) el.textContent = 'Не вдалося завантажити';
-  });
 }
 
 function renderAdminPanel() {
