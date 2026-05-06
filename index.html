@@ -1000,6 +1000,62 @@
     }
 
     /* ── Claim initial points modal ────────────────────────────── */
+    .claim-divider {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .claim-divider::before, .claim-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border-sub);
+    }
+    .raketo-results {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .raketo-result {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border-sub);
+      cursor: pointer; transition: all 160ms var(--ease);
+    }
+    .raketo-result:hover, .raketo-result.active {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.07);
+    }
+    .raketo-result-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--navy-subtle);
+      border: 1.5px solid var(--border-def);
+      flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand); font-size: 14px;
+      font-weight: 700; color: var(--gold);
+    }
+    .raketo-result-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .raketo-result-body { flex: 1; min-width: 0; }
+    .raketo-result-name {
+      font-size: 13px; font-weight: 600; color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .raketo-result-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+    .raketo-result-rating { font-size: 12px; font-weight: 700; color: var(--gold); }
+    .raketo-result-matches { font-size: 11px; color: var(--text-muted); }
+    .raketo-result-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .raketo-result-dot.red    { background: #E05545; }
+    .raketo-result-dot.yellow { background: #D4A017; }
+    .raketo-result-dot.green  { background: #3BAA6A; }
+    .raketo-no-result {
+      padding: 14px; text-align: center;
+      font-size: 13px; color: var(--text-muted);
+      background: var(--navy-light); border-radius: 10px;
+    }
+    .raketo-searching {
+      padding: 12px; text-align: center;
+      font-size: 13px; color: var(--text-muted);
+    }
     .claim-intro {
       font-size: 13px; color: var(--text-sec); line-height: 1.6;
       background: var(--navy-light);
@@ -1650,9 +1706,18 @@
         <button class="modal-close" data-close="modal-claim-points">✕</button>
       </div>
       <div class="modal-body">
-        <div class="claim-intro">
-          Введіть ваш рейтинг Raketo — ми нарахуємо стартові очки відповідно до вашого рівня. Зробити це можна лише один раз.
+
+        <!-- Raketo search -->
+        <div class="form-group">
+          <label class="form-label">Знайдіть себе в Raketo (Одеса)</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="cp-search" type="text" placeholder="Введіть ваше ім'я..." autocomplete="off" style="flex:1">
+            <button class="btn-primary" id="cp-search-btn" style="padding:0 18px;flex-shrink:0;font-size:16px">🔍</button>
+          </div>
         </div>
+        <div id="cp-results"></div>
+
+        <div class="claim-divider">або введіть вручну</div>
 
         <!-- Gender -->
         <div class="form-group">
@@ -2318,19 +2383,112 @@ const COLOR_STEPS = { GREEN: 0, YELLOW: -1, RED: -2 };
 
 function raketoPreview(rating, color) {
   const idx = RAKETO_LEVELS.findIndex(l => rating < l.max);
-  const levelIdx = Math.max(0, idx + (COLOR_STEPS[color] ?? 0));
-  return RAKETO_LEVELS[Math.max(0, Math.min(levelIdx, RAKETO_LEVELS.length - 1))];
+  const safeIdx = idx === -1 ? RAKETO_LEVELS.length - 1 : idx;
+  const levelIdx = Math.max(0, Math.min(safeIdx + (COLOR_STEPS[color] ?? 0), RAKETO_LEVELS.length - 1));
+  return RAKETO_LEVELS[levelIdx];
+}
+
+/* ── Raketo Firestore integration ───────────────────────────── */
+
+let raketoCache = null;
+
+function parseFirestoreValue(v) {
+  if (!v) return null;
+  if ('stringValue'  in v) return v.stringValue;
+  if ('doubleValue'  in v) return v.doubleValue;
+  if ('integerValue' in v) return parseInt(v.integerValue, 10);
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('mapValue'     in v) {
+    const out = {};
+    for (const [k, fv] of Object.entries(v.mapValue.fields || {})) out[k] = parseFirestoreValue(fv);
+    return out;
+  }
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(parseFirestoreValue);
+  return null;
+}
+
+function parseRaketoDoc(doc) {
+  const f = doc.fields || {};
+  const ratings = parseFirestoreValue(f.ratings) || {};
+  const matches = parseFirestoreValue(f.matches) || {};
+  const name = parseFirestoreValue(f.display_name) || '';
+  if (!name || name === 'Not Selected' || name === 'Bye') return null;
+  const padelRating = ratings.padel_dbl ?? 0;
+  const padelMatches = (matches.padel_dbl_num ?? 0) + (matches.padel_americano_num ?? 0);
+  const color = padelMatches >= 40 ? 'GREEN' : padelMatches >= 16 ? 'YELLOW' : 'RED';
+  return {
+    name,
+    photoUrl: parseFirestoreValue(f.photo_url) || null,
+    padelRating: Math.round(padelRating * 1000) / 1000,
+    padelMatches,
+    color,
+  };
+}
+
+async function fetchOdessaRaketo() {
+  if (raketoCache) return raketoCache;
+  const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'users' }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: 'city' },
+            op: 'EQUAL',
+            value: { stringValue: 'Odessa' },
+          },
+        },
+        limit: 500,
+      },
+    }),
+  });
+  if (!res.ok) throw new Error('Raketo API error');
+  const items = await res.json();
+  raketoCache = items
+    .filter(i => i.document)
+    .map(i => parseRaketoDoc(i.document))
+    .filter(Boolean);
+  return raketoCache;
+}
+
+function renderRaketoResults(users) {
+  if (!users.length) {
+    return `<div class="raketo-no-result">Raketo профіль не знайдено. Перевірте написання або введіть дані вручну.</div>`;
+  }
+  return `<div class="raketo-results">${users.map((u, i) => {
+    const dotCls = u.color.toLowerCase();
+    const ratingStr = u.padelRating > 0 ? u.padelRating.toFixed(3) : '—';
+    const initStr = u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+    return `
+      <div class="raketo-result" data-idx="${i}">
+        <div class="raketo-result-avatar">
+          ${u.photoUrl ? `<img src="${u.photoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${initStr}</span>` : initStr}
+        </div>
+        <div class="raketo-result-body">
+          <div class="raketo-result-name">${u.name}</div>
+          <div class="raketo-result-meta">
+            <span class="raketo-result-dot ${dotCls}"></span>
+            <span class="raketo-result-rating">Padel ${ratingStr}</span>
+            <span class="raketo-result-matches">${u.padelMatches} матчів</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('')}</div>`;
 }
 
 function openClaimPointsModal() {
   openModal('modal-claim-points');
   let gender = null, color = null;
 
-  const slider = document.getElementById('cp-rating');
+  const slider    = document.getElementById('cp-rating');
   const ratingVal = document.getElementById('cp-rating-val');
-  const previewPts = document.getElementById('cp-preview-pts');
+  const previewPts   = document.getElementById('cp-preview-pts');
   const previewLevel = document.getElementById('cp-preview-level');
-  const submitBtn = document.getElementById('cp-submit');
+  const submitBtn    = document.getElementById('cp-submit');
+  const resultsBox   = document.getElementById('cp-results');
 
   function updatePreview() {
     const rating = parseFloat(slider.value);
@@ -2346,6 +2504,44 @@ function openClaimPointsModal() {
     submitBtn.disabled = !(gender && color);
   }
 
+  function selectColor(val) {
+    color = val;
+    document.querySelectorAll('#cp-color .claim-color-chip').forEach(b => {
+      b.classList.toggle('active', b.dataset.val === val);
+    });
+    updatePreview();
+  }
+
+  function applyRaketoUser(u) {
+    slider.value = Math.min(7, Math.max(0, u.padelRating));
+    selectColor(u.color);
+    updatePreview();
+  }
+
+  // Raketo search
+  async function doSearch() {
+    const q = document.getElementById('cp-search').value.trim();
+    if (!q) return;
+    resultsBox.innerHTML = '<div class="raketo-searching">Пошук...</div>';
+    try {
+      const all = await fetchOdessaRaketo();
+      const matched = all.filter(u => u.name.toLowerCase().includes(q.toLowerCase()));
+      resultsBox.innerHTML = renderRaketoResults(matched, applyRaketoUser);
+      resultsBox.querySelectorAll('.raketo-result').forEach((el, i) => {
+        el.addEventListener('click', () => {
+          resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
+          el.classList.add('active');
+          applyRaketoUser(matched[i]);
+        });
+      });
+    } catch {
+      resultsBox.innerHTML = '<div class="raketo-no-result">Не вдалося завантажити дані Raketo.</div>';
+    }
+  }
+
+  document.getElementById('cp-search-btn').onclick = doSearch;
+  document.getElementById('cp-search').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
   slider.addEventListener('input', updatePreview);
 
   document.querySelectorAll('#cp-gender .claim-chip').forEach(btn => {
@@ -2358,12 +2554,7 @@ function openClaimPointsModal() {
   });
 
   document.querySelectorAll('#cp-color .claim-color-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#cp-color .claim-color-chip').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      color = btn.dataset.val;
-      updatePreview();
-    });
+    btn.addEventListener('click', () => { selectColor(btn.dataset.val); });
   });
 
   submitBtn.onclick = async () => {
@@ -2371,12 +2562,11 @@ function openClaimPointsModal() {
     submitBtn.disabled = true;
     submitBtn.textContent = '...';
     try {
-      const updated = await API.users.claimInitialPoints({
+      currentUser = await API.users.claimInitialPoints({
         gender,
         raketoRating: parseFloat(slider.value),
         raketoColor: color,
       });
-      currentUser = updated;
       closeModal('modal-claim-points');
       renderProfile();
     } catch (e) {
