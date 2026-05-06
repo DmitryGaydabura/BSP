@@ -126,26 +126,26 @@
     /* ── Bottom Navigation ─────────────────────────────────────── */
     #bottom-nav {
       flex-shrink: 0;
-      height: var(--nav-h);
       background: rgba(13,27,46,0.98);
       border-top: 1px solid var(--border-sub);
+      box-shadow: 0 -6px 24px rgba(0,0,0,0.35);
       display: flex;
-      align-items: stretch;
+      align-items: flex-start;
       position: relative;
       z-index: 10;
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-bottom: env(safe-area-inset-bottom, 4px);
     }
     .nav-tab {
       flex: 1;
+      height: 52px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
       transition: all 200ms var(--ease);
       position: relative;
-      padding-bottom: 2px;
     }
     .nav-tab .nav-icon {
       width: 22px; height: 22px;
@@ -768,6 +768,25 @@
       border-color: rgba(224,85,69,0.3);
     }
     .btn-danger:hover { border-color: var(--error); }
+    .chip-btn {
+      display: inline-flex; align-items: center;
+      font-family: var(--font-body);
+      font-size: 11px; font-weight: 700;
+      padding: 5px 14px; border-radius: 20px;
+      border: 1px solid; cursor: pointer;
+      transition: opacity 200ms var(--ease);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .chip-btn:disabled { opacity: 0.5; cursor: default; }
+    .chip-btn:active { opacity: 0.75; }
+    .chip-join {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-deep); border-color: transparent;
+    }
+    .chip-leave {
+      background: transparent;
+      color: var(--error); border-color: rgba(224,85,69,0.4);
+    }
 
     /* Logged in profile */
     .profile-hero {
@@ -1261,7 +1280,7 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <span class="modal-title">Результати турніру</span>
+        <span class="modal-title">Порядок місць</span>
         <button class="modal-close" data-close="modal-submit-results">✕</button>
       </div>
       <div class="modal-body">
@@ -1269,12 +1288,13 @@
           <label class="form-label">Турнір</label>
           <select class="form-select" id="sr-tournament-select"></select>
         </div>
+        <div id="sr-info" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
         <div id="sr-pairs-container">
-          <!-- pair rows injected by JS -->
+          <!-- position rows injected by JS -->
         </div>
-        <button class="btn-secondary" id="sr-add-pair" style="width:100%">+ Додати пару</button>
-        <button class="btn-primary" id="sr-submit" style="width:100%;margin-top:4px">Зберегти результати</button>
-        <button class="btn-primary" id="sr-finalize" style="width:100%;background:linear-gradient(135deg,var(--success),#2a8a55);margin-top:4px">Завершити та нарахувати рейтинг</button>
+        <button class="btn-secondary" id="sr-add-pair" style="width:100%;margin-bottom:8px">+ Ще одне місце</button>
+        <button class="btn-primary" id="sr-submit" style="width:100%">Зберегти</button>
+        <button class="btn-primary" id="sr-finalize" style="width:100%;background:linear-gradient(135deg,var(--success),#2a8a55);margin-top:6px">Завершити та нарахувати рейтинг</button>
       </div>
     </div>
   </div>
@@ -1590,14 +1610,8 @@ async function renderResults() {
 
     const joinBtn = canJoin
       ? (isEnrolled
-          ? `<button class="btn-secondary sr-leave-btn" data-id="${t.id}"
-               style="font-size:11px;padding:4px 10px;height:28px;color:var(--error);border-color:var(--error)">
-               Вийти
-             </button>`
-          : `<button class="btn-primary sr-join-btn" data-id="${t.id}"
-               style="font-size:11px;padding:4px 10px;height:28px">
-               Приєднатись
-             </button>`)
+          ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Вийти</button>`
+          : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Приєднатись</button>`)
       : '';
 
     const resultsHtml = (t.results || []).length > 0
@@ -2022,20 +2036,17 @@ async function openSubmitResults() {
     const active = srTournamentsAll.filter(t => t.status !== 'FINISHED');
     sel.innerHTML = active.map(t => {
       const typeLabel = t.type === 'SINGLE' ? 'Один.' : 'Пар.';
-      return `<option value="${t.id}">${t.name} [${t.level || ''} ${typeLabel}]</option>`;
+      return `<option value="${t.id}">${t.name} [${t.levelLabel || t.level || ''} · ${typeLabel}]</option>`;
     }).join('');
     if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
     await loadSrParticipants(sel.value);
   } catch {
     sel.innerHTML = '<option>Помилка завантаження</option>';
   }
-
-  srPairCount = 2;
-  renderPairRows();
 }
 
 async function loadSrParticipants(tournamentId) {
-  if (!tournamentId) { srParticipants = []; renderPairRows(); return; }
+  if (!tournamentId) { srParticipants = []; renderPositionRows(); return; }
   const t = srTournamentsAll.find(t => String(t.id) === String(tournamentId));
   srTournamentType = t?.type || 'PAIR';
   try {
@@ -2043,89 +2054,62 @@ async function loadSrParticipants(tournamentId) {
   } catch {
     srParticipants = [];
   }
-  renderPairRows();
+  const isSingle = srTournamentType === 'SINGLE';
+  const count = srParticipants.length;
+  srPairCount = count > 0
+    ? (isSingle ? count : Math.ceil(count / 2))
+    : 4;
+  const info = document.getElementById('sr-info');
+  if (count > 0) {
+    info.textContent = `${count} учасник${count === 1 ? '' : count < 5 ? 'и' : 'ів'} · ${isSingle ? 'одиночний' : 'парний'}`;
+  } else {
+    info.textContent = 'Учасників не знайдено — оберіть гравців вручну';
+  }
+  renderPositionRows();
 }
 
 document.getElementById('sr-tournament-select').addEventListener('change', async e => {
   await loadSrParticipants(e.target.value);
 });
 
-function participantOptions(excludeId) {
-  const empty = `<option value="">—</option>`;
-  return empty + srParticipants
-    .filter(u => String(u.id) !== String(excludeId))
-    .map(u => `<option value="${u.id}">${u.displayName} (${u.ratingPoints} pts)</option>`)
-    .join('');
+function participantOptions() {
+  return `<option value="">— гравець —</option>` +
+    srParticipants.map(u => `<option value="${u.id}">${u.displayName}</option>`).join('');
 }
 
-function renderPairRows() {
+function renderPositionRows() {
   const c = document.getElementById('sr-pairs-container');
-  const useDropdowns = srParticipants.length > 0;
   const isSingle = srTournamentType === 'SINGLE';
+  const opts = participantOptions();
   let html = '';
   for (let i = 1; i <= srPairCount; i++) {
-    const p1Field = useDropdowns
-      ? `<select class="form-select" id="p${i}-p1">${participantOptions('')}</select>`
-      : `<input class="form-input" placeholder="${isSingle ? 'Гравець' : 'Гравець 1'}" id="p${i}-p1">`;
-    const p2Field = isSingle ? '' : (useDropdowns
-      ? `<select class="form-select" id="p${i}-p2">${participantOptions('')}</select>`
-      : `<input class="form-input" placeholder="Гравець 2" id="p${i}-p2">`);
-    html += `
-      <div class="pair-row" id="pair-row-${i}">
-        <div class="pair-row-header">
-          <span class="pair-pos">${i}</span>
-          <span style="font-size:12px;color:var(--text-muted)">Місце ${i}</span>
-        </div>
-        <div class="pair-fields">
-          ${p1Field}
-          ${p2Field}
-        </div>
-        <div class="pair-fields-3">
-          <input class="form-input" placeholder="Рахунок" id="p${i}-score">
-          <input class="form-input" type="number" min="0" placeholder="Пер." id="p${i}-wins" value="0">
-          <input class="form-input" type="number" min="0" placeholder="Пор." id="p${i}-losses" value="0">
-        </div>
-      </div>`;
+    const posLabel = i === 1 ? '🥇' : i === 2 ? '🥈' : i === 3 ? '🥉' : `${i}.`;
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="min-width:28px;font-size:16px;text-align:center">${posLabel}</span>
+      <div style="flex:1;display:flex;gap:6px">
+        <select class="form-select" id="p${i}-p1" style="flex:1">${opts}</select>
+        ${isSingle ? '' : `<select class="form-select" id="p${i}-p2" style="flex:1">${opts}</select>`}
+      </div>
+    </div>`;
   }
   c.innerHTML = html;
 }
 
 document.getElementById('sr-add-pair').addEventListener('click', () => {
   srPairCount++;
-  renderPairRows();
+  renderPositionRows();
 });
 
 function buildPairsPayload() {
-  const useDropdowns = srParticipants.length > 0;
+  const isSingle = srTournamentType === 'SINGLE';
   const pairs = [];
   for (let i = 1; i <= srPairCount; i++) {
-    const p1val = document.getElementById(`p${i}-p1`)?.value?.trim();
-    const p2val = document.getElementById(`p${i}-p2`)?.value?.trim();
-    if (!p1val) continue;
-    let player1Id, player2Id;
-    if (useDropdowns) {
-      player1Id = parseInt(p1val, 10);
-      player2Id = p2val ? parseInt(p2val, 10) : null;
-      if (!player1Id) continue;
-    } else {
-      const allUsers = srParticipants.length ? srParticipants : [];
-      const findUser = name => allUsers.find(u =>
-        u.displayName.toLowerCase().includes(name.toLowerCase())
-      );
-      const p1 = findUser(p1val);
-      const p2 = p2val ? findUser(p2val) : null;
-      if (!p1) throw new Error(`Гравця "${p1val}" не знайдено`);
-      player1Id = p1.id;
-      player2Id = p2?.id || null;
-    }
-    pairs.push({
-      player1Id,
-      player2Id,
-      position: i,
-      score: document.getElementById(`p${i}-score`)?.value?.trim() || null,
-      matchWins: parseInt(document.getElementById(`p${i}-wins`)?.value || '0', 10),
-      matchLosses: parseInt(document.getElementById(`p${i}-losses`)?.value || '0', 10),
-    });
+    const p1val = document.getElementById(`p${i}-p1`)?.value;
+    const p1Id = p1val ? parseInt(p1val, 10) : 0;
+    if (!p1Id) continue;
+    const p2val = !isSingle ? document.getElementById(`p${i}-p2`)?.value : '';
+    const p2Id = p2val ? parseInt(p2val, 10) : null;
+    pairs.push({ player1Id: p1Id, player2Id: p2Id || null, position: i, matchWins: 0, matchLosses: 0 });
   }
   return pairs;
 }
