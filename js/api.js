@@ -37,6 +37,7 @@ const API = (() => {
 
     users: {
       me:                ()               => request('GET',  '/users/me'),
+      history:           ()               => request('GET',  '/users/me/history'),
       list:              ()               => request('GET',  '/users'),
       setRole:           (id, role)       => request('PUT',  `/users/${id}/role`, { role }),
       setStartingPoints: (id, level)      => request('PUT',  `/users/${id}/starting-points`, { level }),
