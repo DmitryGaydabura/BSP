@@ -2425,31 +2425,18 @@ function parseRaketoDoc(doc) {
   };
 }
 
-async function fetchOdessaRaketo() {
+async function fetchRaketoUsers() {
   if (raketoCache) return raketoCache;
-  const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      structuredQuery: {
-        from: [{ collectionId: 'users' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'city' },
-            op: 'EQUAL',
-            value: { stringValue: 'Odessa' },
-          },
-        },
-        limit: 500,
-      },
-    }),
-  });
-  if (!res.ok) throw new Error('Raketo API error');
-  const items = await res.json();
-  raketoCache = items
-    .filter(i => i.document)
-    .map(i => parseRaketoDoc(i.document))
+  // Use the list endpoint with a field mask to keep responses lightweight.
+  // City-based runQuery is avoided because the city value varies in Firestore.
+  const fields = ['display_name', 'display_name_lower', 'photo_url', 'ratings', 'matches'];
+  const mask = fields.map(f => `mask.fieldPaths=${encodeURIComponent(f)}`).join('&');
+  const url = `https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents/users?pageSize=500&${mask}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Raketo API error ' + res.status);
+  const data = await res.json();
+  raketoCache = (data.documents || [])
+    .map(doc => parseRaketoDoc(doc))
     .filter(Boolean);
   return raketoCache;
 }
@@ -2519,14 +2506,20 @@ function openClaimPointsModal() {
   }
 
   // Raketo search
+  let searchTimer = null;
+  let lastQuery = '';
+
   async function doSearch() {
     const q = document.getElementById('cp-search').value.trim();
-    if (!q) return;
+    if (q === lastQuery) return;
+    lastQuery = q;
+    if (!q) { resultsBox.innerHTML = ''; return; }
     resultsBox.innerHTML = '<div class="raketo-searching">Пошук...</div>';
     try {
-      const all = await fetchOdessaRaketo();
-      const matched = all.filter(u => u.name.toLowerCase().includes(q.toLowerCase()));
-      resultsBox.innerHTML = renderRaketoResults(matched, applyRaketoUser);
+      const all = await fetchRaketoUsers();
+      const ql = q.toLowerCase();
+      const matched = all.filter(u => u.name.toLowerCase().includes(ql));
+      resultsBox.innerHTML = renderRaketoResults(matched);
       resultsBox.querySelectorAll('.raketo-result').forEach((el, i) => {
         el.addEventListener('click', () => {
           resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
@@ -2534,13 +2527,21 @@ function openClaimPointsModal() {
           applyRaketoUser(matched[i]);
         });
       });
-    } catch {
-      resultsBox.innerHTML = '<div class="raketo-no-result">Не вдалося завантажити дані Raketo.</div>';
+    } catch (e) {
+      resultsBox.innerHTML = `<div class="raketo-no-result">Не вдалося завантажити дані Raketo: ${e.message}</div>`;
     }
   }
 
-  document.getElementById('cp-search-btn').onclick = doSearch;
-  document.getElementById('cp-search').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+  const searchInput = document.getElementById('cp-search');
+  searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = searchInput.value.trim();
+    if (q.length === 0) { resultsBox.innerHTML = ''; lastQuery = ''; return; }
+    if (q.length < 3) return;
+    searchTimer = setTimeout(doSearch, 400);
+  });
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(); } });
+  document.getElementById('cp-search-btn').onclick = () => { clearTimeout(searchTimer); doSearch(); };
 
   slider.addEventListener('input', updatePreview);
 
