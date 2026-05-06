@@ -999,6 +999,131 @@
       font-size: 12px; color: var(--text-muted);
     }
 
+    /* ── Claim initial points modal ────────────────────────────── */
+    .claim-intro {
+      font-size: 13px; color: var(--text-sec); line-height: 1.6;
+      background: var(--navy-light);
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .claim-chips {
+      display: flex; gap: 8px;
+    }
+    .claim-chip {
+      flex: 1; padding: 10px 0; border-radius: 8px;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border-sub);
+      color: var(--text-sec);
+      font-family: var(--font-body); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 180ms var(--ease);
+    }
+    .claim-chip.active {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(201,168,76,0.08);
+    }
+    .claim-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 6px; border-radius: 3px;
+      background: var(--navy-light);
+      outline: none; cursor: pointer;
+    }
+    .claim-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--gold);
+      border: 3px solid var(--navy-mid);
+      box-shadow: 0 0 6px rgba(201,168,76,0.5);
+      cursor: pointer;
+    }
+    .claim-color-chips {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .claim-color-chip {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 10px;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border-sub);
+      cursor: pointer; transition: all 180ms var(--ease);
+      text-align: left; width: 100%;
+    }
+    .claim-color-chip.active {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.06);
+    }
+    .color-dot {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .color-dot.red    { background: #E05545; color: #E05545; }
+    .color-dot.yellow { background: #D4A017; color: #D4A017; }
+    .color-dot.green  { background: #3BAA6A; color: #3BAA6A; }
+    .color-info { display: flex; flex-direction: column; gap: 1px; }
+    .color-name {
+      font-family: var(--font-body); font-size: 13px; font-weight: 600;
+      color: var(--white-warm);
+    }
+    .color-desc { font-size: 11px; color: var(--text-muted); }
+    .claim-preview {
+      background: linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04));
+      border: 1px solid var(--border-def);
+      border-radius: 12px; padding: 20px;
+      text-align: center;
+    }
+    .claim-preview-label {
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .claim-preview-pts {
+      font-family: var(--font-brand);
+      font-size: 40px; font-weight: 700;
+      color: var(--gold); line-height: 1;
+      margin-bottom: 6px;
+    }
+    .claim-preview-level {
+      font-size: 13px; font-weight: 600;
+      color: var(--text-sec);
+    }
+
+    /* Level badge in profile */
+    .profile-level-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(201,168,76,0.12);
+      border: 1px solid var(--border-def);
+      border-radius: 20px; padding: 4px 12px;
+      font-family: var(--font-brand);
+      font-size: 13px; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.06em;
+    }
+    .claim-points-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; width: 100%;
+      background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
+      border: 1px solid var(--border-str);
+      border-radius: 10px; padding: 14px 16px;
+      cursor: pointer; color: var(--white-warm);
+      font-family: var(--font-body); transition: all 180ms var(--ease);
+    }
+    .claim-points-btn:hover { border-color: var(--gold); }
+    .claim-points-btn-left { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+    .claim-points-btn-title {
+      font-size: 14px; font-weight: 600; color: var(--gold);
+    }
+    .claim-points-btn-sub { font-size: 11px; color: var(--text-muted); }
+    .claim-points-btn-arrow { font-size: 20px; color: var(--gold); flex-shrink: 0; }
+    .raketo-claimed-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-sub);
+      border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .raketo-claimed-icon { font-size: 22px; flex-shrink: 0; }
+    .raketo-claimed-body { flex: 1; }
+    .raketo-claimed-rating {
+      font-size: 15px; font-weight: 700; color: var(--white-warm);
+    }
+    .raketo-claimed-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
     /* Modal overlay */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 100;
@@ -1516,6 +1641,77 @@
     </button>
   </nav>
 
+  <!-- Initial Points Claim Modal -->
+  <div class="modal-overlay" id="modal-claim-points">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Стартові очки</span>
+        <button class="modal-close" data-close="modal-claim-points">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="claim-intro">
+          Введіть ваш рейтинг Raketo — ми нарахуємо стартові очки відповідно до вашого рівня. Зробити це можна лише один раз.
+        </div>
+
+        <!-- Gender -->
+        <div class="form-group">
+          <label class="form-label">Стать</label>
+          <div class="claim-chips" id="cp-gender">
+            <button class="claim-chip" data-val="MALE">Чоловік</button>
+            <button class="claim-chip" data-val="FEMALE">Жінка</button>
+          </div>
+        </div>
+
+        <!-- Raketo rating -->
+        <div class="form-group">
+          <label class="form-label">Рейтинг Raketo <span id="cp-rating-val" style="color:var(--gold);margin-left:6px">1.5</span></label>
+          <input class="claim-slider" id="cp-rating" type="range" min="0.0" max="7.0" step="0.1" value="1.5">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:2px">
+            <span>0.0</span><span>1.0</span><span>2.0</span><span>3.0</span><span>4.0</span><span>5.0</span><span>7.0</span>
+          </div>
+        </div>
+
+        <!-- Colour confidence -->
+        <div class="form-group">
+          <label class="form-label">Колір рейтингу</label>
+          <div class="claim-color-chips" id="cp-color">
+            <button class="claim-color-chip" data-val="RED">
+              <span class="color-dot red"></span>
+              <span class="color-info">
+                <span class="color-name">Червоний</span>
+                <span class="color-desc">менше 16 матчів</span>
+              </span>
+            </button>
+            <button class="claim-color-chip" data-val="YELLOW">
+              <span class="color-dot yellow"></span>
+              <span class="color-info">
+                <span class="color-name">Жовтий</span>
+                <span class="color-desc">менше 40 матчів</span>
+              </span>
+            </button>
+            <button class="claim-color-chip" data-val="GREEN">
+              <span class="color-dot green"></span>
+              <span class="color-info">
+                <span class="color-name">Зелений</span>
+                <span class="color-desc">40+ матчів</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="claim-preview" id="cp-preview">
+          <div class="claim-preview-label">Ваші стартові очки</div>
+          <div class="claim-preview-pts" id="cp-preview-pts">—</div>
+          <div class="claim-preview-level" id="cp-preview-level"></div>
+        </div>
+
+        <button class="btn-primary" id="cp-submit" style="width:100%" disabled>Отримати стартові очки</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -1983,6 +2179,9 @@ function renderProfile() {
   const total = u.wins + u.losses;
   const winPct = total > 0 ? Math.round(u.wins / total * 100) + '%' : '—';
   const isAdmin = u.role === 'ADMIN';
+  const level = levelFromPoints(u.ratingPoints);
+  const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
+  const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
 
   container.innerHTML = `
     <div class="profile-hero">
@@ -1992,7 +2191,10 @@ function renderProfile() {
       <div class="profile-info">
         <div class="profile-name">${u.displayName}</div>
         ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
-        <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px">
+          <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
+          <span class="profile-level-badge">${level}</span>
+        </div>
       </div>
     </div>
 
@@ -2002,14 +2204,32 @@ function renderProfile() {
         <div class="profile-stat-label">Очки</div>
       </div>
       <div class="profile-stat">
+        <div class="profile-stat-value">${u.startingPoints || 0}</div>
+        <div class="profile-stat-label">Стартові</div>
+      </div>
+      <div class="profile-stat">
         <div class="profile-stat-value">${u.wins}/${u.losses}</div>
         <div class="profile-stat-label">В / П</div>
       </div>
-      <div class="profile-stat">
-        <div class="profile-stat-value">${winPct}</div>
-        <div class="profile-stat-label">Процент</div>
-      </div>
     </div>
+
+    ${u.initialPointsClaimed ? `
+      <div class="raketo-claimed-card">
+        <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
+        <div class="raketo-claimed-body">
+          <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)}</div>
+          <div class="raketo-claimed-detail">${colorLabel[u.raketoColor] || ''} · ${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові очки нараховано</div>
+        </div>
+      </div>
+    ` : `
+      <button class="claim-points-btn" id="btn-claim-points">
+        <div class="claim-points-btn-left">
+          <div class="claim-points-btn-title">Отримати стартові очки</div>
+          <div class="claim-points-btn-sub">Введіть рейтинг Raketo — один раз</div>
+        </div>
+        <div class="claim-points-btn-arrow">›</div>
+      </button>
+    `}
 
     ${isAdmin ? renderAdminPanel() : ''}
 
@@ -2027,8 +2247,24 @@ function renderProfile() {
     renderProfile();
   });
 
+  if (!u.initialPointsClaimed) {
+    document.getElementById('btn-claim-points').addEventListener('click', openClaimPointsModal);
+  }
+
   if (isAdmin) wireAdminPanel();
   loadHistory();
+}
+
+function levelFromPoints(pts) {
+  if (pts >= 2750) return 'B+';
+  if (pts >= 2500) return 'B';
+  if (pts >= 2250) return 'B−';
+  if (pts >= 2000) return 'C+';
+  if (pts >= 1750) return 'C';
+  if (pts >= 1500) return 'C−';
+  if (pts >= 1250) return 'D+';
+  if (pts >= 1000) return 'D';
+  return 'D−';
 }
 
 async function loadHistory() {
@@ -2061,6 +2297,96 @@ async function loadHistory() {
   } catch {
     container.innerHTML = '<div class="history-empty">Помилка завантаження</div>';
   }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CLAIM INITIAL POINTS MODAL
+════════════════════════════════════════════════════════════════ */
+
+const RAKETO_LEVELS = [
+  { max: 1.5, level: 'D',  pts: 1000 },
+  { max: 2.0, level: 'D+', pts: 1250 },
+  { max: 2.5, level: 'C−', pts: 1500 },
+  { max: 3.0, level: 'C',  pts: 1750 },
+  { max: 3.5, level: 'C+', pts: 2000 },
+  { max: 4.0, level: 'B−', pts: 2250 },
+  { max: 4.5, level: 'B',  pts: 2500 },
+  { max: 99,  level: 'B+', pts: 2750 },
+];
+
+const COLOR_STEPS = { GREEN: 0, YELLOW: -1, RED: -2 };
+
+function raketoPreview(rating, color) {
+  const idx = RAKETO_LEVELS.findIndex(l => rating < l.max);
+  const levelIdx = Math.max(0, idx + (COLOR_STEPS[color] ?? 0));
+  return RAKETO_LEVELS[Math.max(0, Math.min(levelIdx, RAKETO_LEVELS.length - 1))];
+}
+
+function openClaimPointsModal() {
+  openModal('modal-claim-points');
+  let gender = null, color = null;
+
+  const slider = document.getElementById('cp-rating');
+  const ratingVal = document.getElementById('cp-rating-val');
+  const previewPts = document.getElementById('cp-preview-pts');
+  const previewLevel = document.getElementById('cp-preview-level');
+  const submitBtn = document.getElementById('cp-submit');
+
+  function updatePreview() {
+    const rating = parseFloat(slider.value);
+    ratingVal.textContent = rating.toFixed(1);
+    if (color) {
+      const p = raketoPreview(rating, color);
+      previewPts.textContent = p.pts;
+      previewLevel.textContent = `Рівень BSP: ${p.level}`;
+    } else {
+      previewPts.textContent = '—';
+      previewLevel.textContent = 'Оберіть колір рейтингу';
+    }
+    submitBtn.disabled = !(gender && color);
+  }
+
+  slider.addEventListener('input', updatePreview);
+
+  document.querySelectorAll('#cp-gender .claim-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#cp-gender .claim-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      gender = btn.dataset.val;
+      updatePreview();
+    });
+  });
+
+  document.querySelectorAll('#cp-color .claim-color-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#cp-color .claim-color-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      color = btn.dataset.val;
+      updatePreview();
+    });
+  });
+
+  submitBtn.onclick = async () => {
+    if (!gender || !color) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '...';
+    try {
+      const updated = await API.users.claimInitialPoints({
+        gender,
+        raketoRating: parseFloat(slider.value),
+        raketoColor: color,
+      });
+      currentUser = updated;
+      closeModal('modal-claim-points');
+      renderProfile();
+    } catch (e) {
+      alert('Помилка: ' + (e.message || 'unknown'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Отримати стартові очки';
+    }
+  };
+
+  updatePreview();
 }
 
 function renderAdminPanel() {
