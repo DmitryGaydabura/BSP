@@ -2390,8 +2390,6 @@ function raketoPreview(rating, color) {
 
 /* ── Raketo Firestore integration ───────────────────────────── */
 
-let raketoCache = null;
-
 function parseFirestoreValue(v) {
   if (!v) return null;
   if ('stringValue'  in v) return v.stringValue;
@@ -2425,20 +2423,55 @@ function parseRaketoDoc(doc) {
   };
 }
 
-async function fetchRaketoUsers() {
-  if (raketoCache) return raketoCache;
-  // Use the list endpoint with a field mask to keep responses lightweight.
-  // City-based runQuery is avoided because the city value varies in Firestore.
-  const fields = ['display_name', 'display_name_lower', 'photo_url', 'ratings', 'matches'];
-  const mask = fields.map(f => `mask.fieldPaths=${encodeURIComponent(f)}`).join('&');
-  const url = `https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents/users?pageSize=500&${mask}`;
-  const res = await fetch(url);
+async function searchRaketoByFamilyName(query) {
+  // Capitalize first letter to match Firestore storage format (e.g. "Ivanov")
+  const q = query.charAt(0).toUpperCase() + query.slice(1);
+  const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'users' }],
+        select: {
+          fields: [
+            { fieldPath: 'display_name' },
+            { fieldPath: 'photo_url' },
+            { fieldPath: 'ratings' },
+            { fieldPath: 'matches' },
+          ],
+        },
+        where: {
+          compositeFilter: {
+            op: 'AND',
+            filters: [
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'family_name' },
+                  op: 'GREATER_THAN_OR_EQUAL',
+                  value: { stringValue: q },
+                },
+              },
+              {
+                fieldFilter: {
+                  field: { fieldPath: 'family_name' },
+                  op: 'LESS_THAN',
+                  value: { stringValue: q + '' },
+                },
+              },
+            ],
+          },
+        },
+        limit: 20,
+      },
+    }),
+  });
   if (!res.ok) throw new Error('Raketo API error ' + res.status);
-  const data = await res.json();
-  raketoCache = (data.documents || [])
-    .map(doc => parseRaketoDoc(doc))
+  const items = await res.json();
+  return items
+    .filter(i => i.document)
+    .map(i => parseRaketoDoc(i.document))
     .filter(Boolean);
-  return raketoCache;
 }
 
 function renderRaketoResults(users) {
@@ -2516,9 +2549,7 @@ function openClaimPointsModal() {
     if (!q) { resultsBox.innerHTML = ''; return; }
     resultsBox.innerHTML = '<div class="raketo-searching">Пошук...</div>';
     try {
-      const all = await fetchRaketoUsers();
-      const ql = q.toLowerCase();
-      const matched = all.filter(u => u.name.toLowerCase().includes(ql));
+      const matched = await searchRaketoByFamilyName(q);
       resultsBox.innerHTML = renderRaketoResults(matched);
       resultsBox.querySelectorAll('.raketo-result').forEach((el, i) => {
         el.addEventListener('click', () => {
