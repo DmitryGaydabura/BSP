@@ -431,8 +431,10 @@
     }
     .tournament-card-header {
       padding: 14px 16px 12px;
-      border-bottom: 1px solid var(--border-sub);
       display: flex; align-items: flex-start; gap: 10px;
+    }
+    .tournament-card-header:not(:last-child) {
+      border-bottom: 1px solid var(--border-sub);
     }
     .tournament-medal {
       width: 32px; height: 32px; border-radius: 50%;
@@ -474,6 +476,25 @@
       background: var(--sea-light);
       padding: 2px 7px; border-radius: 4px;
     }
+
+    .tournament-participants-list {
+      padding: 8px 16px 10px;
+      border-bottom: 1px solid var(--border-sub);
+      background: rgba(0,0,0,0.1);
+    }
+    .tp-label {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .tp-names { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; }
+    .tp-name {
+      font-size: 12px; color: var(--text-sec);
+      background: rgba(42,100,150,0.25);
+      padding: 2px 7px; border-radius: 10px;
+    }
+    .tp-sep { color: var(--text-dim); font-size: 11px; }
 
     .results-table { width: 100%; }
     .results-row {
@@ -1597,6 +1618,14 @@
             <input class="form-input" type="number" id="ct-max-rating" placeholder="без обм." min="0">
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Локація</label>
+          <input class="form-input" id="ct-location" type="text" placeholder="Адреса або назва корту">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Вартість участі (грн)</label>
+          <input class="form-input" type="number" id="ct-price" min="0" placeholder="безкоштовно">
+        </div>
         <button class="btn-primary" id="ct-submit" style="width:100%;margin-top:4px">Створити</button>
       </div>
     </div>
@@ -1920,6 +1949,8 @@ function normalizeTournament(t) {
     maxParticipants: t.maxParticipants,
     minRating: t.minRating,
     maxRating: t.maxRating,
+    price: t.price ?? null,
+    location: t.location || null,
     participantCount: t.participantCount || (t.participants || []).length,
     participants: t.participants || [],
     results: (t.pairs || [])
@@ -1981,6 +2012,8 @@ async function renderResults() {
           : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Приєднатись</button>`)
       : '';
 
+    const priceLabel = t.price ? `${t.price} грн` : 'безкоштовно';
+
     const resultsHtml = (t.results || []).length > 0
       ? `<div class="results-table">
           ${(t.results || []).map(r => `
@@ -1995,6 +2028,16 @@ async function renderResults() {
               <span class="results-pts">+${r.pts}</span>
             </div>
           `).join('')}
+        </div>`
+      : '';
+
+    const participantsList = (t.participants || []).length > 0
+      ? `<div class="tournament-participants-list">
+          <div class="tp-label">Учасники:</div>
+          <div class="tp-names">${(t.participants || []).map(p => {
+            const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || p.displayName || p.username || 'Гравець';
+            return `<span class="tp-name">${name}</span>`;
+          }).join(' ')}</div>
         </div>`
       : '';
 
@@ -2013,8 +2056,14 @@ async function renderResults() {
               ${participantsInfo ? `<span style="font-size:11px;color:var(--text-muted)">${participantsInfo}</span>` : ''}
               <span style="font-size:11px;${statusCls[t.status] || ''}">${statusLabel[t.status] || t.status}</span>
             </div>
+            ${t.location || t.price != null ? `
+            <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
+              ${t.location ? `<span style="font-size:11px;color:var(--text-sec)">📍 ${t.location}</span>` : ''}
+              <span style="font-size:11px;color:var(--text-sec)">💳 ${priceLabel}</span>
+            </div>` : ''}
           </div>
         </div>
+        ${participantsList}
         ${resultsHtml}
       </div>`;
   }).join('');
@@ -2661,11 +2710,13 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const maxParticipants = parseInt(document.getElementById('ct-max-participants').value) || null;
   const minRating = parseInt(document.getElementById('ct-min-rating').value) || null;
   const maxRating = parseInt(document.getElementById('ct-max-rating').value) || null;
+  const location = document.getElementById('ct-location').value.trim() || null;
+  const price = parseInt(document.getElementById('ct-price').value) || null;
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
-    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating });
+    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating, location, price });
     tournamentsData = null;
     closeModal('modal-create-tournament');
     document.getElementById('ct-name').value = '';
@@ -2673,6 +2724,8 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
     document.getElementById('ct-max-participants').value = '';
     document.getElementById('ct-min-rating').value = '';
     document.getElementById('ct-max-rating').value = '';
+    document.getElementById('ct-location').value = '';
+    document.getElementById('ct-price').value = '';
     alert('Турнір створено!');
   } catch (e) {
     alert('Помилка: ' + (e.message || 'unknown'));
