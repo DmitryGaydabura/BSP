@@ -1731,23 +1731,21 @@
     <div class="modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-header">
-        <span class="modal-title">Стартові очки</span>
+        <span class="modal-title">Raketo імпорт</span>
         <button class="modal-close" data-close="modal-claim-points">✕</button>
       </div>
       <div class="modal-body">
 
-        <!-- Raketo search -->
-        <div class="form-group">
-          <label class="form-label">Знайдіть себе в Raketo за прізвищем</label>
-          <div style="display:flex;gap:8px">
-            <input class="form-input" id="cp-search" type="text" placeholder="Введіть прізвище..." autocomplete="off" style="flex:1">
-            <button class="btn-primary" id="cp-search-btn" style="padding:0 18px;flex-shrink:0;font-size:16px">🔍</button>
-          </div>
+        <!-- Explanation -->
+        <div class="claim-intro" style="margin-bottom:14px">
+          Ця процедура можлива лише якщо ви вказали свій Telegram @username у профілі Raketo як контакт.
         </div>
-        <div id="cp-results"></div>
 
-        <!-- Gender -->
-        <div class="form-group">
+        <!-- Auto-lookup result -->
+        <div id="cp-lookup"></div>
+
+        <!-- Gender (revealed after successful lookup) -->
+        <div class="form-group" id="cp-gender-group" style="display:none">
           <label class="form-label">Стать</label>
           <div class="claim-chips" id="cp-gender">
             <button class="claim-chip" data-val="MALE">Чоловік</button>
@@ -1755,14 +1753,14 @@
           </div>
         </div>
 
-        <!-- Preview (shown after Raketo user selected) -->
+        <!-- Preview (shown after gender selected) -->
         <div class="claim-preview" id="cp-preview" style="display:none">
           <div class="claim-preview-label">Ваші стартові очки</div>
           <div class="claim-preview-pts" id="cp-preview-pts">—</div>
           <div class="claim-preview-level" id="cp-preview-level"></div>
         </div>
 
-        <button class="btn-primary" id="cp-submit" style="width:100%" disabled>Отримати стартові очки</button>
+        <button class="btn-primary" id="cp-submit" style="width:100%" disabled>Підтвердити імпорт</button>
       </div>
     </div>
   </div>
@@ -2031,7 +2029,7 @@ async function renderResults() {
         </div>`
       : '';
 
-    const participantsList = (t.participants || []).length > 0
+    const participantsList = (t.participants || []).length > 0 && t.status !== 'FINISHED'
       ? `<div class="tournament-participants-list">
           <div class="tp-label">Учасники:</div>
           <div class="tp-names">${(t.participants || []).map(p => {
@@ -2299,8 +2297,8 @@ function renderProfile() {
     ` : `
       <button class="claim-points-btn" id="btn-claim-points">
         <div class="claim-points-btn-left">
-          <div class="claim-points-btn-title">Отримати стартові очки</div>
-          <div class="claim-points-btn-sub">Введіть рейтинг Raketo — один раз</div>
+          <div class="claim-points-btn-title">Імпортувати рейтинг з Raketo</div>
+          <div class="claim-points-btn-sub">Вкажіть @username в Raketo — один раз</div>
         </div>
         <div class="claim-points-btn-arrow">›</div>
       </button>
@@ -2433,9 +2431,32 @@ function parseRaketoDoc(doc) {
   };
 }
 
-async function searchRaketoByFamilyName(query) {
-  // Capitalize first letter to match Firestore storage format (e.g. "Ivanov")
-  const q = query.charAt(0).toUpperCase() + query.slice(1);
+
+function renderRaketoCard(u) {
+  const dotCls = u.color.toLowerCase();
+  const ratingStr = u.padelRating > 0 ? u.padelRating.toFixed(3) : '—';
+  const initStr = u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+  return `<div class="raketo-results">
+    <div class="raketo-result active">
+      <div class="raketo-result-avatar">
+        ${u.photoUrl
+          ? `<img src="${u.photoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${initStr}</span>`
+          : initStr}
+      </div>
+      <div class="raketo-result-body">
+        <div class="raketo-result-name">${u.name}</div>
+        <div class="raketo-result-meta">
+          <span class="raketo-result-dot ${dotCls}"></span>
+          <span class="raketo-result-rating">Padel ${ratingStr}</span>
+          <span class="raketo-result-matches">${u.padelMatches} матчів</span>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function lookupRaketoByTelegram(username) {
+  const tgHandle = username.startsWith('@') ? username : '@' + username;
   const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
   const res = await fetch(url, {
     method: 'POST',
@@ -2443,85 +2464,51 @@ async function searchRaketoByFamilyName(query) {
     body: JSON.stringify({
       structuredQuery: {
         from: [{ collectionId: 'users' }],
-        select: {
-          fields: [
-            { fieldPath: 'display_name' },
-            { fieldPath: 'photo_url' },
-            { fieldPath: 'ratings' },
-            { fieldPath: 'matches' },
-          ],
-        },
+        select: { fields: [
+          { fieldPath: 'display_name' },
+          { fieldPath: 'photo_url' },
+          { fieldPath: 'ratings' },
+          { fieldPath: 'matches' },
+        ]},
         where: {
-          compositeFilter: {
-            op: 'AND',
-            filters: [
-              {
-                fieldFilter: {
-                  field: { fieldPath: 'family_name' },
-                  op: 'GREATER_THAN_OR_EQUAL',
-                  value: { stringValue: q },
-                },
-              },
-              {
-                fieldFilter: {
-                  field: { fieldPath: 'family_name' },
-                  op: 'LESS_THAN',
-                  value: { stringValue: q + '' },
-                },
-              },
-            ],
+          fieldFilter: {
+            field: { fieldPath: 'telegram' },
+            op: 'EQUAL',
+            value: { stringValue: tgHandle },
           },
         },
-        limit: 20,
+        limit: 1,
       },
     }),
   });
   if (!res.ok) throw new Error('Raketo API error ' + res.status);
   const items = await res.json();
-  return items
-    .filter(i => i.document)
-    .map(i => parseRaketoDoc(i.document))
-    .filter(Boolean);
-}
-
-function renderRaketoResults(users) {
-  if (!users.length) {
-    return `<div class="raketo-no-result">Raketo профіль не знайдено. Перевірте написання або введіть дані вручну.</div>`;
-  }
-  return `<div class="raketo-results">${users.map((u, i) => {
-    const dotCls = u.color.toLowerCase();
-    const ratingStr = u.padelRating > 0 ? u.padelRating.toFixed(3) : '—';
-    const initStr = u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
-    return `
-      <div class="raketo-result" data-idx="${i}">
-        <div class="raketo-result-avatar">
-          ${u.photoUrl ? `<img src="${u.photoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${initStr}</span>` : initStr}
-        </div>
-        <div class="raketo-result-body">
-          <div class="raketo-result-name">${u.name}</div>
-          <div class="raketo-result-meta">
-            <span class="raketo-result-dot ${dotCls}"></span>
-            <span class="raketo-result-rating">Padel ${ratingStr}</span>
-            <span class="raketo-result-matches">${u.padelMatches} матчів</span>
-          </div>
-        </div>
-      </div>`;
-  }).join('')}</div>`;
+  const docs = items.filter(i => i.document).map(i => parseRaketoDoc(i.document)).filter(Boolean);
+  return docs[0] || null;
 }
 
 function openClaimPointsModal() {
   openModal('modal-claim-points');
   let gender = null, selectedRating = null, selectedColor = null;
 
+  const lookupBox    = document.getElementById('cp-lookup');
+  const genderGroup  = document.getElementById('cp-gender-group');
   const previewBox   = document.getElementById('cp-preview');
   const previewPts   = document.getElementById('cp-preview-pts');
   const previewLevel = document.getElementById('cp-preview-level');
   const submitBtn    = document.getElementById('cp-submit');
-  const resultsBox   = document.getElementById('cp-results');
+
+  // Reset state each time modal opens
+  gender = null; selectedRating = null; selectedColor = null;
+  lookupBox.innerHTML = '';
+  genderGroup.style.display = 'none';
+  previewBox.style.display = 'none';
+  submitBtn.disabled = true;
+  document.querySelectorAll('#cp-gender .claim-chip').forEach(b => b.classList.remove('active'));
 
   function updatePreview() {
     submitBtn.disabled = !(gender && selectedRating !== null);
-    if (selectedRating !== null && selectedColor) {
+    if (selectedRating !== null && selectedColor && gender) {
       const p = raketoPreview(selectedRating, selectedColor);
       previewPts.textContent = p.pts;
       previewLevel.textContent = `Рівень BSP: ${p.level}`;
@@ -2532,44 +2519,27 @@ function openClaimPointsModal() {
   function applyRaketoUser(u) {
     selectedRating = u.padelRating;
     selectedColor  = u.color;
+    genderGroup.style.display = '';
     updatePreview();
   }
 
-  // Search
-  let searchTimer = null;
-  let lastQuery = '';
-
-  async function doSearch() {
-    const q = document.getElementById('cp-search').value.trim();
-    if (q === lastQuery) return;
-    lastQuery = q;
-    if (!q) { resultsBox.innerHTML = ''; return; }
-    resultsBox.innerHTML = '<div class="raketo-searching">Пошук...</div>';
-    try {
-      const matched = await searchRaketoByFamilyName(q);
-      resultsBox.innerHTML = renderRaketoResults(matched);
-      resultsBox.querySelectorAll('.raketo-result').forEach((el, i) => {
-        el.addEventListener('click', () => {
-          resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
-          el.classList.add('active');
-          applyRaketoUser(matched[i]);
-        });
-      });
-    } catch (e) {
-      resultsBox.innerHTML = `<div class="raketo-no-result">Не вдалося завантажити дані Raketo: ${e.message}</div>`;
-    }
+  // Auto-lookup by Telegram username
+  const tgUsername = currentUser?.username;
+  if (!tgUsername) {
+    lookupBox.innerHTML = `<div class="raketo-no-result">Ваш акаунт не має Telegram username. Зверніться до адміністратора.</div>`;
+  } else {
+    lookupBox.innerHTML = `<div class="raketo-searching">Пошук у Raketo за @${tgUsername}...</div>`;
+    lookupRaketoByTelegram(tgUsername).then(user => {
+      if (!user) {
+        lookupBox.innerHTML = `<div class="raketo-no-result">Профіль Raketo з Telegram <b>@${tgUsername}</b> не знайдено.<br><br>Переконайтесь, що ви вказали <b>@${tgUsername}</b> у налаштуваннях Raketo як Telegram контакт.</div>`;
+        return;
+      }
+      lookupBox.innerHTML = renderRaketoCard(user);
+      applyRaketoUser(user);
+    }).catch(e => {
+      lookupBox.innerHTML = `<div class="raketo-no-result">Помилка при зверненні до Raketo: ${e.message}</div>`;
+    });
   }
-
-  const searchInput = document.getElementById('cp-search');
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    const q = searchInput.value.trim();
-    if (q.length === 0) { resultsBox.innerHTML = ''; lastQuery = ''; return; }
-    if (q.length < 3) return;
-    searchTimer = setTimeout(doSearch, 400);
-  });
-  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(searchTimer); doSearch(); } });
-  document.getElementById('cp-search-btn').onclick = () => { clearTimeout(searchTimer); doSearch(); };
 
   document.querySelectorAll('#cp-gender .claim-chip').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2595,7 +2565,7 @@ function openClaimPointsModal() {
     } catch (e) {
       alert('Помилка: ' + (e.message || 'unknown'));
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Отримати стартові очки';
+      submitBtn.textContent = 'Підтвердити імпорт';
     }
   };
 }
