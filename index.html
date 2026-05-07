@@ -2346,7 +2346,7 @@ async function renderRatings() {
   if (isAll) {
     /* All view: group rows by level visually */
     let html = '';
-    for (const lvl of LEVELS_ORDER) {
+    for (const lvl of [...LEVELS_ORDER].reverse()) {
       const group = filtered.filter(p => levelFromPoints(p.pts) === lvl);
       if (!group.length) continue;
       const lvlCls = levelClass(lvl);
