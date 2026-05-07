@@ -553,7 +553,7 @@
        TAB 3 — РЕЙТИНГ
     ═══════════════════════════════════════════════════════════════ */
     .ratings-header {
-      padding: 20px 16px 14px;
+      padding: 20px 16px 12px;
       background: linear-gradient(180deg, var(--navy-mid) 0%, transparent 100%);
       border-bottom: 1px solid var(--border-sub);
     }
@@ -561,7 +561,49 @@
       font-size: 10px; font-weight: 500;
       letter-spacing: 0.05em;
       color: var(--text-dim);
-      margin-top: 6px;
+      margin-top: 4px;
+    }
+    .ratings-filter-row {
+      display: flex; gap: 5px; overflow-x: auto;
+      padding: 10px 0 2px; margin: 0 -2px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .ratings-filter-row::-webkit-scrollbar { display: none; }
+    .ratings-filter-row .filter-chip { flex-shrink: 0; }
+
+    /* Leaderboard avatar */
+    .lb-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 1.5px solid var(--border-def);
+      flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand); font-size: 10px; font-weight: 700;
+      color: var(--gold);
+    }
+    .lb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .lb-row.top3 .lb-avatar { border-color: rgba(201,168,76,0.5); }
+
+    /* Podium avatar image support */
+    .podium-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .podium-avatar.p1 img { border-radius: 50%; }
+
+    /* Level group header inside leaderboard */
+    .lb-level-group-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 12px 6px;
+      color: var(--text-dim);
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+    }
+    .lb-level-group-header::after {
+      content: ''; flex: 1; height: 1px; background: var(--border-sub);
+    }
+    .lb-empty-level {
+      padding: 12px 14px;
+      font-size: 12px; color: var(--text-dim);
+      text-align: center; font-style: italic;
     }
 
     /* Podium */
@@ -1499,8 +1541,20 @@
     <div id="tab-ratings" class="tab-panel active">
       <div class="ratings-header">
         <div class="section-eyebrow">Blacksea Padel</div>
-        <div class="section-title">Рейтинг гравців</div>
+        <div class="section-title" id="ratings-title">Рейтинг гравців</div>
         <div class="ratings-updated" id="ratings-updated"></div>
+        <div class="ratings-filter-row" id="ratings-filter">
+          <button class="filter-chip active" data-level="all">Всі</button>
+          <button class="filter-chip" data-level="D−">D−</button>
+          <button class="filter-chip" data-level="D">D</button>
+          <button class="filter-chip" data-level="D+">D+</button>
+          <button class="filter-chip" data-level="C−">C−</button>
+          <button class="filter-chip" data-level="C">C</button>
+          <button class="filter-chip" data-level="C+">C+</button>
+          <button class="filter-chip" data-level="B−">B−</button>
+          <button class="filter-chip" data-level="B">B</button>
+          <button class="filter-chip" data-level="B+">B+</button>
+        </div>
       </div>
 
       <!-- Club card (intro + stats) -->
@@ -2187,17 +2241,83 @@ document.getElementById('results-filter').addEventListener('click', e => {
 ════════════════════════════════════════════════════════════════ */
 
 let ratingsData = null;
+let activeRatingFilter = 'all';
+
+const LEVELS_ORDER = ['D−','D','D+','C−','C','C+','B−','B','B+'];
 
 function normalizeRating(r) {
-  // Map API RatingEntryDto to local shape
   return {
+    id: r.userId || r.id,
     name: r.name || r.displayName,
+    photoUrl: r.photoUrl || null,
     pts: r.ratingPoints,
     wins: r.wins,
     losses: r.losses,
     change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
-    cat: ['all', 'men'], // TODO: extend API to return gender
   };
+}
+
+function avatarHtml(p, size = 'md') {
+  const cls = size === 'sm' ? 'lb-avatar' : 'podium-avatar';
+  if (p.photoUrl) {
+    return `<img src="${p.photoUrl}" alt="" onerror="this.parentNode.innerHTML='${initials(p.name)}'">`;
+  }
+  return initials(p.name);
+}
+
+function renderLbRow(p, rank, showLevel) {
+  const rankCls = rank <= 3 ? `r${rank}` : '';
+  const top3cls = rank <= 3 ? 'top3' : '';
+  const changeSign = p.change === '=' ? '–' : p.change;
+  const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
+  const lvl = levelFromPoints(p.pts);
+  const avatarContent = p.photoUrl
+    ? `<img src="${p.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${initials(p.name)}'">`
+    : initials(p.name);
+  return `
+    <div class="lb-row ${top3cls}">
+      <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
+      <div class="lb-avatar">${avatarContent}</div>
+      <div class="lb-name">
+        <div class="lb-name-text">${p.name}</div>
+        ${showLevel ? `<span class="level-badge level-badge-sm ${levelClass(lvl)}">${lvl}</span>` : ''}
+      </div>
+      <span class="lb-pts">${p.pts}</span>
+      <span class="lb-wl">${p.wins}/${p.losses}</span>
+      <span class="lb-ratio ${ratioClass(p.wins, p.losses)}">${pct(p.wins, p.losses)}</span>
+      <span class="lb-change ${changeCls}">${changeSign}</span>
+    </div>
+  `;
+}
+
+function renderPodium(players) {
+  if (!players.length) { document.getElementById('podium').innerHTML = ''; return; }
+  const top3 = players.slice(0, 3);
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const podiumRanks = [2, 1, 3];
+  const podiumBlocks = ['pb-2', 'pb-1', 'pb-3'];
+  const podiumRankCls = ['pr-2', 'pr-1', 'pr-3'];
+  const podiumAvatarCls = ['p2', 'p1', 'p3'];
+  const crowns = ['', '★', ''];
+
+  document.getElementById('podium').innerHTML = podiumOrder.map((p, i) => {
+    const avatarContent = p.photoUrl
+      ? `<img src="${p.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(p.name)}'">`
+      : initials(p.name);
+    return `
+      <div class="podium-place">
+        <div class="podium-avatar ${podiumAvatarCls[i]}">
+          ${crowns[i] ? `<span class="podium-crown">${crowns[i]}</span>` : ''}
+          ${avatarContent}
+        </div>
+        <div class="podium-name">${p.name.split(' ')[0]}<br>${p.name.split(' ')[1] || ''}</div>
+        <div class="podium-pts">${p.pts}</div>
+        <div class="podium-block ${podiumBlocks[i]}">
+          <span class="podium-rank ${podiumRankCls[i]}">${podiumRanks[i]}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 async function renderRatings() {
@@ -2209,57 +2329,42 @@ async function renderRatings() {
   }
   if (ratingsData) source = ratingsData;
 
-  const filtered = source;
+  const isAll = activeRatingFilter === 'all';
+  const filtered = isAll
+    ? source
+    : source.filter(p => levelFromPoints(p.pts) === activeRatingFilter);
 
-  /* Podium */
-  const top3 = filtered.slice(0, 3);
-  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean); // 2nd | 1st | 3rd
-  const podiumRanks = [2, 1, 3];
-  const podiumBlocks = ['pb-2', 'pb-1', 'pb-3'];
-  const podiumRankCls = ['pr-2', 'pr-1', 'pr-3'];
-  const podiumAvatarCls = ['p2', 'p1', 'p3'];
-  const crowns = ['', '★', ''];
+  /* Title */
+  document.getElementById('ratings-title').textContent =
+    isAll ? 'Рейтинг гравців' : `Рейтинг · ${activeRatingFilter}`;
 
-  document.getElementById('podium').innerHTML = podiumOrder.map((p, i) => {
-    if (!p) return '';
-    const globalRank = filtered.indexOf(p) + 1;
-    return `
-      <div class="podium-place">
-        <div class="podium-avatar ${podiumAvatarCls[i]}">
-          ${crowns[i] ? `<span class="podium-crown">${crowns[i]}</span>` : ''}
-          ${initials(p.name)}
-        </div>
-        <div class="podium-name">${p.name.split(' ')[0]}<br>${p.name.split(' ')[1] || ''}</div>
-        <div class="podium-pts">${p.pts}</div>
-        <div class="podium-block ${podiumBlocks[i]}">
-          <span class="podium-rank ${podiumRankCls[i]}">${podiumRanks[i]}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
+  /* Podium — only for "all" or when the level group has enough players */
+  renderPodium(filtered);
 
-  /* Full leaderboard (skip top 3, they're in podium) */
-  document.getElementById('leaderboard-rows').innerHTML = filtered.map((p, i) => {
-    const rank = i + 1;
-    const rankCls = rank <= 3 ? `r${rank}` : '';
-    const top3cls = rank <= 3 ? 'top3' : '';
-    const changeSign = p.change === '=' ? '–' : p.change;
-    const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
-    const lvl = levelFromPoints(p.pts);
-    return `
-      <div class="lb-row ${top3cls}">
-        <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
-        <div class="lb-name">
-          <div class="lb-name-text">${p.name}</div>
-          <span class="level-badge level-badge-sm ${levelClass(lvl)}">${lvl}</span>
-        </div>
-        <span class="lb-pts">${p.pts}</span>
-        <span class="lb-wl">${p.wins}/${p.losses}</span>
-        <span class="lb-ratio ${ratioClass(p.wins, p.losses)}">${pct(p.wins, p.losses)}</span>
-        <span class="lb-change ${changeCls}">${changeSign}</span>
-      </div>
-    `;
-  }).join('');
+  /* Leaderboard */
+  const lbEl = document.getElementById('leaderboard-rows');
+  if (isAll) {
+    /* All view: group rows by level visually */
+    let html = '';
+    for (const lvl of LEVELS_ORDER) {
+      const group = filtered.filter(p => levelFromPoints(p.pts) === lvl);
+      if (!group.length) continue;
+      const lvlCls = levelClass(lvl);
+      html += `<div class="lb-level-group-header"><span class="level-badge level-badge-sm ${lvlCls}">${lvl}</span></div>`;
+      group.forEach((p, gi) => {
+        const globalRank = source.indexOf(p) + 1;
+        html += renderLbRow(p, globalRank, false);
+      });
+    }
+    lbEl.innerHTML = html || '<div class="lb-empty-level">Немає даних</div>';
+  } else {
+    /* Single-level view: rank within that level */
+    if (!filtered.length) {
+      lbEl.innerHTML = '<div class="lb-empty-level">У цій категорії ще немає гравців</div>';
+    } else {
+      lbEl.innerHTML = filtered.map((p, i) => renderLbRow(p, i + 1, false)).join('');
+    }
+  }
 
   /* Updated date */
   document.getElementById('ratings-updated').textContent =
@@ -2755,6 +2860,15 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 document.getElementById('btn-rating-info').addEventListener('click', () => openModal('modal-rating-guide'));
+
+document.getElementById('ratings-filter').addEventListener('click', e => {
+  const chip = e.target.closest('.filter-chip');
+  if (!chip) return;
+  document.querySelectorAll('#ratings-filter .filter-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeRatingFilter = chip.dataset.level;
+  renderRatings();
+});
 
 /* ── Create tournament ──────────────────────────────────────────── */
 let tournamentLevels = null;
