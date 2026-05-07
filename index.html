@@ -2463,35 +2463,52 @@ function renderRaketoCard(u) {
 }
 
 async function lookupRaketoByTelegram(username) {
-  const tgHandle = username.startsWith('@') ? username : '@' + username;
+  const bare = username.replace(/^@/, '');
+  // Try both formats: Raketo may store the handle with or without the @ prefix
+  const candidates = ['@' + bare, bare];
   const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      structuredQuery: {
-        from: [{ collectionId: 'users' }],
-        select: { fields: [
-          { fieldPath: 'display_name' },
-          { fieldPath: 'photo_url' },
-          { fieldPath: 'ratings' },
-          { fieldPath: 'matches' },
-        ]},
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'telegram' },
-            op: 'EQUAL',
-            value: { stringValue: tgHandle },
+
+  for (const tgHandle of candidates) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'users' }],
+          select: { fields: [
+            { fieldPath: 'display_name' },
+            { fieldPath: 'photo_url' },
+            { fieldPath: 'ratings' },
+            { fieldPath: 'matches' },
+          ]},
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'telegram' },
+              op: 'EQUAL',
+              value: { stringValue: tgHandle },
+            },
           },
+          limit: 1,
         },
-        limit: 1,
-      },
-    }),
-  });
-  if (!res.ok) throw new Error('Raketo API error ' + res.status);
-  const items = await res.json();
-  const docs = items.filter(i => i.document).map(i => parseRaketoDoc(i.document)).filter(Boolean);
-  return docs[0] || null;
+      }),
+    });
+
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = body?.error?.message || body?.error?.status || ('Raketo API error ' + res.status);
+      throw new Error(msg);
+    }
+
+    const items = Array.isArray(body) ? body : [];
+    // Surface any embedded Firestore error (returned inside a 200 body)
+    const errItem = items.find(i => i.error);
+    if (errItem) throw new Error(errItem.error.message || errItem.error.status || 'Raketo error');
+
+    const docs = items.filter(i => i.document).map(i => parseRaketoDoc(i.document)).filter(Boolean);
+    if (docs.length > 0) return docs[0];
+  }
+
+  return null;
 }
 
 function openClaimPointsModal() {
