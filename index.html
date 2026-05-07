@@ -691,51 +691,57 @@
     .level-badge-md { font-size: 13px; padding: 4px 11px; border-radius: 8px; }
     .level-badge-lg { font-size: 11px; padding: 2px 8px; border-radius: 6px; }
 
-    /* D− — plain grey, almost invisible */
+    /* ── BRONZE tier (D) ──────────────────────────────────────────── */
+    /* D− — tarnished, dull */
     .level-d-minus {
-      color: #5A7080; border-color: rgba(90,112,128,0.35);
-      background: rgba(90,112,128,0.08);
+      color: #7A5530; border-color: rgba(122,85,48,0.45);
+      background: rgba(122,85,48,0.1);
     }
-    /* D — clean slate, ocean mist */
+    /* D — standard bronze */
     .level-d {
-      color: #8FA3B8; border-color: rgba(143,163,184,0.4);
-      background: rgba(143,163,184,0.1);
+      color: #B8732A; border-color: rgba(184,115,42,0.55);
+      background: rgba(184,115,42,0.13);
     }
-    /* D+ — sea blue enters */
+    /* D+ — polished copper, subtle warmth */
     .level-d-plus {
-      color: var(--sea-light); border-color: rgba(74,138,181,0.5);
-      background: rgba(74,138,181,0.12);
+      color: #D4873C; border-color: rgba(212,135,60,0.65);
+      background: rgba(212,135,60,0.15);
+      box-shadow: 0 0 8px rgba(212,135,60,0.2);
     }
-    /* C− — green spark */
+
+    /* ── SILVER tier (C) ──────────────────────────────────────────── */
+    /* C− — gunmetal, cool grey */
     .level-c-minus {
-      color: #3BAA6A; border-color: rgba(59,170,106,0.5);
-      background: rgba(59,170,106,0.12);
+      color: #8A9EB0; border-color: rgba(138,158,176,0.5);
+      background: rgba(138,158,176,0.1);
     }
-    /* C — solid green glow */
+    /* C — standard silver */
     .level-c {
-      color: #4EC882; border-color: rgba(78,200,130,0.55);
-      background: rgba(59,170,106,0.15);
-      box-shadow: 0 0 8px rgba(59,170,106,0.2);
+      color: #B8CCD8; border-color: rgba(184,204,216,0.6);
+      background: rgba(184,204,216,0.14);
+      box-shadow: 0 0 10px rgba(184,204,216,0.18);
     }
-    /* C+ — warm, gold starts bleeding in */
+    /* C+ — bright platinum */
     .level-c-plus {
-      color: #D4B44A; border-color: rgba(212,180,74,0.6);
-      background: rgba(212,180,74,0.13);
-      box-shadow: 0 0 10px rgba(212,180,74,0.22);
+      color: #D8E8F2; border-color: rgba(200,220,235,0.7);
+      background: rgba(200,220,235,0.16);
+      box-shadow: 0 0 14px rgba(200,220,235,0.22);
     }
-    /* B− — amber proper */
+
+    /* ── GOLD tier (B) ────────────────────────────────────────────── */
+    /* B− — dark gold, amber */
     .level-b-minus {
-      color: var(--gold-light); border-color: rgba(232,201,122,0.65);
-      background: rgba(201,168,76,0.16);
+      color: var(--gold); border-color: rgba(201,168,76,0.6);
+      background: rgba(201,168,76,0.15);
       box-shadow: 0 0 12px rgba(201,168,76,0.28);
     }
     /* B — rich gold with halo */
     .level-b {
       color: var(--gold-light); border-color: rgba(232,201,122,0.8);
       background: linear-gradient(135deg, rgba(201,168,76,0.28), rgba(201,168,76,0.1));
-      box-shadow: 0 0 16px rgba(201,168,76,0.38);
+      box-shadow: 0 0 18px rgba(201,168,76,0.4);
     }
-    /* B+ — maximum prestige: solid gold, pulsing glow */
+    /* B+ — maximum prestige: solid gold fill, pulsing glow */
     .level-b-plus {
       color: var(--navy-deep); border-color: var(--gold);
       background: linear-gradient(135deg, var(--gold-light), var(--gold));
@@ -768,7 +774,6 @@
     }
     .rg-level-row:last-child { border-bottom: none; }
     .rg-range { flex: 1; font-size: 12px; color: var(--text-sec); font-family: var(--font-mono); }
-    .rg-pts   { font-size: 12px; font-weight: 700; color: var(--gold); font-family: var(--font-mono); width: 54px; text-align: right; }
 
     /* Change badges */
     .lb-change {
@@ -1873,15 +1878,15 @@
         <!-- Level breakdown -->
         <div style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Рівні</div>
         <div style="margin-bottom:18px">
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d-minus" style="min-width:34px;justify-content:center">D−</span><span class="rg-range">&lt; 1 000 pts</span><span class="rg-pts">+750</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d"       style="min-width:34px;justify-content:center">D</span> <span class="rg-range">1 000 – 1 249 pts</span><span class="rg-pts">+1 000</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d-plus"  style="min-width:34px;justify-content:center">D+</span><span class="rg-range">1 250 – 1 499 pts</span><span class="rg-pts">+1 250</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-minus" style="min-width:34px;justify-content:center">C−</span><span class="rg-range">1 500 – 1 749 pts</span><span class="rg-pts">+1 500</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c"       style="min-width:34px;justify-content:center">C</span> <span class="rg-range">1 750 – 1 999 pts</span><span class="rg-pts">+1 750</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-plus"  style="min-width:34px;justify-content:center">C+</span><span class="rg-range">2 000 – 2 249 pts</span><span class="rg-pts">+2 000</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-minus" style="min-width:34px;justify-content:center">B−</span><span class="rg-range">2 250 – 2 499 pts</span><span class="rg-pts">+2 250</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b"       style="min-width:34px;justify-content:center">B</span> <span class="rg-range">2 500 – 2 749 pts</span><span class="rg-pts">+2 500</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-plus"  style="min-width:34px;justify-content:center">B+</span><span class="rg-range">≥ 2 750 pts</span>      <span class="rg-pts">+2 750</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d-minus" style="min-width:34px;justify-content:center">D−</span><span class="rg-range">&lt; 1 000 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d"       style="min-width:34px;justify-content:center">D</span> <span class="rg-range">1 000 – 1 249 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-d-plus"  style="min-width:34px;justify-content:center">D+</span><span class="rg-range">1 250 – 1 499 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-minus" style="min-width:34px;justify-content:center">C−</span><span class="rg-range">1 500 – 1 749 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c"       style="min-width:34px;justify-content:center">C</span> <span class="rg-range">1 750 – 1 999 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-plus"  style="min-width:34px;justify-content:center">C+</span><span class="rg-range">2 000 – 2 249 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-minus" style="min-width:34px;justify-content:center">B−</span><span class="rg-range">2 250 – 2 499 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b"       style="min-width:34px;justify-content:center">B</span> <span class="rg-range">2 500 – 2 749 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-plus"  style="min-width:34px;justify-content:center">B+</span><span class="rg-range">≥ 2 750 pts</span></div>
         </div>
 
         <!-- Tournament points -->
@@ -2424,7 +2429,9 @@ function renderProfile() {
     <div class="profile-stats">
       <div class="profile-stat">
         <div class="profile-stat-value">${u.ratingPoints}</div>
-        <div class="profile-stat-label">Очки</div>
+        <div class="profile-stat-label" style="display:flex;align-items:center;justify-content:center;gap:4px">
+          Очки <button class="rating-info-btn" onclick="openModal('modal-rating-guide')">?</button>
+        </div>
       </div>
       <div class="profile-stat">
         <div class="profile-stat-value">${u.startingPoints || 0}</div>
