@@ -1586,9 +1586,15 @@
           <label class="form-label">Назва турніру</label>
           <input class="form-input" id="ct-name" type="text" placeholder="Blacksea Open — Весна 2026">
         </div>
-        <div class="form-group">
-          <label class="form-label">Дата</label>
-          <input class="form-input" id="ct-date" type="date">
+        <div style="display:flex;gap:8px">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Дата</label>
+            <input class="form-input" id="ct-date" type="date">
+          </div>
+          <div class="form-group" style="flex:0 0 110px">
+            <label class="form-label">Час</label>
+            <input class="form-input" id="ct-time" type="time">
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Рівень турніру</label>
@@ -1949,6 +1955,7 @@ function normalizeTournament(t) {
     maxRating: t.maxRating,
     price: t.price ?? null,
     location: t.location || null,
+    time: t.time || null,
     participantCount: t.participantCount || (t.participants || []).length,
     participants: t.participants || [],
     results: (t.pairs || [])
@@ -2048,7 +2055,7 @@ async function renderResults() {
               ${joinBtn}
             </div>
             <div class="tournament-date-cat" style="gap:6px;flex-wrap:wrap">
-              <span class="tournament-date">${fmt(t.date)}</span>
+              <span class="tournament-date">${fmt(t.date)}${t.time ? ' · ' + t.time.slice(0,5) : ''}</span>
               <span class="tournament-cat">${t.levelLabel || ''} · ${typeLabel}</span>
               ${ratingRange ? `<span style="font-size:11px;color:var(--text-muted)">${ratingRange} pts</span>` : ''}
               ${participantsInfo ? `<span style="font-size:11px;color:var(--text-muted)">${participantsInfo}</span>` : ''}
@@ -2682,11 +2689,12 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const maxRating = parseInt(document.getElementById('ct-max-rating').value) || null;
   const location = document.getElementById('ct-location').value.trim() || null;
   const price = parseInt(document.getElementById('ct-price').value) || null;
+  const time = document.getElementById('ct-time').value || null;
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
-    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating, location, price });
+    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating, location, price, time });
     tournamentsData = null;
     closeModal('modal-create-tournament');
     document.getElementById('ct-name').value = '';
@@ -2696,6 +2704,7 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
     document.getElementById('ct-max-rating').value = '';
     document.getElementById('ct-location').value = '';
     document.getElementById('ct-price').value = '';
+    document.getElementById('ct-time').value = '';
     alert('Турнір створено!');
   } catch (e) {
     alert('Помилка: ' + (e.message || 'unknown'));
