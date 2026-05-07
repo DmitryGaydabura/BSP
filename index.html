@@ -1032,6 +1032,25 @@
     .club-intro-desc {
       font-size: 12px; color: var(--text-sec); line-height: 1.55;
     }
+    .club-stats-row {
+      display: flex; justify-content: space-around;
+      margin: 0 16px 12px;
+      background: var(--navy-mid);
+      border: 1px solid var(--border-sub);
+      border-radius: 12px;
+      padding: 12px 8px;
+      gap: 8px;
+    }
+    .club-stat-cell { text-align: center; flex: 1; }
+    .club-stat-val {
+      font-family: var(--font-brand);
+      font-size: 22px; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.02em;
+    }
+    .club-stat-lbl {
+      font-size: 11px; color: var(--text-sec);
+      margin-top: 2px; letter-spacing: 0.03em;
+    }
 
     /* Rating info block */
     .rating-info-block {
@@ -1426,143 +1445,6 @@
   <!-- Content -->
   <main id="content">
 
-    <!-- ═══ TAB: КЛУБ ═══════════════════════════════════════════ -->
-    <div id="tab-club" class="tab-panel">
-
-      <!-- Hero -->
-      <div class="club-hero">
-        <img class="club-hero-watermark" src="assets/logo.jpg" alt="">
-        <div class="club-hero-inner">
-          <div class="club-eyebrow">
-            <span class="club-eyebrow-line"></span>
-            <span class="club-eyebrow-text">Odesa • Ukraine • 2023</span>
-          </div>
-          <h1 class="club-headline">
-            <span class="club-headline-gold">Blacksea</span>
-            <span class="club-headline-white">Padel</span>
-          </h1>
-          <p class="club-tagline">Там, де море зустрічає спорт. Прем'єрний паделний клуб Одеси.</p>
-
-          <!-- Stats -->
-          <div class="stats-row">
-            <div class="stat-cell">
-              <div class="stat-value">3</div>
-              <div class="stat-label">Корти</div>
-            </div>
-            <div class="stat-cell">
-              <div class="stat-value" id="member-count">—</div>
-              <div class="stat-label">Учасники</div>
-            </div>
-            <div class="stat-cell">
-              <div class="stat-value">7 днів</div>
-              <div class="stat-label">Відкрито</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="club-body">
-
-        <!-- About text -->
-        <div class="card">
-          <div class="section-eyebrow">Про клуб</div>
-          <p class="about-text">
-            <strong>Blacksea Padel</strong> — перший і найбільший паделний клуб Одеси. Розташований на чорноморському узбережжі, клуб об'єднує атлетизм, спільноту та дух міста.<br><br>
-            Ми надаємо три кваліфіковані корти міжнародного стандарту — криті скляні та відкриті — для гравців будь-якого рівня: від початківців до турнірних гравців.
-          </p>
-        </div>
-
-        <!-- Courts -->
-        <div>
-          <div class="section-eyebrow" style="padding: 0 2px 10px">Корти</div>
-          <div class="courts-grid">
-            <div class="court-row">
-              <div class="court-num">1</div>
-              <div class="court-info">
-                <div class="court-name">Court 1 — Championship</div>
-                <div class="court-tags">
-                  <span class="court-tag">Indoor Glass</span>
-                  <span class="court-tag">LED</span>
-                  <span class="court-tag">Клімат</span>
-                </div>
-              </div>
-              <div class="court-status-dot"></div>
-            </div>
-            <div class="court-row">
-              <div class="court-num">2</div>
-              <div class="court-info">
-                <div class="court-name">Court 2 — Panoramic</div>
-                <div class="court-tags">
-                  <span class="court-tag">Indoor Glass</span>
-                  <span class="court-tag">Sea View</span>
-                </div>
-              </div>
-              <div class="court-status-dot"></div>
-            </div>
-            <div class="court-row">
-              <div class="court-num">3</div>
-              <div class="court-info">
-                <div class="court-name">Court 3 — Outdoor</div>
-                <div class="court-tags">
-                  <span class="court-tag">Outdoor</span>
-                  <span class="court-tag">Floodlit</span>
-                </div>
-              </div>
-              <div class="court-status-dot" style="background:var(--gold);box-shadow:0 0 6px var(--gold)"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Info -->
-        <div class="info-card">
-          <div class="info-card-header">
-            <svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span class="info-card-title">Розклад роботи</span>
-          </div>
-          <div class="info-card-body">
-            <div class="info-row">
-              <span class="info-row-label">Пн – Пт</span>
-              <span class="info-row-val">07:00 – 22:00</span>
-            </div>
-            <div class="info-row">
-              <span class="info-row-label">Сб – Нд</span>
-              <span class="info-row-val">08:00 – 22:00</span>
-            </div>
-            <div class="info-row">
-              <span class="info-row-label">Свята</span>
-              <span class="info-row-val">09:00 – 20:00</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-card">
-          <div class="info-card-header">
-            <svg class="info-card-icon" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span class="info-card-title">Контакти</span>
-          </div>
-          <div class="info-card-body">
-            <div class="info-row">
-              <span class="info-row-label">Адреса</span>
-              <span class="info-row-val">Одеса, Україна</span>
-            </div>
-            <div class="info-row">
-              <span class="info-row-label">Телефон</span>
-              <span class="info-row-val" style="color:var(--sea-light)">+380 48 XXX XXXX</span>
-            </div>
-            <div class="info-row">
-              <span class="info-row-label">Telegram</span>
-              <span class="info-row-val" style="color:var(--sea-light)">@BlackseaPadel</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     <!-- ═══ TAB: РЕЗУЛЬТАТИ ═══════════════════════════════════════ -->
     <div id="tab-results" class="tab-panel">
       <div class="results-header">
@@ -1591,10 +1473,24 @@
 
       <!-- Club intro -->
       <div class="club-intro-block">
-        <img class="club-intro-logo" src="images/logo.png" alt="BSP" onerror="this.style.display='none'">
+        <img class="club-intro-logo" src="assets/logo.jpg" alt="BSP" onerror="this.style.display='none'">
         <div class="club-intro-body">
           <div class="club-intro-name">Blacksea Padel</div>
-          <div class="club-intro-desc">Падель-клуб на узбережжі Чорного моря. Ми організовуємо турніри, ведемо офіційний рейтинг та об'єднуємо гравців усіх рівнів — від початківців до майстрів.</div>
+          <div class="club-intro-desc">Перший паделний клуб Одеси на узбережжі Чорного моря. Організовуємо турніри, ведемо рейтинг та об'єднуємо гравців від початківців до майстрів.</div>
+        </div>
+      </div>
+      <div class="club-stats-row">
+        <div class="club-stat-cell">
+          <div class="club-stat-val" id="tournament-count">—</div>
+          <div class="club-stat-lbl">Турніри</div>
+        </div>
+        <div class="club-stat-cell">
+          <div class="club-stat-val" id="member-count">—</div>
+          <div class="club-stat-lbl">Гравці</div>
+        </div>
+        <div class="club-stat-cell">
+          <div class="club-stat-val">3</div>
+          <div class="club-stat-lbl">Корти</div>
         </div>
       </div>
 
@@ -1806,13 +1702,6 @@
         <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
       </svg>
       <span class="nav-label">Результати</span>
-    </button>
-    <button class="nav-tab" data-tab="club">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-      <span class="nav-label">Клуб</span>
     </button>
     <button class="nav-tab" data-tab="profile">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -2345,11 +2234,22 @@ async function renderRatings() {
    MEMBER COUNT
 ════════════════════════════════════════════════════════════════ */
 async function updateMemberCount() {
-  let count = RATINGS.length;
+  let playerCount = RATINGS.length;
+  let tournamentCount = null;
   if (apiAvailable) {
-    try { count = (await API.users.list().catch(() => [])).length || count; } catch {}
+    try {
+      const [users, tournaments] = await Promise.all([
+        API.users.list().catch(() => []),
+        API.tournaments.list().catch(() => []),
+      ]);
+      if (users.length) playerCount = users.length;
+      tournamentCount = tournaments.length;
+    } catch {}
   }
-  document.getElementById('member-count').textContent = count + '+';
+  document.getElementById('member-count').textContent = playerCount + '+';
+  if (tournamentCount !== null) {
+    document.getElementById('tournament-count').textContent = tournamentCount;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2404,8 +2304,6 @@ function renderProfile() {
   }
 
   const u = currentUser;
-  const total = u.wins + u.losses;
-  const winPct = total > 0 ? Math.round(u.wins / total * 100) + '%' : '—';
   const isAdmin = u.role === 'ADMIN';
   const level = levelFromPoints(u.ratingPoints);
   const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
@@ -2436,10 +2334,6 @@ function renderProfile() {
       <div class="profile-stat">
         <div class="profile-stat-value">${u.startingPoints || 0}</div>
         <div class="profile-stat-label">Стартові</div>
-      </div>
-      <div class="profile-stat">
-        <div class="profile-stat-value">${u.wins}/${u.losses}</div>
-        <div class="profile-stat-label">В / П</div>
       </div>
     </div>
 
@@ -2587,12 +2481,17 @@ function parseRaketoDoc(doc) {
   const padelRating = ratings.padel_dbl ?? 0;
   const padelMatches = (matches.padel_dbl_num ?? 0) + (matches.padel_americano_num ?? 0);
   const color = padelMatches >= 40 ? 'GREEN' : padelMatches >= 16 ? 'YELLOW' : 'RED';
+  const rawGender = parseFirestoreValue(f.gender);
+  const gender = rawGender === 'male' || rawGender === 'MALE' ? 'MALE'
+               : rawGender === 'female' || rawGender === 'FEMALE' ? 'FEMALE'
+               : null;
   return {
     name,
     photoUrl: parseFirestoreValue(f.photo_url) || null,
     padelRating: Math.round(padelRating * 1000) / 1000,
     padelMatches,
     color,
+    gender,
   };
 }
 
@@ -2638,6 +2537,7 @@ async function lookupRaketoByTelegram(username) {
             { fieldPath: 'photo_url' },
             { fieldPath: 'ratings' },
             { fieldPath: 'matches' },
+            { fieldPath: 'gender' },
           ]},
           where: {
             fieldFilter: {
@@ -2702,6 +2602,12 @@ function openClaimPointsModal() {
     selectedRating = u.padelRating;
     selectedColor  = u.color;
     genderGroup.style.display = '';
+    if (u.gender) {
+      gender = u.gender;
+      document.querySelectorAll('#cp-gender .claim-chip').forEach(b => {
+        b.classList.toggle('active', b.dataset.val === u.gender);
+      });
+    }
     updatePreview();
   }
 
@@ -3195,13 +3101,12 @@ document.getElementById('pm-add-btn').addEventListener('click', async () => {
 ════════════════════════════════════════════════════════════════ */
 
 const TABS = {
-  club: 'tab-club',
   results: 'tab-results',
   ratings: 'tab-ratings',
   profile: 'tab-profile',
 };
 let currentTab = 'ratings';
-let rendered = { club: false, results: false, ratings: true, profile: false };
+let rendered = { results: false, ratings: true, profile: false };
 
 function switchTab(tab) {
   if (tab === currentTab) return;
