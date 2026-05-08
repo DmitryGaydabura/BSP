@@ -1735,6 +1735,40 @@
     </div>
   </div>
 
+  <!-- Admin Import from Raketo Modal -->
+  <div class="modal-overlay" id="modal-admin-import">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Імпорт гравця з Raketo</span>
+        <button class="modal-close" data-close="modal-admin-import">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:10px">
+          <label class="form-label">Пошук за іменем у Raketo</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" type="text" id="ai-search-input"
+                   placeholder="Введіть ім'я гравця..." style="flex:1">
+            <button class="btn-secondary" id="ai-search-btn" style="flex-shrink:0;padding:0 14px">Шукати</button>
+          </div>
+        </div>
+        <div id="ai-results"></div>
+        <div id="ai-selected" style="display:none">
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px">Обраний гравець</div>
+          <div id="ai-selected-card"></div>
+          <div class="form-group" id="ai-gender-group" style="margin-top:12px">
+            <label class="form-label">Стать</label>
+            <div class="claim-chips" id="ai-gender">
+              <button class="claim-chip" data-val="MALE">Чоловік</button>
+              <button class="claim-chip" data-val="FEMALE">Жінка</button>
+            </div>
+          </div>
+          <button class="btn-primary" id="ai-import-btn" style="width:100%;margin-top:14px" disabled>Додати гравця</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-users">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -2626,6 +2660,8 @@ function parseRaketoDoc(doc) {
   const gender = rawGender === 'male' || rawGender === 'MALE' ? 'MALE'
                : rawGender === 'female' || rawGender === 'FEMALE' ? 'FEMALE'
                : null;
+  const rawTg = parseFirestoreValue(f.telegram) || null;
+  const telegramHandle = rawTg ? rawTg.replace(/^@/, '') : null;
   return {
     name,
     photoUrl: parseFirestoreValue(f.photo_url) || null,
@@ -2633,6 +2669,7 @@ function parseRaketoDoc(doc) {
     padelMatches,
     color,
     gender,
+    telegramHandle,
   };
 }
 
@@ -2703,7 +2740,11 @@ async function lookupRaketoByTelegram(username) {
     const errItem = items.find(i => i.error);
     if (errItem) throw new Error(errItem.error.message || errItem.error.status || 'Raketo error');
 
-    const docs = items.filter(i => i.document).map(i => parseRaketoDoc(i.document)).filter(Boolean);
+    const docs = items.filter(i => i.document).map(i => {
+      const parsed = parseRaketoDoc(i.document);
+      if (!parsed) return null;
+      return { ...parsed, docId: i.document.name?.split('/').pop() || null };
+    }).filter(Boolean);
     if (docs.length > 0) return docs[0];
   }
 
@@ -2712,7 +2753,7 @@ async function lookupRaketoByTelegram(username) {
 
 function openClaimPointsModal() {
   openModal('modal-claim-points');
-  let gender = null, selectedRating = null, selectedColor = null;
+  let gender = null, selectedRating = null, selectedColor = null, selectedDocId = null;
 
   const lookupBox    = document.getElementById('cp-lookup');
   const genderGroup  = document.getElementById('cp-gender-group');
@@ -2742,6 +2783,7 @@ function openClaimPointsModal() {
   function applyRaketoUser(u) {
     selectedRating = u.padelRating;
     selectedColor  = u.color;
+    selectedDocId  = u.docId || null;
     genderGroup.style.display = '';
     if (u.gender) {
       gender = u.gender;
@@ -2788,6 +2830,7 @@ function openClaimPointsModal() {
         gender,
         raketoRating: selectedRating,
         raketoColor: selectedColor,
+        ...(selectedDocId ? { raketoDocId: selectedDocId } : {}),
       });
       closeModal('modal-claim-points');
       renderProfile();
@@ -2827,6 +2870,11 @@ function renderAdminPanel() {
           <span class="admin-action-label">Гравці</span>
           <span class="admin-action-arrow">›</span>
         </button>
+        <button class="admin-action-btn" id="btn-admin-import">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span class="admin-action-label">Імпорт з Raketo</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
       </div>
     </div>
   `;
@@ -2841,6 +2889,182 @@ function wireAdminPanel() {
   document.getElementById('btn-submit-results').addEventListener('click', openSubmitResults);
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);
   document.getElementById('btn-users').addEventListener('click', openUsersModal);
+  document.getElementById('btn-admin-import').addEventListener('click', openAdminImportModal);
+}
+
+/* ── Admin import from Raketo ───────────────────────────────────── */
+
+async function searchRaketoByName(query) {
+  const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
+  const sentinel = query + '';
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'users' }],
+        select: { fields: [
+          { fieldPath: 'display_name' },
+          { fieldPath: 'photo_url' },
+          { fieldPath: 'ratings' },
+          { fieldPath: 'matches' },
+          { fieldPath: 'gender' },
+          { fieldPath: 'telegram' },
+        ]},
+        where: {
+          compositeFilter: {
+            op: 'AND',
+            filters: [
+              { fieldFilter: { field: { fieldPath: 'display_name' }, op: 'GREATER_THAN_OR_EQUAL', value: { stringValue: query } } },
+              { fieldFilter: { field: { fieldPath: 'display_name' }, op: 'LESS_THAN',             value: { stringValue: sentinel } } },
+            ],
+          },
+        },
+        limit: 10,
+      },
+    }),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error?.message || 'Raketo API error ' + res.status);
+  const items = Array.isArray(body) ? body : [];
+  const errItem = items.find(i => i.error);
+  if (errItem) throw new Error(errItem.error.message || 'Raketo error');
+  return items.filter(i => i.document).map(i => {
+    const parsed = parseRaketoDoc(i.document);
+    if (!parsed) return null;
+    return { ...parsed, docId: i.document.name?.split('/').pop() || null };
+  }).filter(Boolean);
+}
+
+function renderAdminRaketoResult(u, selected) {
+  const dotCls = u.color.toLowerCase();
+  const ratingStr = u.padelRating > 0 ? u.padelRating.toFixed(3) : '—';
+  const initStr = u.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+  return `<div class="raketo-result${selected ? ' active' : ''}" data-doc-id="${u.docId}">
+    <div class="raketo-result-avatar">
+      ${u.photoUrl
+        ? `<img src="${u.photoUrl}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${initStr}</span>`
+        : initStr}
+    </div>
+    <div class="raketo-result-body">
+      <div class="raketo-result-name">${u.name}</div>
+      <div class="raketo-result-meta">
+        <span class="raketo-result-dot ${dotCls}"></span>
+        <span class="raketo-result-rating">Padel ${ratingStr}</span>
+        <span class="raketo-result-matches">${u.padelMatches} матчів</span>
+        ${u.telegramHandle ? `<span style="font-size:11px;color:var(--text-muted)">@${u.telegramHandle}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openAdminImportModal() {
+  openModal('modal-admin-import');
+  const searchInput  = document.getElementById('ai-search-input');
+  const searchBtn    = document.getElementById('ai-search-btn');
+  const resultsBox   = document.getElementById('ai-results');
+  const selectedBox  = document.getElementById('ai-selected');
+  const selectedCard = document.getElementById('ai-selected-card');
+  const importBtn    = document.getElementById('ai-import-btn');
+
+  let selectedUser = null;
+  let selectedGender = null;
+
+  // Reset state
+  searchInput.value = '';
+  resultsBox.innerHTML = '';
+  selectedBox.style.display = 'none';
+  selectedUser = null;
+  selectedGender = null;
+  importBtn.disabled = true;
+  document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
+
+  function updateImportBtn() {
+    importBtn.disabled = !(selectedUser && selectedGender);
+  }
+
+  async function doSearch() {
+    const q = searchInput.value.trim();
+    if (q.length < 2) {
+      resultsBox.innerHTML = '<div class="raketo-no-result">Введіть мінімум 2 символи</div>';
+      return;
+    }
+    resultsBox.innerHTML = '<div class="raketo-searching">Пошук у Raketo...</div>';
+    selectedBox.style.display = 'none';
+    selectedUser = null;
+    selectedGender = null;
+    importBtn.disabled = true;
+    try {
+      const results = await searchRaketoByName(q);
+      if (!results.length) {
+        resultsBox.innerHTML = '<div class="raketo-no-result">Гравців не знайдено за цим ім\'ям</div>';
+        return;
+      }
+      resultsBox.innerHTML = `<div class="raketo-results" id="ai-result-list">
+        ${results.map(u => renderAdminRaketoResult(u, false)).join('')}
+      </div>`;
+      resultsBox.querySelectorAll('.raketo-result').forEach((el, idx) => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          selectedUser = results[idx];
+          resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
+          el.classList.add('active');
+
+          selectedCard.innerHTML = renderAdminRaketoResult(selectedUser, true);
+          selectedBox.style.display = '';
+
+          // Pre-fill gender if available
+          if (selectedUser.gender) {
+            selectedGender = selectedUser.gender;
+            document.querySelectorAll('#ai-gender .claim-chip').forEach(b => {
+              b.classList.toggle('active', b.dataset.val === selectedUser.gender);
+            });
+          } else {
+            selectedGender = null;
+            document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
+          }
+          updateImportBtn();
+        });
+      });
+    } catch (e) {
+      resultsBox.innerHTML = `<div class="raketo-no-result">Помилка: ${e.message}</div>`;
+    }
+  }
+
+  searchBtn.addEventListener('click', doSearch);
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+  document.querySelectorAll('#ai-gender .claim-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedGender = btn.dataset.val;
+      updateImportBtn();
+    });
+  });
+
+  importBtn.addEventListener('click', async () => {
+    if (!selectedUser || !selectedGender) return;
+    importBtn.disabled = true;
+    importBtn.textContent = '...';
+    try {
+      await API.users.adminImportFromRaketo({
+        displayName:            selectedUser.name,
+        gender:                 selectedGender,
+        raketoRating:           selectedUser.padelRating,
+        raketoColor:            selectedUser.color,
+        raketoDocId:            selectedUser.docId,
+        raketoTelegramUsername: selectedUser.telegramHandle || null,
+        photoUrl:               selectedUser.photoUrl || null,
+      });
+      closeModal('modal-admin-import');
+      alert(`Гравця "${selectedUser.name}" успішно додано!`);
+    } catch (e) {
+      alert('Помилка: ' + (e.message || 'unknown'));
+      importBtn.disabled = false;
+      importBtn.textContent = 'Додати гравця';
+    }
+  });
 }
 
 /* ── Modal helpers ──────────────────────────────────────────────── */
@@ -3104,13 +3328,13 @@ async function openUsersModal() {
     const users = await API.users.list();
     const levelOptHtml = LEVEL_OPTIONS.map(l => `<option value="${l.value}">${l.label}</option>`).join('');
     list.innerHTML = users.map(u => `
-      <div class="user-list-item" style="flex-wrap:wrap;gap:6px">
+      <div class="user-list-item" style="flex-wrap:wrap;gap:6px${u.adminImported && !u.telegramId ? ';opacity:0.75' : ''}">
         <div class="user-list-avatar">
           ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
         </div>
         <div class="user-list-info">
-          <div class="user-list-name">${u.displayName}</div>
-          <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})</div>
+          <div class="user-list-name">${u.displayName}${u.adminImported && !u.telegramId ? ' <span style="font-size:10px;color:var(--text-dim);font-weight:600">Raketo·не зареєстрований</span>' : ''}</div>
+          <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.raketoTelegramUsername ? ` · @${u.raketoTelegramUsername}` : ''}</div>
         </div>
         <div style="display:flex;gap:4px;margin-left:auto">
           <select class="form-select level-select" data-user-id="${u.id}"
