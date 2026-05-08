@@ -19,6 +19,7 @@ const API = (() => {
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
+      cache: 'no-store',
       ...(body != null ? { body: JSON.stringify(body) } : {}),
     });
 
