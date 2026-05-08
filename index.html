@@ -1799,13 +1799,12 @@
         <div id="pm-participants-list" style="margin-bottom:12px">
           <!-- participant rows injected by JS -->
         </div>
-        <div class="form-group" style="margin-bottom:8px">
+        <div class="form-group" style="margin-bottom:6px">
           <label class="form-label">Додати гравця</label>
-          <select class="form-select" id="pm-user-select">
-            <option value="">— оберіть гравця —</option>
-          </select>
+          <input class="form-input" type="text" id="pm-search"
+                 placeholder="Пошук за іменем..." autocomplete="off">
         </div>
-        <button class="btn-secondary" id="pm-add-btn" style="width:100%">+ Додати</button>
+        <div id="pm-addable-list"></div>
       </div>
     </div>
   </div>
@@ -3389,23 +3388,28 @@ async function openUsersModal() {
 }
 
 /* ── Participants modal ──────────────────────────────────────────── */
+let pmAllUsers = [];
+let pmParticipantIds = new Set();
+
 async function openParticipantsModal() {
   openModal('modal-participants');
   const sel = document.getElementById('pm-tournament-select');
-  const userSel = document.getElementById('pm-user-select');
   sel.innerHTML = '<option>Завантаження...</option>';
+  document.getElementById('pm-addable-list').innerHTML = '';
+  document.getElementById('pm-search').value = '';
+  pmAllUsers = [];
+  pmParticipantIds = new Set();
 
   try {
     const [allTournaments, allUsers] = await Promise.all([
       API.tournaments.list(),
       API.users.list(),
     ]);
-    const active = allTournaments.filter(t => t.status !== 'FINISHED');
-    sel.innerHTML = active.map(t => `<option value="${t.id}">${t.name} [${t.level || ''}]</option>`).join('');
-    if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
+    pmAllUsers = allUsers;
 
-    userSel.innerHTML = '<option value="">— оберіть гравця —</option>' +
-      allUsers.map(u => `<option value="${u.id}">${u.displayName} (${u.ratingPoints} pts)</option>`).join('');
+    const active = allTournaments.filter(t => t.status !== 'FINISHED');
+    if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
+    sel.innerHTML = active.map(t => `<option value="${t.id}">${t.name} [${t.level || ''}]</option>`).join('');
 
     await renderParticipantList(sel.value);
   } catch (e) {
@@ -3415,60 +3419,96 @@ async function openParticipantsModal() {
 
 async function renderParticipantList(tournamentId) {
   const container = document.getElementById('pm-participants-list');
-  if (!tournamentId) { container.innerHTML = ''; return; }
+  if (!tournamentId) { container.innerHTML = ''; pmParticipantIds = new Set(); renderAddableList(); return; }
   container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Завантаження...</div>';
   try {
     const participants = await API.tournaments.getParticipants(tournamentId);
+    pmParticipantIds = new Set(participants.map(u => u.id));
+
     if (!participants.length) {
       container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
-      return;
-    }
-    container.innerHTML = participants.map(u => `
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-sub)">
-        <span style="flex:1;font-size:13px">${u.displayName}</span>
-        <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
-        <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${u.id}"
-                style="color:var(--error);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">✕</button>
-      </div>
-    `).join('');
+    } else {
+      container.innerHTML = participants.map(u => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-sub)">
+          <span style="flex:1;font-size:13px">${u.displayName}</span>
+          <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
+          <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${u.id}"
+                  style="color:var(--error);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">✕</button>
+        </div>
+      `).join('');
 
-    container.querySelectorAll('.pm-remove-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        try {
-          await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
-          await renderParticipantList(btn.dataset.tournamentId);
-        } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
-          btn.disabled = false;
-        }
+      container.querySelectorAll('.pm-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
+            await renderParticipantList(btn.dataset.tournamentId);
+          } catch (e) {
+            alert('Помилка: ' + (e.message || 'unknown'));
+            btn.disabled = false;
+          }
+        });
       });
-    });
+    }
+
+    renderAddableList();
   } catch (e) {
     container.innerHTML = `<div style="color:var(--error);font-size:13px">${e.message}</div>`;
   }
 }
 
+function renderAddableList() {
+  const query = (document.getElementById('pm-search')?.value || '').toLowerCase().trim();
+  const list = document.getElementById('pm-addable-list');
+  const tournamentId = document.getElementById('pm-tournament-select').value;
+
+  const available = pmAllUsers.filter(u =>
+    !pmParticipantIds.has(u.id) &&
+    (!query || u.displayName.toLowerCase().includes(query))
+  );
+
+  if (!available.length) {
+    list.innerHTML = query
+      ? `<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Нікого не знайдено</div>`
+      : `<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Всі гравці вже у турнірі</div>`;
+    return;
+  }
+
+  list.innerHTML = available.map(u => `
+    <div class="pm-addable-row" data-user-id="${u.id}"
+         style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background 0.15s">
+      <span style="flex:1;font-size:13px">${u.displayName}</span>
+      <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
+      <span style="font-size:12px;color:var(--gold);font-weight:600">+</span>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.pm-addable-row').forEach(row => {
+    row.addEventListener('mouseenter', () => { row.style.background = 'rgba(201,168,76,0.07)'; });
+    row.addEventListener('mouseleave', () => { row.style.background = ''; });
+    row.addEventListener('click', async () => {
+      if (row.dataset.loading) return;
+      row.dataset.loading = '1';
+      row.style.opacity = '0.5';
+      try {
+        await API.tournaments.addParticipant(tournamentId, row.dataset.userId);
+        document.getElementById('pm-search').value = '';
+        await renderParticipantList(tournamentId);
+      } catch (e) {
+        alert('Помилка: ' + (e.message || 'unknown'));
+        row.style.opacity = '';
+        delete row.dataset.loading;
+      }
+    });
+  });
+}
+
 document.getElementById('pm-tournament-select').addEventListener('change', e => {
+  document.getElementById('pm-search').value = '';
   renderParticipantList(e.target.value);
 });
 
-document.getElementById('pm-add-btn').addEventListener('click', async () => {
-  const tournamentId = document.getElementById('pm-tournament-select').value;
-  const userId = document.getElementById('pm-user-select').value;
-  if (!tournamentId || !userId) { alert('Оберіть турнір і гравця'); return; }
-  const btn = document.getElementById('pm-add-btn');
-  btn.disabled = true;
-  try {
-    await API.tournaments.addParticipant(tournamentId, userId);
-    document.getElementById('pm-user-select').value = '';
-    await renderParticipantList(tournamentId);
-  } catch (e) {
-    alert('Помилка: ' + (e.message || 'unknown'));
-  } finally {
-    btn.disabled = false;
-  }
-});
+document.getElementById('pm-search').addEventListener('input', renderAddableList);
 
 /* ════════════════════════════════════════════════════════════════
    TAB NAVIGATION
