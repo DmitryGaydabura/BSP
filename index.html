@@ -676,9 +676,9 @@
       color: var(--text-dim);
     }
     .lb-name-h { flex: 1; }
-    .lb-pts-h { width: 52px; text-align: right; }
-    .lb-wl-h { width: 44px; text-align: center; }
-    .lb-ratio-h { width: 36px; text-align: right; }
+    .lb-pts-h { width: 54px; text-align: right; }
+    .lb-start-h { width: 44px; text-align: right; }
+    .lb-trn-h { width: 42px; text-align: right; }
 
     .lb-row {
       display: flex; align-items: center;
@@ -715,22 +715,20 @@
       font-family: var(--font-mono);
       font-size: 13px; font-weight: 700;
       color: var(--gold);
-      width: 52px; text-align: right; flex-shrink: 0;
+      width: 54px; text-align: right; flex-shrink: 0;
     }
-    .lb-wl {
+    .lb-start {
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 500;
-      color: var(--text-sec);
-      width: 44px; text-align: center; flex-shrink: 0;
+      color: var(--text-dim);
+      width: 44px; text-align: right; flex-shrink: 0;
     }
-    .lb-ratio {
+    .lb-trn {
       font-family: var(--font-mono);
-      font-size: 11px; font-weight: 700;
-      width: 36px; text-align: right; flex-shrink: 0;
+      font-size: 11px; font-weight: 500;
+      color: var(--text-dim);
+      width: 42px; text-align: right; flex-shrink: 0;
     }
-    .ratio-high { color: var(--success); }
-    .ratio-mid  { color: var(--gold); }
-    .ratio-low  { color: var(--text-muted); }
 
     /* ── Level badges ─────────────────────────────────────────────── */
     @keyframes bplus-pulse {
@@ -1594,11 +1592,11 @@
         <div class="leaderboard-header">
           <span class="lb-col-h lb-rank-h">#</span>
           <span class="lb-col-h lb-name-h">Гравець</span>
+          <span class="lb-col-h lb-start-h">Старт</span>
+          <span class="lb-col-h lb-trn-h">Трн.</span>
           <span class="lb-col-h lb-pts-h" style="display:flex;align-items:center;justify-content:flex-end;gap:5px">
-            Очки <button class="rating-info-btn" id="btn-rating-info">?</button>
+            Рейтинг <button class="rating-info-btn" id="btn-rating-info">?</button>
           </span>
-          <span class="lb-col-h lb-wl-h">В/П</span>
-          <span class="lb-col-h lb-ratio-h">%</span>
         </div>
         <div id="leaderboard-rows">
           <!-- rendered by JS -->
@@ -2282,11 +2280,14 @@ let activeRatingFilter = 'all';
 const LEVELS_ORDER = ['D−','D','D+','C−','C','C+','B−','B','B+'];
 
 function normalizeRating(r) {
+  const startingPts = r.startingPoints || 0;
   return {
     id: r.userId || r.id,
     name: r.name || r.displayName,
     photoUrl: r.photoUrl || null,
     pts: r.ratingPoints,
+    startingPts,
+    tournamentPts: (r.ratingPoints || 0) - startingPts,
     wins: r.wins,
     losses: r.losses,
     change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
@@ -2318,9 +2319,9 @@ function renderLbRow(p, rank, showLevel) {
         <div class="lb-name-text">${p.name}</div>
         ${showLevel ? `<span class="level-badge level-badge-sm ${levelClass(lvl)}">${lvl}</span>` : ''}
       </div>
+      <span class="lb-start">${p.startingPts}</span>
+      <span class="lb-trn">${p.tournamentPts >= 0 ? '+' : ''}${p.tournamentPts}</span>
       <span class="lb-pts">${p.pts}</span>
-      <span class="lb-wl">${p.wins}/${p.losses}</span>
-      <span class="lb-ratio ${ratioClass(p.wins, p.losses)}">${pct(p.wins, p.losses)}</span>
       <span class="lb-change ${changeCls}">${changeSign}</span>
     </div>
   `;
