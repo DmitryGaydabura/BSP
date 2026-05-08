@@ -1501,6 +1501,8 @@
       color: var(--text-muted); border-color: var(--border-sub);
       background: transparent;
     }
+    .pm-addable-row:hover { background: rgba(201,168,76,0.07) !important; }
+    .pm-addable-row:active { background: rgba(201,168,76,0.14) !important; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -1802,7 +1804,8 @@
         <div class="form-group" style="margin-bottom:6px">
           <label class="form-label">Додати гравця</label>
           <input class="form-input" type="text" id="pm-search"
-                 placeholder="Пошук за іменем..." autocomplete="off">
+                 placeholder="Пошук за іменем..."
+                 autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
         </div>
         <div id="pm-addable-list"></div>
       </div>
@@ -3475,29 +3478,29 @@ function renderAddableList() {
   }
 
   list.innerHTML = available.map(u => `
-    <div class="pm-addable-row" data-user-id="${u.id}"
-         style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background 0.15s">
+    <button class="pm-addable-row" data-user-id="${u.id}"
+            style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;width:100%;
+                   background:none;border:none;color:inherit;text-align:left;cursor:pointer;
+                   touch-action:manipulation;-webkit-tap-highlight-color:transparent">
       <span style="flex:1;font-size:13px">${u.displayName}</span>
       <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
       <span style="font-size:12px;color:var(--gold);font-weight:600">+</span>
-    </div>
+    </button>
   `).join('');
 
-  list.querySelectorAll('.pm-addable-row').forEach(row => {
-    row.addEventListener('mouseenter', () => { row.style.background = 'rgba(201,168,76,0.07)'; });
-    row.addEventListener('mouseleave', () => { row.style.background = ''; });
-    row.addEventListener('click', async () => {
-      if (row.dataset.loading) return;
-      row.dataset.loading = '1';
-      row.style.opacity = '0.5';
+  list.querySelectorAll('.pm-addable-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
       try {
-        await API.tournaments.addParticipant(tournamentId, row.dataset.userId);
+        await API.tournaments.addParticipant(tournamentId, btn.dataset.userId);
         document.getElementById('pm-search').value = '';
         await renderParticipantList(tournamentId);
       } catch (e) {
         alert('Помилка: ' + (e.message || 'unknown'));
-        row.style.opacity = '';
-        delete row.dataset.loading;
+        btn.style.opacity = '';
+        btn.disabled = false;
       }
     });
   });
