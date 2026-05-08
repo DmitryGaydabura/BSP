@@ -664,21 +664,37 @@
 
     /* Full leaderboard */
     .leaderboard { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 0; }
-    .leaderboard-header {
-      display: flex; align-items: flex-end;
-      padding: 6px 12px 8px;
-      gap: 8px;
+    .lb-row.lb-header {
+      padding-top: 4px;
+      padding-bottom: 6px;
+      background: none !important;
+      border: none !important;
+      margin-bottom: 0;
     }
-    .lb-rank-h { width: 32px; text-align: center; flex-shrink: 0; }
-    .lb-col-h {
-      font-size: 9px; font-weight: 700;
-      letter-spacing: 0.14em; text-transform: uppercase;
+    .lb-row.lb-header .lb-rank,
+    .lb-row.lb-header .lb-name,
+    .lb-row.lb-header .lb-start,
+    .lb-row.lb-header .lb-trn,
+    .lb-row.lb-header .lb-pts {
+      font-family: inherit;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
       color: var(--text-dim);
+      overflow: hidden;
+      white-space: nowrap;
     }
-    .lb-name-h { flex: 1; }
-    .lb-pts-h { width: 54px; text-align: right; flex-shrink: 0; }
-    .lb-start-h { width: 44px; text-align: right; flex-shrink: 0; }
-    .lb-trn-h { width: 68px; text-align: right; flex-shrink: 0; text-transform: none; letter-spacing: 0.03em; white-space: nowrap; }
+    .lb-row.lb-header .lb-avatar {
+      visibility: hidden;
+      background: transparent;
+      border-color: transparent;
+    }
+    .lb-row.lb-header .lb-change {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
 
     .lb-row {
       display: flex; align-items: center;
@@ -715,7 +731,7 @@
       font-family: var(--font-mono);
       font-size: 13px; font-weight: 700;
       color: var(--gold);
-      width: 54px; text-align: right; flex-shrink: 0;
+      width: 72px; text-align: right; flex-shrink: 0;
     }
     .lb-start {
       font-family: var(--font-mono);
@@ -727,7 +743,7 @@
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 500;
       color: var(--text-dim);
-      width: 68px; text-align: right; flex-shrink: 0;
+      width: 64px; text-align: right; flex-shrink: 0;
     }
 
     /* ── Level badges ─────────────────────────────────────────────── */
@@ -1589,16 +1605,14 @@
 
       <!-- Full table -->
       <div class="leaderboard">
-        <div class="leaderboard-header">
-          <span class="lb-col-h lb-rank-h">#</span>
-          <span style="width:30px;flex-shrink:0"></span>
-          <span class="lb-col-h lb-name-h">Гравець</span>
-          <span class="lb-col-h lb-start-h">Старт</span>
-          <span class="lb-col-h lb-trn-h">За турніри</span>
-          <span class="lb-col-h lb-pts-h" style="display:flex;align-items:center;justify-content:flex-end;gap:5px">
-            Рейтинг <button class="rating-info-btn" id="btn-rating-info">?</button>
-          </span>
-          <span style="width:20px;flex-shrink:0"></span>
+        <div class="lb-row lb-header">
+          <span class="lb-rank">#</span>
+          <div class="lb-avatar"></div>
+          <div class="lb-name">Гравець</div>
+          <span class="lb-start">Старт</span>
+          <span class="lb-trn">Турніри</span>
+          <span class="lb-pts">Рейтинг</span>
+          <span class="lb-change"><button class="rating-info-btn" id="btn-rating-info">?</button></span>
         </div>
         <div id="leaderboard-rows">
           <!-- rendered by JS -->
