@@ -2909,6 +2909,7 @@ function wireAdminPanel() {
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);
   document.getElementById('btn-users').addEventListener('click', openUsersModal);
   document.getElementById('btn-admin-import').addEventListener('click', openAdminImportModal);
+  initAdminImportModal();
 }
 
 /* ── Admin import from Raketo ───────────────────────────────────── */
@@ -2977,113 +2978,114 @@ function renderAdminRaketoResult(u, selected) {
   </div>`;
 }
 
-function openAdminImportModal() {
-  openModal('modal-admin-import');
+let aiSelectedUser = null;
+let aiSelectedGender = null;
+
+function updateAiImportBtn() {
+  document.getElementById('ai-import-btn').disabled = !(aiSelectedUser && aiSelectedGender);
+}
+
+async function doAdminSearch() {
   const searchInput  = document.getElementById('ai-search-input');
-  const searchBtn    = document.getElementById('ai-search-btn');
   const resultsBox   = document.getElementById('ai-results');
   const selectedBox  = document.getElementById('ai-selected');
   const selectedCard = document.getElementById('ai-selected-card');
-  const importBtn    = document.getElementById('ai-import-btn');
 
-  let selectedUser = null;
-  let selectedGender = null;
-
-  // Reset state
-  searchInput.value = '';
-  resultsBox.innerHTML = '';
-  selectedBox.style.display = 'none';
-  selectedUser = null;
-  selectedGender = null;
-  importBtn.disabled = true;
-  document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
-
-  function updateImportBtn() {
-    importBtn.disabled = !(selectedUser && selectedGender);
+  const q = searchInput.value.trim();
+  if (q.length < 2) {
+    resultsBox.innerHTML = '<div class="raketo-no-result">Введіть мінімум 2 символи</div>';
+    return;
   }
-
-  async function doSearch() {
-    const q = searchInput.value.trim();
-    if (q.length < 2) {
-      resultsBox.innerHTML = '<div class="raketo-no-result">Введіть мінімум 2 символи</div>';
+  resultsBox.innerHTML = '<div class="raketo-searching">Пошук у Raketo...</div>';
+  selectedBox.style.display = 'none';
+  aiSelectedUser = null;
+  aiSelectedGender = null;
+  updateAiImportBtn();
+  try {
+    const results = await searchRaketoByName(q);
+    if (!results.length) {
+      resultsBox.innerHTML = '<div class="raketo-no-result">Гравців не знайдено за цим ім\'ям</div>';
       return;
     }
-    resultsBox.innerHTML = '<div class="raketo-searching">Пошук у Raketo...</div>';
-    selectedBox.style.display = 'none';
-    selectedUser = null;
-    selectedGender = null;
-    importBtn.disabled = true;
-    try {
-      const results = await searchRaketoByName(q);
-      if (!results.length) {
-        resultsBox.innerHTML = '<div class="raketo-no-result">Гравців не знайдено за цим ім\'ям</div>';
-        return;
-      }
-      resultsBox.innerHTML = `<div class="raketo-results" id="ai-result-list">
-        ${results.map(u => renderAdminRaketoResult(u, false)).join('')}
-      </div>`;
-      resultsBox.querySelectorAll('.raketo-result').forEach((el, idx) => {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', () => {
-          selectedUser = results[idx];
-          resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
-          el.classList.add('active');
-
-          selectedCard.innerHTML = renderAdminRaketoResult(selectedUser, true);
-          selectedBox.style.display = '';
-
-          // Pre-fill gender if available
-          if (selectedUser.gender) {
-            selectedGender = selectedUser.gender;
-            document.querySelectorAll('#ai-gender .claim-chip').forEach(b => {
-              b.classList.toggle('active', b.dataset.val === selectedUser.gender);
-            });
-          } else {
-            selectedGender = null;
-            document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
-          }
-          updateImportBtn();
-        });
+    resultsBox.innerHTML = `<div class="raketo-results" id="ai-result-list">
+      ${results.map(u => renderAdminRaketoResult(u, false)).join('')}
+    </div>`;
+    resultsBox.querySelectorAll('.raketo-result').forEach((el, idx) => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        aiSelectedUser = results[idx];
+        resultsBox.querySelectorAll('.raketo-result').forEach(r => r.classList.remove('active'));
+        el.classList.add('active');
+        selectedCard.innerHTML = renderAdminRaketoResult(aiSelectedUser, true);
+        selectedBox.style.display = '';
+        if (aiSelectedUser.gender) {
+          aiSelectedGender = aiSelectedUser.gender;
+          document.querySelectorAll('#ai-gender .claim-chip').forEach(b => {
+            b.classList.toggle('active', b.dataset.val === aiSelectedUser.gender);
+          });
+        } else {
+          aiSelectedGender = null;
+          document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
+        }
+        updateAiImportBtn();
       });
-    } catch (e) {
-      resultsBox.innerHTML = `<div class="raketo-no-result">Помилка: ${e.message}</div>`;
-    }
+    });
+  } catch (e) {
+    resultsBox.innerHTML = `<div class="raketo-no-result">Помилка: ${e.message}</div>`;
   }
+}
 
-  searchBtn.addEventListener('click', doSearch);
-  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+function initAdminImportModal() {
+  const searchBtn  = document.getElementById('ai-search-btn');
+  const searchInput = document.getElementById('ai-search-input');
+  const importBtn  = document.getElementById('ai-import-btn');
+
+  searchBtn.addEventListener('click', doAdminSearch);
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doAdminSearch(); });
 
   document.querySelectorAll('#ai-gender .claim-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      selectedGender = btn.dataset.val;
-      updateImportBtn();
+      aiSelectedGender = btn.dataset.val;
+      updateAiImportBtn();
     });
   });
 
   importBtn.addEventListener('click', async () => {
-    if (!selectedUser || !selectedGender) return;
+    if (!aiSelectedUser || !aiSelectedGender) return;
     importBtn.disabled = true;
     importBtn.textContent = '...';
     try {
       await API.users.adminImportFromRaketo({
-        displayName:            selectedUser.name,
-        gender:                 selectedGender,
-        raketoRating:           selectedUser.padelRating,
-        raketoColor:            selectedUser.color,
-        raketoDocId:            selectedUser.docId,
-        raketoTelegramUsername: selectedUser.telegramHandle || null,
-        photoUrl:               selectedUser.photoUrl || null,
+        displayName:            aiSelectedUser.name,
+        gender:                 aiSelectedGender,
+        raketoRating:           aiSelectedUser.padelRating,
+        raketoColor:            aiSelectedUser.color,
+        raketoDocId:            aiSelectedUser.docId,
+        raketoTelegramUsername: aiSelectedUser.telegramHandle || null,
+        photoUrl:               aiSelectedUser.photoUrl || null,
       });
       closeModal('modal-admin-import');
-      alert(`Гравця "${selectedUser.name}" успішно додано!`);
+      alert(`Гравця "${aiSelectedUser.name}" успішно додано!`);
     } catch (e) {
       alert('Помилка: ' + (e.message || 'unknown'));
       importBtn.disabled = false;
       importBtn.textContent = 'Додати гравця';
     }
   });
+}
+
+function openAdminImportModal() {
+  openModal('modal-admin-import');
+  aiSelectedUser = null;
+  aiSelectedGender = null;
+  document.getElementById('ai-search-input').value = '';
+  document.getElementById('ai-results').innerHTML = '';
+  document.getElementById('ai-selected').style.display = 'none';
+  document.getElementById('ai-import-btn').disabled = true;
+  document.getElementById('ai-import-btn').textContent = 'Додати гравця';
+  document.querySelectorAll('#ai-gender .claim-chip').forEach(b => b.classList.remove('active'));
 }
 
 /* ── Modal helpers ──────────────────────────────────────────────── */
