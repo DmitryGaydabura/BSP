@@ -43,6 +43,8 @@ const API = (() => {
       list:                ()               => request('GET',  '/users'),
       setRole:             (id, role)       => request('PUT',  `/users/${id}/role`, { role }),
       setStartingPoints:   (id, level)      => request('PUT',  `/users/${id}/starting-points`, { level }),
+      setRatingPoints:     (id, points)     => request('PUT',  `/users/${id}/rating-points`, { points }),
+      delete:              (id)             => request('DELETE', `/users/${id}`),
       adminImportFromRaketo: (data)         => request('POST', '/users/import-from-raketo', data),
     },
 

@@ -1517,6 +1517,18 @@
     }
     .pm-addable-row:hover { background: rgba(201,168,76,0.07) !important; }
     .pm-addable-row:active { background: rgba(201,168,76,0.14) !important; opacity: 0.7; }
+    .delete-user-btn {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      border: 1px solid rgba(220,60,60,0.35); background: rgba(220,60,60,0.08);
+      color: rgba(220,100,100,0.9); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 180ms var(--ease);
+    }
+    .delete-user-btn:active { background: rgba(220,60,60,0.22); }
+    .rating-edit-input {
+      width: 68px; height: 32px; font-size: 12px; padding: 4px 6px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -1542,8 +1554,7 @@
         <div class="section-title">Результати</div>
         <div class="filter-row" id="results-filter">
           <button class="filter-chip active" data-filter="all">Всі</button>
-          <button class="filter-chip" data-filter="2026">2026</button>
-          <button class="filter-chip" data-filter="2025">2025</button>
+          <!-- month chips injected by renderResults() -->
           <button class="filter-chip" data-filter="open">Open</button>
           <button class="filter-chip" data-filter="mixed">Mixed</button>
         </div>
@@ -2155,10 +2166,13 @@ async function renderResults() {
   }
   if (tournamentsData) source = tournamentsData;
 
+  // Rebuild month chips from actual data
+  rebuildMonthChips(source);
+
   const filtered = activeResultFilter === 'all'
     ? source
     : source.filter(t =>
-        t.year === activeResultFilter ||
+        String(t.date).slice(0, 7) === activeResultFilter ||
         t.category === activeResultFilter ||
         t.category?.toLowerCase() === activeResultFilter
       );
@@ -2274,6 +2288,33 @@ async function renderResults() {
         btn.disabled = false;
       }
     });
+  });
+}
+
+const UA_MONTHS = ['Січ','Лют','Бер','Квіт','Трав','Черв','Лип','Серп','Вер','Жовт','Лист','Груд'];
+
+function rebuildMonthChips(tournaments) {
+  const row = document.getElementById('results-filter');
+  // remove existing month chips (data-month attribute marks them)
+  row.querySelectorAll('[data-month]').forEach(el => el.remove());
+
+  const months = [...new Set(
+    tournaments.map(t => String(t.date).slice(0, 7)).filter(Boolean)
+  )].sort((a, b) => b.localeCompare(a)); // most recent first
+
+  const categoryChips = row.querySelectorAll('[data-filter="open"], [data-filter="mixed"]');
+  const firstCategoryChip = categoryChips[0] || null;
+
+  months.forEach(ym => {
+    const [y, m] = ym.split('-');
+    const label = UA_MONTHS[parseInt(m, 10) - 1] + ' ' + y;
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip';
+    btn.dataset.filter = ym;
+    btn.dataset.month = '1';
+    btn.textContent = label;
+    if (activeResultFilter === ym) btn.classList.add('active');
+    row.insertBefore(btn, firstCategoryChip);
   });
 }
 
@@ -3349,7 +3390,7 @@ async function openUsersModal() {
     const users = await API.users.list();
     const levelOptHtml = LEVEL_OPTIONS.map(l => `<option value="${l.value}">${l.label}</option>`).join('');
     list.innerHTML = users.map(u => `
-      <div class="user-list-item" style="flex-wrap:wrap;gap:6px${u.adminImported && !u.telegramId ? ';opacity:0.75' : ''}">
+      <div class="user-list-item" data-user-id="${u.id}" style="flex-wrap:wrap;gap:6px${u.adminImported && !u.telegramId ? ';opacity:0.75' : ''}">
         <div class="user-list-avatar">
           ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
         </div>
@@ -3357,7 +3398,10 @@ async function openUsersModal() {
           <div class="user-list-name">${u.displayName}${u.adminImported && !u.telegramId ? ' <span style="font-size:10px;color:var(--text-dim);font-weight:600">Raketo·не зареєстрований</span>' : ''}</div>
           <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.raketoTelegramUsername ? ` · @${u.raketoTelegramUsername}` : ''}</div>
         </div>
-        <div style="display:flex;gap:4px;margin-left:auto">
+        <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end">
+          <input class="form-input rating-edit-input" type="number" min="0"
+                 data-user-id="${u.id}" value="${u.startingPoints || 0}"
+                 title="Стартові очки" placeholder="Рейтинг">
           <select class="form-select level-select" data-user-id="${u.id}"
                   style="font-size:12px;padding:4px 8px;height:32px;width:60px">
             <option value="">—</option>
@@ -3367,9 +3411,27 @@ async function openUsersModal() {
                   data-user-id="${u.id}" data-role="${u.role}" style="height:32px">
             ${u.role === 'ADMIN' ? 'Admin' : 'Player'}
           </button>
+          <button class="delete-user-btn" data-user-id="${u.id}" title="Видалити гравця">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
         </div>
       </div>
     `).join('');
+
+    list.querySelectorAll('.rating-edit-input').forEach(inp => {
+      inp.addEventListener('change', async () => {
+        const pts = parseInt(inp.value, 10);
+        if (isNaN(pts) || pts < 0) return;
+        inp.disabled = true;
+        try {
+          await API.users.setRatingPoints(inp.dataset.userId, pts);
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
+        } finally {
+          inp.disabled = false;
+        }
+      });
+    });
 
     list.querySelectorAll('.level-select').forEach(sel => {
       sel.value = inferLevel(users.find(u => String(u.id) === sel.dataset.userId)?.startingPoints || 0);
@@ -3379,6 +3441,9 @@ async function openUsersModal() {
         sel.disabled = true;
         try {
           await API.users.setStartingPoints(sel.dataset.userId, level);
+          const levelPts = {D:1000,D_PLUS:1250,C_MINUS:1500,C:1750,C_PLUS:2000,B_MINUS:2250,B:2500,B_PLUS:2750};
+          const row = list.querySelector(`.rating-edit-input[data-user-id="${sel.dataset.userId}"]`);
+          if (row && levelPts[level]) row.value = levelPts[level];
         } catch (e) {
           alert('Помилка: ' + (e.message || 'unknown'));
         } finally {
@@ -3400,6 +3465,22 @@ async function openUsersModal() {
         } catch (e) {
           alert('Помилка: ' + (e.message || 'unknown'));
         } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    list.querySelectorAll('.delete-user-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = list.querySelector(`.user-list-item[data-user-id="${btn.dataset.userId}"]`);
+        const name = row?.querySelector('.user-list-name')?.textContent?.trim() || 'цього гравця';
+        if (!confirm(`Видалити ${name}? Цю дію не можна скасувати.`)) return;
+        btn.disabled = true;
+        try {
+          await API.users.delete(btn.dataset.userId);
+          row?.remove();
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
           btn.disabled = false;
         }
       });
