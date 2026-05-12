@@ -68,5 +68,9 @@ const API = (() => {
       list:        () => request('GET',  '/ratings'),
       recalculate: () => request('POST', '/ratings/recalculate'),
     },
+
+    activity: {
+      monthly: (month) => request('GET', `/activity?month=${month}`),
+    },
   };
 })();

@@ -1517,6 +1517,85 @@
     }
     .pm-addable-row:hover { background: rgba(201,168,76,0.07) !important; }
     .pm-addable-row:active { background: rgba(201,168,76,0.14) !important; opacity: 0.7; }
+
+    /* ── Activity tab ── */
+    .activity-header { padding: 16px 16px 0; }
+    .activity-reset-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--gold); opacity: 0.75; margin-top: 2px; margin-bottom: 10px;
+    }
+    .activity-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-sub);
+    }
+    .activity-row:last-child { border-bottom: none; }
+    .activity-rank {
+      width: 22px; text-align: center; flex-shrink: 0;
+      font-size: 12px; font-weight: 700; color: var(--text-dim);
+    }
+    .activity-rank.top1 { color: #FFD700; }
+    .activity-rank.top2 { color: #C0C0C0; }
+    .activity-rank.top3 { color: #CD7F32; }
+    .activity-avatar {
+      width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+      background: var(--navy-light); border: 1px solid var(--border-def);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--gold); overflow: hidden;
+    }
+    .activity-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .activity-info { flex: 1; min-width: 0; }
+    .activity-name {
+      font-size: 13px; font-weight: 600; color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .activity-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .activity-pts {
+      font-size: 18px; font-weight: 800; color: var(--gold);
+      font-family: var(--font-brand); flex-shrink: 0;
+    }
+    .activity-pts-label { font-size: 10px; color: var(--text-dim); text-align: right; }
+    .activity-list-wrap { background: var(--navy-card); border-radius: 14px; margin: 8px 16px; overflow: hidden; }
+    .activity-info-block {
+      margin: 12px 16px 24px;
+      background: var(--navy-card); border-radius: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-sub);
+    }
+    .activity-info-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 8px;
+    }
+    .activity-info-text { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 12px; }
+    .activity-matrix { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .activity-matrix th {
+      text-align: left; color: var(--text-dim); font-weight: 600;
+      padding: 4px 8px 6px; border-bottom: 1px solid var(--border-sub);
+    }
+    .activity-matrix td { padding: 5px 8px; color: var(--white-warm); }
+    .activity-matrix tr:not(:last-child) td { border-bottom: 1px solid var(--border-sub); }
+    .activity-matrix .pts-cell { font-weight: 700; color: var(--gold); }
+    .activity-empty { padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+    /* profile activity card */
+    .profile-activity-card {
+      margin: 0 16px 12px;
+      background: var(--navy-card); border-radius: 14px;
+      padding: 12px 16px;
+      border: 1px solid var(--border-sub);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .pac-left { flex: 1; }
+    .pac-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-dim); margin-bottom: 2px;
+    }
+    .pac-month { font-size: 11px; color: var(--text-muted); }
+    .pac-right { text-align: right; flex-shrink: 0; }
+    .pac-pts { font-size: 22px; font-weight: 800; color: var(--gold); font-family: var(--font-brand); }
+    .pac-rank { font-size: 11px; color: var(--text-muted); }
+
     .delete-user-btn {
       width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
       border: 1px solid rgba(220,60,60,0.35); background: rgba(220,60,60,0.08);
@@ -1837,6 +1916,41 @@
     </div>
   </div>
 
+  <!-- ═══ TAB: АКТИВНІСТЬ ══════════════════════════════════════════ -->
+  <div id="tab-activity" class="tab-panel">
+    <div class="activity-header">
+      <div class="section-eyebrow">Blacksea Padel</div>
+      <div class="section-title">Активність</div>
+      <div class="activity-reset-badge">↻ Скидається щомісяця</div>
+      <div class="filter-row" id="activity-filter">
+        <!-- month chips injected by JS -->
+      </div>
+    </div>
+    <div class="activity-list-wrap" id="activity-list">
+      <!-- rendered by JS -->
+    </div>
+    <div class="activity-info-block">
+      <div class="activity-info-title">Нарахування балів</div>
+      <div class="activity-info-text">
+        Бали активності нараховуються за кожен зіграний турнір.<br>
+        Регулярна участь важливіша за результат — навіть останнє місце приносить очки.<br>
+        Наприклад, 2 турніри з останнім місцем (30 очок) кращі за одну перемогу (25 очок).
+      </div>
+      <table class="activity-matrix">
+        <thead>
+          <tr><th>Місце</th><th>Бали активності</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>🥇 1 місце</td><td class="pts-cell">25</td></tr>
+          <tr><td>🥈 2 місце</td><td class="pts-cell">22</td></tr>
+          <tr><td>🥉 3 місце</td><td class="pts-cell">20</td></tr>
+          <tr><td>4 місце</td><td class="pts-cell">18</td></tr>
+          <tr><td>5–8 місця</td><td class="pts-cell">15</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
     <button class="nav-tab active" data-tab="ratings">
@@ -1858,6 +1972,12 @@
         <circle cx="12" cy="7" r="4"/>
       </svg>
       <span class="nav-label">Профіль</span>
+    </button>
+    <button class="nav-tab" data-tab="activity">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-label">Активність</span>
     </button>
   </nav>
 
@@ -2488,6 +2608,90 @@ async function updateMemberCount() {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   RENDER — ACTIVITY TAB
+════════════════════════════════════════════════════════════════ */
+
+let activityCache = {};      // keyed by YYYY-MM
+let activeActivityMonth = currentYearMonth();
+
+function currentYearMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function activityMonthLabel(ym) {
+  const [y, m] = ym.split('-');
+  return UA_MONTHS[parseInt(m, 10) - 1] + ' ' + y;
+}
+
+function buildActivityMonthChips() {
+  const row = document.getElementById('activity-filter');
+  row.innerHTML = '';
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  months.forEach(ym => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (ym === activeActivityMonth ? ' active' : '');
+    btn.dataset.month = ym;
+    btn.textContent = activityMonthLabel(ym);
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#activity-filter .filter-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      activeActivityMonth = ym;
+      renderActivityList();
+    });
+    row.appendChild(btn);
+  });
+}
+
+async function renderActivityList() {
+  const wrap = document.getElementById('activity-list');
+  wrap.innerHTML = '<div class="activity-empty">Завантаження...</div>';
+
+  try {
+    if (!activityCache[activeActivityMonth]) {
+      activityCache[activeActivityMonth] = await API.activity.monthly(activeActivityMonth);
+    }
+    const data = activityCache[activeActivityMonth];
+
+    if (!data.length) {
+      wrap.innerHTML = '<div class="activity-empty">Немає даних за цей місяць</div>';
+      return;
+    }
+
+    wrap.innerHTML = data.map(e => `
+      <div class="activity-row">
+        <div class="activity-rank ${e.rank === 1 ? 'top1' : e.rank === 2 ? 'top2' : e.rank === 3 ? 'top3' : ''}">
+          ${e.rank === 1 ? '★' : e.rank}
+        </div>
+        <div class="activity-avatar">
+          ${e.photoUrl ? `<img src="${e.photoUrl}" alt="">` : initials(e.displayName)}
+        </div>
+        <div class="activity-info">
+          <div class="activity-name">${e.displayName}</div>
+          <div class="activity-sub">${e.tournamentsPlayed} ${e.tournamentsPlayed === 1 ? 'турнір' : e.tournamentsPlayed < 5 ? 'турніри' : 'турнірів'}</div>
+        </div>
+        <div>
+          <div class="activity-pts">${e.activityPoints}</div>
+          <div class="activity-pts-label">балів</div>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    wrap.innerHTML = `<div class="activity-empty" style="color:var(--error)">${e.message}</div>`;
+  }
+}
+
+async function renderActivity() {
+  buildActivityMonthChips();
+  await renderActivityList();
+}
+
+/* ════════════════════════════════════════════════════════════════
    RENDER — PROFILE TAB
 ════════════════════════════════════════════════════════════════ */
 
@@ -2572,6 +2776,17 @@ function renderProfile() {
       </div>
     </div>
 
+    <div class="profile-activity-card" id="profile-activity-card">
+      <div class="pac-left">
+        <div class="pac-label">Активність</div>
+        <div class="pac-month">${activityMonthLabel(currentYearMonth())}</div>
+      </div>
+      <div class="pac-right">
+        <div class="pac-pts" id="pac-pts">—</div>
+        <div class="pac-rank" id="pac-rank">балів · завантаження...</div>
+      </div>
+    </div>
+
     ${u.initialPointsClaimed ? `
       <div class="raketo-claimed-card">
         <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
@@ -2612,6 +2827,25 @@ function renderProfile() {
 
   if (isAdmin) wireAdminPanel();
   loadHistory();
+
+  // Load current-month activity for this user
+  const actMonth = currentYearMonth();
+  API.activity.monthly(actMonth).then(data => {
+    const me = data.find(e => e.userId === u.id);
+    const ptsEl  = document.getElementById('pac-pts');
+    const rankEl = document.getElementById('pac-rank');
+    if (!ptsEl) return;
+    if (me) {
+      ptsEl.textContent  = me.activityPoints;
+      rankEl.textContent = `балів · #${me.rank} місце`;
+    } else {
+      ptsEl.textContent  = '0';
+      rankEl.textContent = 'балів · немає участі';
+    }
+  }).catch(() => {
+    const rankEl = document.getElementById('pac-rank');
+    if (rankEl) rankEl.textContent = 'балів';
+  });
 }
 
 function levelFromPoints(pts) {
@@ -3618,12 +3852,13 @@ document.getElementById('pm-search').addEventListener('input', renderAddableList
 ════════════════════════════════════════════════════════════════ */
 
 const TABS = {
-  results: 'tab-results',
-  ratings: 'tab-ratings',
-  profile: 'tab-profile',
+  results:  'tab-results',
+  ratings:  'tab-ratings',
+  profile:  'tab-profile',
+  activity: 'tab-activity',
 };
 let currentTab = 'ratings';
-let rendered = { results: false, ratings: true, profile: false };
+let rendered = { results: false, ratings: true, profile: false, activity: false };
 
 function switchTab(tab) {
   if (tab === currentTab) return;
@@ -3637,9 +3872,10 @@ function switchTab(tab) {
   document.getElementById('content').scrollTop = 0;
 
   if (!rendered[tab]) {
-    if (tab === 'results') renderResults();
-    if (tab === 'ratings') renderRatings();
-    if (tab === 'profile') renderProfile();
+    if (tab === 'results')  renderResults();
+    if (tab === 'ratings')  renderRatings();
+    if (tab === 'profile')  renderProfile();
+    if (tab === 'activity') renderActivity();
     rendered[tab] = true;
   } else if (tab === 'profile') {
     renderProfile(); // always re-render profile to reflect auth state
