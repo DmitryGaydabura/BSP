@@ -1635,7 +1635,7 @@
         <div class="rating-info-title">Система рейтингу</div>
         <div class="rating-info-text">
           Рейтинг гравця = <strong>стартові очки</strong> + сума <strong>10 найкращих</strong> результатів турнірів.<br>
-          Стартові очки призначаються адміністратором згідно з рівнем Raketo: D&nbsp;→&nbsp;1000, D+&nbsp;→&nbsp;1250, C−&nbsp;→&nbsp;1500, C&nbsp;→&nbsp;1750, C+&nbsp;→&nbsp;2000, B−&nbsp;→&nbsp;2250, B&nbsp;→&nbsp;2500, B+&nbsp;→&nbsp;2750.
+          Стартові очки призначаються адміністратором згідно з рівнем Raketo: D&nbsp;→&nbsp;1000, D+&nbsp;→&nbsp;1250, C−&nbsp;→&nbsp;1500, C&nbsp;→&nbsp;1750, C+&nbsp;→&nbsp;2000, B−&nbsp;→&nbsp;2500, B&nbsp;→&nbsp;2750, B+&nbsp;→&nbsp;3000.
         </div>
         <div class="rating-info-subtitle">Очки за місця на турнірах</div>
         <div class="points-matrix-wrap">
@@ -2676,9 +2676,9 @@ const RAKETO_LEVELS = [
   { max: 2.5, level: 'C−', pts: 1500 },
   { max: 3.0, level: 'C',  pts: 1750 },
   { max: 3.5, level: 'C+', pts: 2000 },
-  { max: 4.0, level: 'B−', pts: 2250 },
-  { max: 4.5, level: 'B',  pts: 2500 },
-  { max: 99,  level: 'B+', pts: 2750 },
+  { max: 4.0, level: 'B−', pts: 2500 },
+  { max: 4.5, level: 'B',  pts: 2750 },
+  { max: 99,  level: 'B+', pts: 3000 },
 ];
 
 const COLOR_STEPS = { GREEN: 0, YELLOW: -1, RED: -2 };
@@ -3377,7 +3377,7 @@ const LEVEL_OPTIONS = [
 ];
 
 function inferLevel(startingPoints) {
-  const pts = [1000,1250,1500,1750,2000,2250,2500,2750];
+  const pts = [1000,1250,1500,1750,2000,2500,2750,3000];
   const idx = pts.indexOf(startingPoints);
   return idx >= 0 ? LEVEL_OPTIONS[idx].value : '';
 }
@@ -3441,7 +3441,7 @@ async function openUsersModal() {
         sel.disabled = true;
         try {
           await API.users.setStartingPoints(sel.dataset.userId, level);
-          const levelPts = {D:1000,D_PLUS:1250,C_MINUS:1500,C:1750,C_PLUS:2000,B_MINUS:2250,B:2500,B_PLUS:2750};
+          const levelPts = {D:1000,D_PLUS:1250,C_MINUS:1500,C:1750,C_PLUS:2000,B_MINUS:2500,B:2750,B_PLUS:3000};
           const row = list.querySelector(`.rating-edit-input[data-user-id="${sel.dataset.userId}"]`);
           if (row && levelPts[level]) row.value = levelPts[level];
         } catch (e) {
