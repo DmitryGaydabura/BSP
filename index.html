@@ -1921,10 +1921,10 @@
           <div class="rg-level-row"><span class="level-badge level-badge-lg level-d-plus"  style="min-width:34px;justify-content:center">D+</span><span class="rg-range">1 250 – 1 499 pts</span></div>
           <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-minus" style="min-width:34px;justify-content:center">C−</span><span class="rg-range">1 500 – 1 749 pts</span></div>
           <div class="rg-level-row"><span class="level-badge level-badge-lg level-c"       style="min-width:34px;justify-content:center">C</span> <span class="rg-range">1 750 – 1 999 pts</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-plus"  style="min-width:34px;justify-content:center">C+</span><span class="rg-range">2 000 – 2 249 pts</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-minus" style="min-width:34px;justify-content:center">B−</span><span class="rg-range">2 250 – 2 499 pts</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b"       style="min-width:34px;justify-content:center">B</span> <span class="rg-range">2 500 – 2 749 pts</span></div>
-          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-plus"  style="min-width:34px;justify-content:center">B+</span><span class="rg-range">≥ 2 750 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-c-plus"  style="min-width:34px;justify-content:center">C+</span><span class="rg-range">2 000 – 2 499 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-minus" style="min-width:34px;justify-content:center">B−</span><span class="rg-range">2 500 – 2 749 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b"       style="min-width:34px;justify-content:center">B</span> <span class="rg-range">2 750 – 2 999 pts</span></div>
+          <div class="rg-level-row"><span class="level-badge level-badge-lg level-b-plus"  style="min-width:34px;justify-content:center">B+</span><span class="rg-range">≥ 3 000 pts</span></div>
         </div>
 
         <!-- Tournament points -->
@@ -2615,9 +2615,9 @@ function renderProfile() {
 }
 
 function levelFromPoints(pts) {
-  if (pts >= 2750) return 'B+';
-  if (pts >= 2500) return 'B';
-  if (pts >= 2250) return 'B−';
+  if (pts >= 3000) return 'B+';
+  if (pts >= 2750) return 'B';
+  if (pts >= 2500) return 'B−';
   if (pts >= 2000) return 'C+';
   if (pts >= 1750) return 'C';
   if (pts >= 1500) return 'C−';
@@ -3171,9 +3171,9 @@ async function openCreateTournament() {
         { value:'D_PLUS', label:'D+', ratingCeiling:1749 },
         { value:'C_MINUS', label:'C−', ratingCeiling:1999 },
         { value:'C', label:'C', ratingCeiling:2249 },
-        { value:'C_PLUS', label:'C+', ratingCeiling:2499 },
-        { value:'B_MINUS', label:'B−', ratingCeiling:2749 },
-        { value:'B', label:'B', ratingCeiling:2999 },
+        { value:'C_PLUS', label:'C+', ratingCeiling:2749 },
+        { value:'B_MINUS', label:'B−', ratingCeiling:2999 },
+        { value:'B', label:'B', ratingCeiling:3249 },
         { value:'B_PLUS', label:'B+', ratingCeiling:'—' },
       ];
     }
