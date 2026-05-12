@@ -1752,6 +1752,43 @@
       </div>
     </div>
 
+    <!-- ═══ TAB: АКТИВНІСТЬ ══════════════════════════════════════════ -->
+    <div id="tab-activity" class="tab-panel">
+      <div class="activity-header">
+        <div class="section-eyebrow">Blacksea Padel</div>
+        <div class="section-title">Активність</div>
+        <div class="activity-reset-badge">↻ Скидається щомісяця</div>
+        <div class="filter-row" id="activity-filter">
+          <!-- month chips injected by JS -->
+        </div>
+      </div>
+      <div class="activity-list-wrap" id="activity-list">
+        <!-- rendered by JS -->
+      </div>
+      <div class="activity-info-block">
+        <div class="activity-info-title">Нарахування балів</div>
+        <div class="activity-info-text">
+          Бали активності нараховуються за кожен зіграний турнір.<br>
+          Регулярна участь важливіша за результат — навіть останнє місце приносить очки.<br>
+          Наприклад, 2 турніри з останнім місцем (30 очок) кращі за одну перемогу (25 очок).
+        </div>
+        <table class="activity-matrix">
+          <thead>
+            <tr><th>Місце</th><th>Бали активності</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>🥇 1 місце</td><td class="pts-cell">25</td></tr>
+            <tr><td>🥈 2 місце</td><td class="pts-cell">22</td></tr>
+            <tr><td>🥉 3 місце</td><td class="pts-cell">20</td></tr>
+            <tr><td>4 місце</td><td class="pts-cell">18</td></tr>
+            <tr><td>5–8 місця</td><td class="pts-cell">15</td></tr>
+            <tr><td>9–12 місця</td><td class="pts-cell">10</td></tr>
+            <tr><td>13–16 місця</td><td class="pts-cell">5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
   <!-- Modals -->
@@ -1916,41 +1953,6 @@
     </div>
   </div>
 
-  <!-- ═══ TAB: АКТИВНІСТЬ ══════════════════════════════════════════ -->
-  <div id="tab-activity" class="tab-panel">
-    <div class="activity-header">
-      <div class="section-eyebrow">Blacksea Padel</div>
-      <div class="section-title">Активність</div>
-      <div class="activity-reset-badge">↻ Скидається щомісяця</div>
-      <div class="filter-row" id="activity-filter">
-        <!-- month chips injected by JS -->
-      </div>
-    </div>
-    <div class="activity-list-wrap" id="activity-list">
-      <!-- rendered by JS -->
-    </div>
-    <div class="activity-info-block">
-      <div class="activity-info-title">Нарахування балів</div>
-      <div class="activity-info-text">
-        Бали активності нараховуються за кожен зіграний турнір.<br>
-        Регулярна участь важливіша за результат — навіть останнє місце приносить очки.<br>
-        Наприклад, 2 турніри з останнім місцем (30 очок) кращі за одну перемогу (25 очок).
-      </div>
-      <table class="activity-matrix">
-        <thead>
-          <tr><th>Місце</th><th>Бали активності</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>🥇 1 місце</td><td class="pts-cell">25</td></tr>
-          <tr><td>🥈 2 місце</td><td class="pts-cell">22</td></tr>
-          <tr><td>🥉 3 місце</td><td class="pts-cell">20</td></tr>
-          <tr><td>4 місце</td><td class="pts-cell">18</td></tr>
-          <tr><td>5–8 місця</td><td class="pts-cell">15</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
     <button class="nav-tab active" data-tab="ratings">
@@ -1959,6 +1961,12 @@
         <polyline points="17 6 23 6 23 12"/>
       </svg>
       <span class="nav-label">Рейтинг</span>
+    </button>
+    <button class="nav-tab" data-tab="activity">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span class="nav-label">Активність</span>
     </button>
     <button class="nav-tab" data-tab="results">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1972,12 +1980,6 @@
         <circle cx="12" cy="7" r="4"/>
       </svg>
       <span class="nav-label">Профіль</span>
-    </button>
-    <button class="nav-tab" data-tab="activity">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-      <span class="nav-label">Активність</span>
     </button>
   </nav>
 
