@@ -1937,6 +1937,7 @@
           <label class="form-label">Турнір</label>
           <select class="form-select" id="pm-tournament-select"></select>
         </div>
+        <div id="pm-slots" style="margin:-4px 0 10px;font-size:12px;font-weight:600"></div>
         <div id="pm-participants-list" style="margin-bottom:12px">
           <!-- participant rows injected by JS -->
         </div>
@@ -3744,15 +3745,18 @@ async function openUsersModal() {
 /* ── Participants modal ──────────────────────────────────────────── */
 let pmAllUsers = [];
 let pmParticipantIds = new Set();
+let pmTournaments = [];
 
 async function openParticipantsModal() {
   openModal('modal-participants');
   const sel = document.getElementById('pm-tournament-select');
   sel.innerHTML = '<option>Завантаження...</option>';
   document.getElementById('pm-addable-list').innerHTML = '';
+  document.getElementById('pm-slots').textContent = '';
   document.getElementById('pm-search').value = '';
   pmAllUsers = [];
   pmParticipantIds = new Set();
+  pmTournaments = [];
 
   try {
     const [allTournaments, allUsers] = await Promise.all([
@@ -3763,11 +3767,26 @@ async function openParticipantsModal() {
 
     const active = allTournaments.filter(t => t.status !== 'FINISHED');
     if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
+    pmTournaments = active;
     sel.innerHTML = active.map(t => `<option value="${t.id}">${t.name} [${t.level || ''}]</option>`).join('');
 
     await renderParticipantList(sel.value);
   } catch (e) {
     sel.innerHTML = `<option>Помилка: ${e.message}</option>`;
+  }
+}
+
+function updateSlotsIndicator(currentCount, maxParticipants) {
+  const el = document.getElementById('pm-slots');
+  if (!el) return;
+  if (!maxParticipants) { el.textContent = `${currentCount} учасників · без обмеження`; el.style.color = 'var(--text-muted)'; return; }
+  const free = maxParticipants - currentCount;
+  if (free <= 0) {
+    el.textContent = `${currentCount} / ${maxParticipants} · турнір заповнений`;
+    el.style.color = 'var(--error, #e05050)';
+  } else {
+    el.textContent = `${currentCount} / ${maxParticipants} учасників · ${free} вільних ${free === 1 ? 'місце' : free < 5 ? 'місця' : 'місць'}`;
+    el.style.color = free <= 2 ? '#e09050' : 'var(--gold)';
   }
 }
 
@@ -3778,6 +3797,9 @@ async function renderParticipantList(tournamentId) {
   try {
     const participants = await API.tournaments.getParticipants(tournamentId);
     pmParticipantIds = new Set(participants.map(u => u.id));
+
+    const tournament = pmTournaments.find(t => String(t.id) === String(tournamentId));
+    updateSlotsIndicator(participants.length, tournament?.maxParticipants);
 
     if (!participants.length) {
       container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
