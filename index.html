@@ -4390,10 +4390,10 @@ const MONTHS_UK_LONG = ['січня','лютого','березня','квітн
 let pendingJoinTournamentId = null;
 let confirmBtnLabel = 'Зареєструватися';
 
-function showRegistrationConfirm(tournament) {
-  pendingJoinTournamentId = tournament.id;
+function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
+  pendingJoinTournamentId = alreadyEnrolled ? null : tournament.id;
   const isFull = tournament.maxParticipants && (tournament.participantCount || 0) >= tournament.maxParticipants;
-  confirmBtnLabel = isFull ? 'Перейти до резерву' : 'Зареєструватися';
+  confirmBtnLabel = alreadyEnrolled ? 'Вже зареєстровані' : (isFull ? 'Перейти до резерву' : 'Зареєструватися');
 
   // Tournament card
   const dateObj = new Date(tournament.date);
@@ -4431,7 +4431,7 @@ function showRegistrationConfirm(tournament) {
 
   const btn = document.getElementById('reg-confirm-submit');
   btn.textContent = confirmBtnLabel;
-  btn.disabled = false;
+  btn.disabled = alreadyEnrolled;
 
   document.getElementById('reg-confirm').classList.add('reg-confirm-visible');
 }
@@ -4507,13 +4507,9 @@ async function handleTournamentDeepLink(tournamentId) {
       return;
     }
     const allParts = [...(tournament.participants || []), ...(tournament.reserveParticipants || [])];
-    if (currentUser && allParts.some(p => p.id === currentUser.id)) {
-      showToast('Ви вже зареєстровані на цей турнір', 'info');
-      switchTab('results');
-    } else {
-      switchTab('results');
-      showRegistrationConfirm(tournament);
-    }
+    const alreadyEnrolled = currentUser && allParts.some(p => p.id === currentUser.id);
+    switchTab('results');
+    showRegistrationConfirm(tournament, alreadyEnrolled);
   } catch {
     showToast('Не вдалося завантажити турнір', 'error');
     renderRatings();
