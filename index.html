@@ -1609,6 +1609,157 @@
       text-align: center;
     }
 
+    /* ── Registration confirm screen ───────────────────────────── */
+    #reg-confirm {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: var(--navy-deep);
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.32s var(--ease);
+    }
+    #reg-confirm.reg-confirm-visible { transform: translateY(0); }
+
+    .reg-confirm-header {
+      flex-shrink: 0;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-sub);
+      background: rgba(13,27,46,0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .reg-confirm-back-btn {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      color: var(--white-warm);
+      font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .reg-confirm-back-btn:active { background: var(--navy-light); }
+    .reg-confirm-header-title {
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--white-warm);
+    }
+
+    .reg-confirm-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .reg-confirm-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .rc-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--white-warm);
+      text-transform: uppercase;
+      line-height: 1.3;
+      letter-spacing: 0.02em;
+    }
+    .rc-detail {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-sec);
+    }
+    .rc-detail-icon { font-size: 15px; flex-shrink: 0; }
+    .rc-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+    .rc-tag {
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border-def);
+      background: rgba(255,255,255,0.05);
+      font-size: 12px;
+      color: var(--text-sec);
+    }
+    .rc-tag-gold {
+      border-color: var(--border-str);
+      color: var(--gold-light);
+      background: rgba(201,168,76,0.08);
+    }
+
+    .reg-confirm-price-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .reg-confirm-price-section.hidden { display: none; }
+    .reg-confirm-subtotal-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding-left: 4px;
+    }
+    .reg-confirm-price-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 18px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .reg-confirm-price-desc {
+      font-size: 14px;
+      color: var(--text-sec);
+      line-height: 1.45;
+    }
+    .reg-confirm-price-amount {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--white-warm);
+      white-space: nowrap;
+    }
+
+    .reg-confirm-footer {
+      flex-shrink: 0;
+      padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+      border-top: 1px solid var(--border-sub);
+      background: rgba(13,27,46,0.97);
+    }
+    .reg-confirm-submit-btn {
+      width: 100%;
+      height: 54px;
+      border-radius: 27px;
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      color: var(--navy-deep);
+      font-family: var(--font-body);
+      font-weight: 700;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .reg-confirm-submit-btn:active { opacity: 0.82; }
+    .reg-confirm-submit-btn:disabled { opacity: 0.45; cursor: default; }
+
     /* ── Reserve queue ─────────────────────────────────────────── */
     .tp-reserve { opacity: 0.65; font-style: italic; }
     .reserve-section .tp-label { color: var(--text-muted); }
@@ -2455,18 +2606,12 @@ async function renderResults() {
       </div>`;
   }).join('');
 
-  // Wire join/leave buttons
+  // Wire join buttons — show confirmation screen instead of calling API directly
   list.querySelectorAll('.sr-join-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      try {
-        await API.tournaments.join(btn.dataset.id);
-        tournamentsData = null;
-        await renderResults();
-      } catch (e) {
-        alert('Помилка: ' + (e.message || 'unknown'));
-        btn.disabled = false;
-      }
+    btn.addEventListener('click', () => {
+      const tid = parseInt(btn.dataset.id, 10);
+      const tournament = (tournamentsData || []).find(t => t.id === tid);
+      if (tournament) showRegistrationConfirm(tournament);
     });
   });
 }
@@ -4028,6 +4173,98 @@ if (tg) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   REGISTRATION CONFIRM SCREEN
+════════════════════════════════════════════════════════════════ */
+const DAYS_UK_LONG = ['неділя','понеділок','вівторок','середа','четвер','п\'ятниця','субота'];
+const MONTHS_UK_LONG = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
+
+let pendingJoinTournamentId = null;
+let confirmBtnLabel = 'Зареєструватися';
+
+function showRegistrationConfirm(tournament) {
+  pendingJoinTournamentId = tournament.id;
+  const isFull = tournament.maxParticipants && (tournament.participantCount || 0) >= tournament.maxParticipants;
+  confirmBtnLabel = isFull ? 'Перейти до резерву' : 'Зареєструватися';
+
+  // Tournament card
+  const dateObj = new Date(tournament.date);
+  const dateStr = `${dateObj.getDate()} ${MONTHS_UK_LONG[dateObj.getMonth()]} ${dateObj.getFullYear()}, ${DAYS_UK_LONG[dateObj.getDay()]}`;
+
+  let html = `<div class="rc-name">${tournament.name}</div>`;
+  html += `<div class="rc-detail"><span class="rc-detail-icon">📅</span>${dateStr}</div>`;
+  if (tournament.time) {
+    html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
+  }
+  if (tournament.location) {
+    html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
+  }
+
+  const tags = [];
+  if (tournament.minRating != null || tournament.maxRating != null) {
+    const lo = tournament.minRating ?? 0;
+    const hi = tournament.maxRating != null ? tournament.maxRating : '∞';
+    tags.push(`<span class="rc-tag rc-tag-gold">⚡ ${lo} – ${hi}</span>`);
+  }
+  if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
+  tags.push(`<span class="rc-tag">${tournament.type === 'SINGLE' ? 'Одиночний' : 'Парний'}</span>`);
+  html += `<div class="rc-tags">${tags.join('')}</div>`;
+
+  document.getElementById('reg-confirm-card').innerHTML = html;
+
+  // Price section
+  const priceSection = document.getElementById('reg-confirm-price');
+  if (tournament.price && tournament.price > 0) {
+    document.getElementById('reg-confirm-price-amount').textContent = `${tournament.price} грн`;
+    priceSection.classList.remove('hidden');
+  } else {
+    priceSection.classList.add('hidden');
+  }
+
+  const btn = document.getElementById('reg-confirm-submit');
+  btn.textContent = confirmBtnLabel;
+  btn.disabled = false;
+
+  document.getElementById('reg-confirm').classList.add('reg-confirm-visible');
+}
+
+function hideRegistrationConfirm() {
+  document.getElementById('reg-confirm').classList.remove('reg-confirm-visible');
+  pendingJoinTournamentId = null;
+}
+
+document.getElementById('reg-confirm-back').addEventListener('click', hideRegistrationConfirm);
+
+document.getElementById('reg-confirm-submit').addEventListener('click', async () => {
+  if (!pendingJoinTournamentId) return;
+  const btn = document.getElementById('reg-confirm-submit');
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    const res = await API.tournaments.join(pendingJoinTournamentId);
+    hideRegistrationConfirm();
+    tournamentsData = null;
+    if (res && res.reserved) {
+      showToast('Ви додані до резерву турніру 🎾', 'info');
+    } else {
+      showToast('Ви успішно зареєстровані! 🎾', 'success');
+    }
+    switchTab('results');
+    await renderResults();
+  } catch (e) {
+    const msg = e.message || '';
+    if (msg.includes('already enrolled')) {
+      hideRegistrationConfirm();
+      showToast('Ви вже зареєстровані на цей турнір', 'info');
+      switchTab('results');
+    } else {
+      btn.disabled = false;
+      btn.textContent = confirmBtnLabel;
+      showToast('Помилка: ' + msg, 'error');
+    }
+  }
+});
+
+/* ════════════════════════════════════════════════════════════════
    TOAST
 ════════════════════════════════════════════════════════════════ */
 let toastTimer = null;
@@ -4051,22 +4288,19 @@ function showToast(message, type = 'info') {
 ════════════════════════════════════════════════════════════════ */
 async function handleTournamentDeepLink(tournamentId) {
   try {
-    const res = await API.tournaments.join(tournamentId);
-    if (res && res.reserved) {
-      showToast('Ви додані до резерву турніру 🎾', 'info');
-    } else {
-      showToast('Ви успішно зареєстровані на турнір! 🎾', 'success');
-    }
-  } catch (e) {
-    const msg = e.message || '';
-    if (msg.includes('already enrolled') || msg.includes('вже зареєстровані')) {
+    const tournament = await API.tournaments.get(tournamentId);
+    const allParts = [...(tournament.participants || []), ...(tournament.reserveParticipants || [])];
+    if (currentUser && allParts.some(p => p.id === currentUser.id)) {
       showToast('Ви вже зареєстровані на цей турнір', 'info');
+      switchTab('results');
     } else {
-      showToast('Не вдалося зареєструватися: ' + msg, 'error');
+      switchTab('results');
+      showRegistrationConfirm(tournament);
     }
+  } catch {
+    showToast('Не вдалося завантажити турнір', 'error');
+    renderRatings();
   }
-  tournamentsData = null;
-  switchTab('results');
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4084,5 +4318,26 @@ apiBootstrap().then(async () => {
   }
 });
 </script>
+
+<!-- Registration confirmation screen -->
+<div id="reg-confirm">
+  <div class="reg-confirm-header">
+    <button class="reg-confirm-back-btn" id="reg-confirm-back">&#8592;</button>
+    <span class="reg-confirm-header-title">Перевір реєстрацію</span>
+  </div>
+  <div class="reg-confirm-body">
+    <div class="reg-confirm-card" id="reg-confirm-card"></div>
+    <div class="reg-confirm-price-section hidden" id="reg-confirm-price">
+      <div class="reg-confirm-subtotal-label">Проміжний підсумок</div>
+      <div class="reg-confirm-price-card">
+        <div class="reg-confirm-price-desc">Вартість участі<br>за людину</div>
+        <div class="reg-confirm-price-amount" id="reg-confirm-price-amount"></div>
+      </div>
+    </div>
+  </div>
+  <div class="reg-confirm-footer">
+    <button class="reg-confirm-submit-btn" id="reg-confirm-submit">Зареєструватися</button>
+  </div>
+</div>
 </body>
 </html>
