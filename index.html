@@ -1816,6 +1816,27 @@
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
 
+<!-- Registration confirmation screen -->
+<div id="reg-confirm">
+  <div class="reg-confirm-header">
+    <button class="reg-confirm-back-btn" id="reg-confirm-back">&#8592;</button>
+    <span class="reg-confirm-header-title">Перевір реєстрацію</span>
+  </div>
+  <div class="reg-confirm-body">
+    <div class="reg-confirm-card" id="reg-confirm-card"></div>
+    <div class="reg-confirm-price-section hidden" id="reg-confirm-price">
+      <div class="reg-confirm-subtotal-label">Проміжний підсумок</div>
+      <div class="reg-confirm-price-card">
+        <div class="reg-confirm-price-desc">Вартість участі<br>за людину</div>
+        <div class="reg-confirm-price-amount" id="reg-confirm-price-amount"></div>
+      </div>
+    </div>
+  </div>
+  <div class="reg-confirm-footer">
+    <button class="reg-confirm-submit-btn" id="reg-confirm-submit">Зареєструватися</button>
+  </div>
+</div>
+
 <div id="app">
 
   <!-- Header -->
@@ -4318,26 +4339,5 @@ apiBootstrap().then(async () => {
   }
 });
 </script>
-
-<!-- Registration confirmation screen -->
-<div id="reg-confirm">
-  <div class="reg-confirm-header">
-    <button class="reg-confirm-back-btn" id="reg-confirm-back">&#8592;</button>
-    <span class="reg-confirm-header-title">Перевір реєстрацію</span>
-  </div>
-  <div class="reg-confirm-body">
-    <div class="reg-confirm-card" id="reg-confirm-card"></div>
-    <div class="reg-confirm-price-section hidden" id="reg-confirm-price">
-      <div class="reg-confirm-subtotal-label">Проміжний підсумок</div>
-      <div class="reg-confirm-price-card">
-        <div class="reg-confirm-price-desc">Вартість участі<br>за людину</div>
-        <div class="reg-confirm-price-amount" id="reg-confirm-price-amount"></div>
-      </div>
-    </div>
-  </div>
-  <div class="reg-confirm-footer">
-    <button class="reg-confirm-submit-btn" id="reg-confirm-submit">Зареєструватися</button>
-  </div>
-</div>
 </body>
 </html>
