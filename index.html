@@ -1608,9 +1608,51 @@
       width: 68px; height: 32px; font-size: 12px; padding: 4px 6px;
       text-align: center;
     }
+
+    /* ── Toast notification ────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      top: calc(var(--header-h) + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      z-index: 9999;
+      max-width: calc(100vw - 32px);
+      padding: 12px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s var(--ease), transform 0.25s var(--ease);
+    }
+    #toast.toast-success {
+      background: var(--success);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    #toast.toast-error {
+      background: var(--error);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    #toast.toast-info {
+      background: var(--navy-mid);
+      color: var(--white-warm);
+      border: 1px solid var(--border-def);
+    }
+    #toast.toast-visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
   </style>
 </head>
 <body>
+<div id="toast" role="alert" aria-live="polite"></div>
+
 <div id="app">
 
   <!-- Header -->
@@ -3575,6 +3617,14 @@ function buildPairsPayload() {
     const p2Id = p2val ? parseInt(p2val, 10) : null;
     pairs.push({ player1Id: p1Id, player2Id: p2Id || null, position: i, matchWins: 0, matchLosses: 0 });
   }
+  const seen = new Set();
+  for (const p of pairs) {
+    for (const id of [p.player1Id, p.player2Id]) {
+      if (id == null) continue;
+      if (seen.has(id)) throw new Error('Один гравець зустрічається в результатах двічі. Будь ласка, перевірте дані.');
+      seen.add(id);
+    }
+  }
   return pairs;
 }
 
@@ -3961,11 +4011,56 @@ if (tg) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════════════════ */
+let toastTimer = null;
+function showToast(message, type = 'info') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  if (toastTimer) { clearTimeout(toastTimer); el.classList.remove('toast-visible'); }
+  el.textContent = message;
+  el.className = `toast-${type}`;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => el.classList.add('toast-visible'));
+  });
+  toastTimer = setTimeout(() => {
+    el.classList.remove('toast-visible');
+    toastTimer = null;
+  }, 4000);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TOURNAMENT DEEP LINK
+════════════════════════════════════════════════════════════════ */
+async function handleTournamentDeepLink(tournamentId) {
+  try {
+    await API.tournaments.join(tournamentId);
+    showToast('Ви успішно зареєстровані на турнір! 🎾', 'success');
+  } catch (e) {
+    const msg = e.message || '';
+    if (msg.includes('already enrolled') || msg.includes('вже зареєстровані')) {
+      showToast('Ви вже зареєстровані на цей турнір', 'info');
+    } else {
+      showToast('Не вдалося зареєструватися: ' + msg, 'error');
+    }
+  }
+  tournamentsData = null;
+  switchTab('results');
+}
+
+/* ════════════════════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════════════════════ */
-apiBootstrap().then(() => {
+apiBootstrap().then(async () => {
   updateMemberCount();
-  renderRatings(); // default tab — render immediately after auth resolves
+
+  const startParam = tg?.initDataUnsafe?.start_param;
+  if (startParam && startParam.startsWith('tournament_') && currentUser) {
+    const tournamentId = startParam.replace('tournament_', '');
+    await handleTournamentDeepLink(tournamentId);
+  } else {
+    renderRatings(); // default tab — render immediately after auth resolves
+  }
 });
 </script>
 </body>
