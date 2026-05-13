@@ -4523,7 +4523,7 @@ apiBootstrap().then(async () => {
   updateMemberCount();
 
   const startParam = tg?.initDataUnsafe?.start_param;
-  if (startParam && startParam.startsWith('tournament_') && currentUser) {
+  if (startParam && startParam.startsWith('tournament_')) {
     const tournamentId = startParam.replace('tournament_', '');
     await handleTournamentDeepLink(tournamentId);
   } else {
