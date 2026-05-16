@@ -353,44 +353,6 @@
     }
     .about-text strong { color: var(--white-warm); font-weight: 600; }
 
-    /* Courts mini-grid */
-    .courts-grid { display: flex; flex-direction: column; gap: 10px; }
-    .court-row {
-      display: flex; align-items: center;
-      background: var(--navy-light);
-      border: 1px solid var(--border-sub);
-      border-radius: 8px;
-      padding: 12px 14px;
-      gap: 12px;
-    }
-    .court-num {
-      font-family: var(--font-brand);
-      font-size: 20px; font-weight: 700;
-      color: var(--gold);
-      width: 28px; text-align: center; flex-shrink: 0;
-    }
-    .court-info { flex: 1; }
-    .court-name {
-      font-size: 13px; font-weight: 600;
-      color: var(--white-warm);
-      margin-bottom: 2px;
-    }
-    .court-tags { display: flex; gap: 5px; flex-wrap: wrap; }
-    .court-tag {
-      font-size: 9px; font-weight: 600;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--text-muted);
-      background: rgba(143,163,184,0.1);
-      border: 1px solid rgba(143,163,184,0.15);
-      padding: 2px 7px; border-radius: 4px;
-    }
-    .court-status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 6px var(--success);
-      flex-shrink: 0;
-    }
-
     /* ════════════════════════════════════════════════════════════
        TAB 2 — РЕЗУЛЬТАТИ
     ═══════════════════════════════════════════════════════════════ */
@@ -1923,10 +1885,138 @@
       transform: translateX(-50%) translateY(0);
       pointer-events: auto;
     }
+
+    /* ─── Onboarding Slideshow ─── */
+    #onboarding-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--navy-deep);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      transition: opacity 300ms var(--ease);
+    }
+    #onboarding-overlay.ob-hidden {
+      opacity: 0; pointer-events: none;
+    }
+    .ob-slides {
+      flex: 1; width: 100%; overflow: hidden; position: relative;
+    }
+    .ob-slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 28px 16px;
+      opacity: 0; transition: opacity 280ms var(--ease), transform 280ms var(--ease);
+      transform: translateX(40px);
+      pointer-events: none;
+    }
+    .ob-slide.ob-active {
+      opacity: 1; transform: translateX(0); pointer-events: auto;
+    }
+    .ob-slide.ob-prev {
+      opacity: 0; transform: translateX(-40px); pointer-events: none;
+    }
+    .ob-icon {
+      font-size: 72px; line-height: 1; margin-bottom: 28px;
+      filter: drop-shadow(0 4px 24px rgba(201,168,76,0.35));
+    }
+    .ob-title {
+      font-family: var(--font-brand); font-size: 24px; font-weight: 700;
+      color: var(--white-warm); text-align: center;
+      margin-bottom: 14px; line-height: 1.25;
+    }
+    .ob-body {
+      font-size: 15px; color: var(--text-muted); text-align: center;
+      line-height: 1.6; max-width: 320px;
+    }
+    .ob-body strong { color: var(--gold); font-weight: 600; }
+    .ob-bottom {
+      width: 100%; padding: 0 20px 28px;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+    .ob-dots {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .ob-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border-def); transition: all 200ms var(--ease);
+      cursor: pointer;
+    }
+    .ob-dot.ob-dot-active {
+      background: var(--gold); width: 22px; border-radius: 4px;
+    }
+    .ob-actions {
+      display: flex; gap: 10px; width: 100%;
+    }
+    .ob-btn {
+      flex: 1; height: 48px; border-radius: 12px; border: none;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 160ms var(--ease);
+    }
+    .ob-btn-secondary {
+      background: var(--navy-light); color: var(--text-muted);
+      border: 1.5px solid var(--border-sub);
+    }
+    .ob-btn-primary {
+      background: var(--gold); color: var(--navy-deep);
+    }
+    .ob-btn-primary:active { opacity: 0.85; }
+    .ob-btn-secondary:active { opacity: 0.7; }
+    .ob-skip {
+      font-size: 13px; color: var(--text-muted); cursor: pointer;
+      padding: 4px 8px; opacity: 0.7;
+    }
   </style>
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
+
+<!-- ─── First-visit Onboarding Overlay ─── -->
+<div id="onboarding-overlay" class="ob-hidden" aria-modal="true" role="dialog">
+  <div class="ob-slides">
+    <div class="ob-slide ob-active" data-slide="0">
+      <div class="ob-icon">🎾</div>
+      <div class="ob-title">Імпортуй рейтинг з Raketo</div>
+      <div class="ob-body">
+        Raketo — офіційна платформа падел в Україні. Твій рейтинг там визначає
+        <strong>стартові очки</strong> в BSP.<br><br>
+        Перейди до свого профілю → «Мій рейтинг» → знайди себе в Raketo і
+        підключи акаунт одним кліком.
+      </div>
+    </div>
+    <div class="ob-slide" data-slide="1">
+      <div class="ob-icon">🏆</div>
+      <div class="ob-title">Рейтингова таблиця</div>
+      <div class="ob-body">
+        Кожен зіграний турнір змінює твій рейтинг. Перемоги дають очки,
+        поразки — знімають.<br><br>
+        Слідкуй за своїм місцем у <strong>лідерборді</strong> і піднімайся
+        вгору сезону за сезоном.
+      </div>
+    </div>
+    <div class="ob-slide" data-slide="2">
+      <div class="ob-icon">📋</div>
+      <div class="ob-title">Реєстрація на турніри</div>
+      <div class="ob-body">
+        Переходь на вкладку <strong>Турніри</strong>, обирай актуальний турнір
+        і натискай «Записатись».<br><br>
+        Місця обмежені — реєструйся заздалегідь, щоб не пропустити гру!
+      </div>
+    </div>
+  </div>
+  <div class="ob-bottom">
+    <div class="ob-dots">
+      <div class="ob-dot ob-dot-active" data-dot="0"></div>
+      <div class="ob-dot" data-dot="1"></div>
+      <div class="ob-dot" data-dot="2"></div>
+    </div>
+    <div class="ob-actions">
+      <button class="ob-btn ob-btn-secondary" id="ob-prev">Назад</button>
+      <button class="ob-btn ob-btn-primary" id="ob-next">Далі</button>
+    </div>
+    <span class="ob-skip" id="ob-skip">Пропустити</span>
+  </div>
+</div>
 
 <!-- Registration confirmation screen -->
 <div id="reg-confirm">
@@ -2022,10 +2112,6 @@
           <div class="club-stat-cell">
             <div class="club-stat-val" id="member-count">—</div>
             <div class="club-stat-lbl">Гравці</div>
-          </div>
-          <div class="club-stat-cell">
-            <div class="club-stat-val">3</div>
-            <div class="club-stat-lbl">Корти</div>
           </div>
         </div>
       </div>
@@ -2420,6 +2506,55 @@
 </div>
 
 <script>
+/* ── First-visit onboarding ────────────────────────────────────── */
+function initOnboarding() {
+  const overlay = document.getElementById('onboarding-overlay');
+  const slides = Array.from(overlay.querySelectorAll('.ob-slide'));
+  const dots = Array.from(overlay.querySelectorAll('.ob-dot'));
+  const btnPrev = document.getElementById('ob-prev');
+  const btnNext = document.getElementById('ob-next');
+  const btnSkip = document.getElementById('ob-skip');
+  let current = 0;
+
+  function goTo(idx) {
+    slides[current].classList.remove('ob-active');
+    slides[current].classList.add('ob-prev');
+    setTimeout(() => slides[current].classList.remove('ob-prev'), 300);
+    dots[current].classList.remove('ob-dot-active');
+    current = idx;
+    slides[current].classList.add('ob-active');
+    dots[current].classList.add('ob-dot-active');
+    btnPrev.style.visibility = current === 0 ? 'hidden' : '';
+    btnNext.textContent = current === slides.length - 1 ? 'Почати' : 'Далі';
+  }
+
+  function dismiss() {
+    localStorage.setItem('bsp_intro_seen', '1');
+    overlay.classList.add('ob-hidden');
+  }
+
+  btnNext.addEventListener('click', () => {
+    if (current < slides.length - 1) goTo(current + 1);
+    else dismiss();
+  });
+  btnPrev.addEventListener('click', () => { if (current > 0) goTo(current - 1); });
+  btnSkip.addEventListener('click', dismiss);
+  dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+
+  let touchStartX = 0;
+  overlay.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  overlay.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0 && current < slides.length - 1) goTo(current + 1);
+      else if (dx > 0 && current > 0) goTo(current - 1);
+    }
+  }, { passive: true });
+
+  goTo(0);
+  overlay.classList.remove('ob-hidden');
+}
+
 /* ── Telegram WebApp init ──────────────────────────────────────── */
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -4620,6 +4755,11 @@ apiBootstrap().then(async () => {
     await handleTournamentDeepLink(tournamentId);
   } else {
     renderRatings(); // default tab — render immediately after auth resolves
+  }
+
+  // Show first-visit onboarding if not seen before
+  if (!localStorage.getItem('bsp_intro_seen')) {
+    initOnboarding();
   }
 });
 </script>
