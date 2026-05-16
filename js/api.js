@@ -56,6 +56,7 @@ const API = (() => {
       activate:         id             => request('POST',   `/tournaments/${id}/activate`),
       submitResults:    (id, payload)  => request('POST',   `/tournaments/${id}/results`, payload),
       finalize:         id             => request('POST',   `/tournaments/${id}/finalize`),
+      update:           (id, data)     => request('PUT',    `/tournaments/${id}`, data),
       delete:           id             => request('DELETE', `/tournaments/${id}`),
       getParticipants:  id             => request('GET',    `/tournaments/${id}/participants`),
       addParticipant:   (id, userId)   => request('POST',   `/tournaments/${id}/participants/${userId}`),

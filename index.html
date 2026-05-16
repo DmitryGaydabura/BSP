@@ -1810,6 +1810,19 @@
       padding: 14px 16px 10px;
       border-bottom: 1px solid var(--border-sub);
     }
+    .t-admin-actions {
+      display: flex; gap: 6px; margin-top: 8px;
+    }
+    .t-admin-btn {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 6px;
+      border: 1px solid var(--border-sub);
+      background: rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .t-admin-btn:active { opacity: 0.7; }
+    .t-admin-delete-btn { color: #E05545; border-color: rgba(224,85,69,0.3); }
     .finished-card-name {
       font-family: var(--font-display);
       font-size: 15px; font-weight: 700;
@@ -2722,6 +2735,11 @@ function renderUpcomingList(source, list) {
               ${t.location ? `<span class="t-location-tag">📍 ${t.location}</span>` : ''}
               <span class="t-location-tag">💳 ${priceLabel}</span>
             </div>` : ''}
+            ${currentUser?.role === 'ADMIN' ? `
+            <div class="t-admin-actions">
+              <button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>
+              <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
+            </div>` : ''}
           </div>
         </div>
         ${participantsList}
@@ -2736,6 +2754,8 @@ function renderUpcomingList(source, list) {
       if (tournament) showRegistrationConfirm(tournament);
     });
   });
+
+  wireAdminTournamentBtns(list);
 }
 
 function fpAvatarHtml(player) {
@@ -2806,11 +2826,41 @@ function renderFinishedList(source, list) {
           ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelLabel}</span>` : ''}
           <span class="tournament-cat">${typeLabel}</span>
         </div>
+        ${currentUser?.role === 'ADMIN' ? `
+        <div class="t-admin-actions">
+          <button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>
+          <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
+        </div>` : ''}
       </div>
       ${podiumHtml}
       ${restHtml}
     </div>`;
   }).join('');
+
+  wireAdminTournamentBtns(list);
+}
+
+function wireAdminTournamentBtns(container) {
+  container.querySelectorAll('.t-admin-edit-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
+      if (t) await openEditTournament(t);
+    });
+  });
+  container.querySelectorAll('.t-admin-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Видалити цей турнір? Цю дію не можна скасувати.')) return;
+      btn.disabled = true;
+      try {
+        await API.tournaments.delete(btn.dataset.id);
+        tournamentsData = null;
+        renderResults();
+      } catch (e) {
+        alert('Помилка: ' + (e.message || 'unknown'));
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 const UA_MONTHS = ['Січ','Лют','Бер','Квіт','Трав','Черв','Лип','Серп','Вер','Жовт','Лист','Груд'];
@@ -3619,6 +3669,7 @@ function wireAdminPanel() {
 }
 
 /* ── Admin import from Raketo ───────────────────────────────────── */
+let adminImportModalInitialized = false;
 
 async function searchRaketoByName(query) {
   const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
@@ -3742,6 +3793,9 @@ async function doAdminSearch() {
 }
 
 function initAdminImportModal() {
+  if (adminImportModalInitialized) return;
+  adminImportModalInitialized = true;
+
   const searchBtn  = document.getElementById('ai-search-btn');
   const searchInput = document.getElementById('ai-search-input');
   const importBtn  = document.getElementById('ai-import-btn');
@@ -3821,31 +3875,69 @@ document.getElementById('ratings-filter').addEventListener('click', e => {
   renderRatings();
 });
 
-/* ── Create tournament ──────────────────────────────────────────── */
+/* ── Create / Edit tournament ───────────────────────────────────── */
 let tournamentLevels = null;
+let editingTournamentId = null;
+
+async function loadTournamentLevels() {
+  if (tournamentLevels) return;
+  try {
+    tournamentLevels = await API.tournaments.getLevels();
+  } catch {
+    tournamentLevels = [
+      { value:'D', label:'D', ratingCeiling:1499 },
+      { value:'D_PLUS', label:'D+', ratingCeiling:1749 },
+      { value:'C_MINUS', label:'C−', ratingCeiling:1999 },
+      { value:'C', label:'C', ratingCeiling:2249 },
+      { value:'C_PLUS', label:'C+', ratingCeiling:2749 },
+      { value:'B_MINUS', label:'B−', ratingCeiling:2999 },
+      { value:'B', label:'B', ratingCeiling:3249 },
+      { value:'B_PLUS', label:'B+', ratingCeiling:'—' },
+    ];
+  }
+}
 
 async function openCreateTournament() {
+  editingTournamentId = null;
+  document.querySelector('#modal-create-tournament .modal-title').textContent = 'Новий турнір';
+  document.getElementById('ct-submit').textContent = 'Створити';
+  document.getElementById('ct-name').value = '';
+  document.getElementById('ct-date').value = '';
+  document.getElementById('ct-time').value = '';
+  document.getElementById('ct-max-participants').value = '';
+  document.getElementById('ct-min-rating').value = '';
+  document.getElementById('ct-max-rating').value = '';
+  document.getElementById('ct-location').value = '';
+  document.getElementById('ct-price').value = '';
   openModal('modal-create-tournament');
+  await loadTournamentLevels();
   const sel = document.getElementById('ct-level');
-  if (!tournamentLevels) {
-    try {
-      tournamentLevels = await API.tournaments.getLevels();
-    } catch {
-      tournamentLevels = [
-        { value:'D', label:'D', ratingCeiling:1499 },
-        { value:'D_PLUS', label:'D+', ratingCeiling:1749 },
-        { value:'C_MINUS', label:'C−', ratingCeiling:1999 },
-        { value:'C', label:'C', ratingCeiling:2249 },
-        { value:'C_PLUS', label:'C+', ratingCeiling:2749 },
-        { value:'B_MINUS', label:'B−', ratingCeiling:2999 },
-        { value:'B', label:'B', ratingCeiling:3249 },
-        { value:'B_PLUS', label:'B+', ratingCeiling:'—' },
-      ];
-    }
-  }
   sel.innerHTML = tournamentLevels.map(l =>
     `<option value="${l.value}">${l.label} (до ${l.ratingCeiling} pts)</option>`
   ).join('');
+  updateLevelHint();
+}
+
+async function openEditTournament(t) {
+  editingTournamentId = t.id;
+  document.querySelector('#modal-create-tournament .modal-title').textContent = 'Редагувати турнір';
+  document.getElementById('ct-submit').textContent = 'Зберегти';
+  openModal('modal-create-tournament');
+  await loadTournamentLevels();
+  const sel = document.getElementById('ct-level');
+  sel.innerHTML = tournamentLevels.map(l =>
+    `<option value="${l.value}">${l.label} (до ${l.ratingCeiling} pts)</option>`
+  ).join('');
+  document.getElementById('ct-name').value = t.name || '';
+  document.getElementById('ct-date').value = t.date || '';
+  document.getElementById('ct-time').value = t.time ? t.time.slice(0, 5) : '';
+  sel.value = t.level || '';
+  document.getElementById('ct-type').value = t.type || 'PAIR';
+  document.getElementById('ct-max-participants').value = t.maxParticipants || '';
+  document.getElementById('ct-min-rating').value = t.minRating || '';
+  document.getElementById('ct-max-rating').value = t.maxRating || '';
+  document.getElementById('ct-location').value = t.location || '';
+  document.getElementById('ct-price').value = t.price || '';
   updateLevelHint();
 }
 
@@ -3874,26 +3966,26 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const location = document.getElementById('ct-location').value.trim() || null;
   const price = parseInt(document.getElementById('ct-price').value) || null;
   const time = document.getElementById('ct-time').value || null;
+  const payload = { name, date, level, type, maxParticipants, minRating, maxRating, location, price, time };
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
-    await API.tournaments.create({ name, date, level, type, maxParticipants, minRating, maxRating, location, price, time });
+    if (editingTournamentId) {
+      await API.tournaments.update(editingTournamentId, payload);
+      alert('Турнір оновлено!');
+    } else {
+      await API.tournaments.create(payload);
+      alert('Турнір створено!');
+    }
     tournamentsData = null;
     closeModal('modal-create-tournament');
-    document.getElementById('ct-name').value = '';
-    document.getElementById('ct-date').value = '';
-    document.getElementById('ct-max-participants').value = '';
-    document.getElementById('ct-min-rating').value = '';
-    document.getElementById('ct-max-rating').value = '';
-    document.getElementById('ct-location').value = '';
-    document.getElementById('ct-price').value = '';
-    document.getElementById('ct-time').value = '';
-    alert('Турнір створено!');
+    renderResults();
   } catch (e) {
     alert('Помилка: ' + (e.message || 'unknown'));
   } finally {
-    btn.disabled = false; btn.textContent = 'Створити';
+    btn.disabled = false;
+    btn.textContent = editingTournamentId ? 'Зберегти' : 'Створити';
   }
 });
 
