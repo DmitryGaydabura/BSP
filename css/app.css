@@ -1884,6 +1884,9 @@
     #onboarding-overlay.ob-hidden {
       opacity: 0; pointer-events: none;
     }
+    #onboarding-overlay.ob-hidden * {
+      pointer-events: none;
+    }
     .ob-slides {
       flex: 1; width: 100%; overflow: hidden; position: relative;
     }
