@@ -1567,8 +1567,9 @@
       flex-direction: column;
       transform: translateY(100%);
       transition: transform 0.32s var(--ease);
+      pointer-events: none;
     }
-    #reg-confirm.reg-confirm-visible { transform: translateY(0); }
+    #reg-confirm.reg-confirm-visible { transform: translateY(0); pointer-events: auto; }
 
     .reg-confirm-header {
       flex-shrink: 0;
