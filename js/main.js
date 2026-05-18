@@ -1,5 +1,5 @@
 /* ── First-visit onboarding ────────────────────────────────────── */
-function initOnboarding() {
+const _ob = (() => {
   const overlay = document.getElementById('onboarding-overlay');
   const slides = Array.from(overlay.querySelectorAll('.ob-slide'));
   const dots = Array.from(overlay.querySelectorAll('.ob-dot'));
@@ -43,9 +43,10 @@ function initOnboarding() {
     }
   }, { passive: true });
 
-  goTo(0);
-  overlay.classList.remove('ob-hidden');
-}
+  return { show() { goTo(0); overlay.classList.remove('ob-hidden'); } };
+})();
+
+function initOnboarding() { _ob.show(); }
 
 /* ── Telegram WebApp init ──────────────────────────────────────── */
 const tg = window.Telegram?.WebApp;
@@ -275,11 +276,7 @@ async function renderResults() {
 
 function applyResultFilter(source) {
   if (activeResultFilter === 'all') return source;
-  return source.filter(t =>
-    String(t.date).slice(0, 7) === activeResultFilter ||
-    t.category === activeResultFilter ||
-    t.category?.toLowerCase() === activeResultFilter
-  );
+  return source.filter(t => String(t.date).slice(0, 7) === activeResultFilter);
 }
 
 function renderUpcomingList(source, list) {
@@ -501,9 +498,6 @@ function rebuildMonthChips(tournaments) {
     tournaments.map(t => String(t.date).slice(0, 7)).filter(Boolean)
   )].sort((a, b) => b.localeCompare(a)); // most recent first
 
-  const categoryChips = row.querySelectorAll('[data-filter="open"], [data-filter="mixed"]');
-  const firstCategoryChip = categoryChips[0] || null;
-
   months.forEach(ym => {
     const [y, m] = ym.split('-');
     const label = UA_MONTHS[parseInt(m, 10) - 1] + ' ' + y;
@@ -513,7 +507,7 @@ function rebuildMonthChips(tournaments) {
     btn.dataset.month = '1';
     btn.textContent = label;
     if (activeResultFilter === ym) btn.classList.add('active');
-    row.insertBefore(btn, firstCategoryChip);
+    row.appendChild(btn);
   });
 }
 
