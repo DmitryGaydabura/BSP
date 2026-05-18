@@ -875,7 +875,7 @@ function renderProfile() {
       <div class="profile-stat">
         <div class="profile-stat-value">${u.ratingPoints}</div>
         <div class="profile-stat-label" style="display:flex;align-items:center;justify-content:center;gap:4px">
-          Очки <button class="rating-info-btn" onclick="openModal('modal-rating-guide')">?</button>
+          Бали <button class="rating-info-btn" onclick="openModal('modal-rating-guide')">?</button>
         </div>
       </div>
       <div class="profile-stat">
@@ -900,7 +900,7 @@ function renderProfile() {
         <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
         <div class="raketo-claimed-body">
           <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)}</div>
-          <div class="raketo-claimed-detail">${colorLabel[u.raketoColor] || ''} · ${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові очки нараховано</div>
+          <div class="raketo-claimed-detail">${colorLabel[u.raketoColor] || ''} · ${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові бали нараховано</div>
         </div>
       </div>
     ` : `
@@ -1579,7 +1579,7 @@ function updateLevelHint() {
   if (!tournamentLevels || !sel.value) { hint.textContent = ''; return; }
   const lvl = tournamentLevels.find(l => l.value === sel.value);
   if (!lvl) return;
-  hint.textContent = `Стартові очки: ${lvl.startingPoints}`;
+  hint.textContent = `Стартові бали: ${lvl.startingPoints}`;
   const maxInput = document.getElementById('ct-max-rating');
   if (!maxInput.value && lvl.ratingCeiling !== '—') maxInput.value = lvl.ratingCeiling;
 }
@@ -1798,7 +1798,7 @@ async function openUsersModal() {
         <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end">
           <input class="form-input rating-edit-input" type="number" min="0"
                  data-user-id="${u.id}" value="${u.startingPoints || 0}"
-                 title="Стартові очки" placeholder="Рейтинг">
+                 title="Стартові бали" placeholder="Рейтинг">
           <select class="form-select level-select" data-user-id="${u.id}"
                   style="font-size:12px;padding:4px 8px;height:32px;width:60px">
             <option value="">—</option>
