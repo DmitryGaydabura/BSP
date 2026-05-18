@@ -9,10 +9,11 @@ const _ob = (() => {
   let current = 0;
 
   function goTo(idx) {
-    slides[current].classList.remove('ob-active');
-    slides[current].classList.add('ob-prev');
-    setTimeout(() => slides[current].classList.remove('ob-prev'), 300);
-    dots[current].classList.remove('ob-dot-active');
+    const leaving = current;
+    slides[leaving].classList.remove('ob-active');
+    slides[leaving].classList.add('ob-prev');
+    setTimeout(() => slides[leaving].classList.remove('ob-prev'), 300);
+    dots[leaving].classList.remove('ob-dot-active');
     current = idx;
     slides[current].classList.add('ob-active');
     dots[current].classList.add('ob-dot-active');
@@ -43,7 +44,18 @@ const _ob = (() => {
     }
   }, { passive: true });
 
-  return { show() { goTo(0); overlay.classList.remove('ob-hidden'); } };
+  return {
+    show() {
+      slides.forEach(s => s.classList.remove('ob-active', 'ob-prev'));
+      dots.forEach(d => d.classList.remove('ob-dot-active'));
+      current = 0;
+      slides[0].classList.add('ob-active');
+      dots[0].classList.add('ob-dot-active');
+      btnPrev.style.visibility = 'hidden';
+      btnNext.textContent = slides.length === 1 ? 'Почати' : 'Далі';
+      overlay.classList.remove('ob-hidden');
+    },
+  };
 })();
 
 function initOnboarding() { _ob.show(); }
