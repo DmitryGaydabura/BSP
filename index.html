@@ -93,7 +93,7 @@
       <span class="logo-name">Blacksea Padel</span>
       <span class="logo-sub">★ Odesa, Ukraine ★</span>
     </div>
-    <span class="header-badge">Club</span>
+    <button class="header-help-btn" id="btn-help">?</button>
   </header>
 
   <!-- Content -->
@@ -103,7 +103,7 @@
     <div id="tab-results" class="tab-panel">
       <div class="results-header">
         <div class="section-eyebrow">Турніри</div>
-        <div class="section-title">Результати</div>
+        <div class="section-title">Турніри</div>
         <div class="results-subtabs" id="results-subtabs">
           <button class="results-subtab active" data-subtab="upcoming">Майбутні</button>
           <button class="results-subtab" data-subtab="finished">Завершені</button>
@@ -442,9 +442,12 @@
     </button>
     <button class="nav-tab" data-tab="results">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+        <rect x="6" y="2" width="12" height="20" rx="2"/>
+        <path d="M9 7h6M9 11h6M9 15h4"/>
+        <circle cx="18" cy="18" r="4" fill="currentColor" stroke="none"/>
+        <path d="M16.5 18l1 1 2-2" stroke-width="1.5" stroke="var(--navy-deep)" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span class="nav-label">Результати</span>
+      <span class="nav-label">Турніри</span>
     </button>
     <button class="nav-tab" data-tab="profile">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -550,6 +553,6 @@
 
 </div>
 
-<script src="js/main.js?v=1" defer></script>
+<script src="js/main.js?v=2" defer></script>
 </body>
 </html>

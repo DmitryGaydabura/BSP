@@ -1493,6 +1493,11 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 document.getElementById('btn-rating-info').addEventListener('click', () => openModal('modal-rating-guide'));
 
+document.getElementById('btn-help').addEventListener('click', () => {
+  localStorage.removeItem('bsp_intro_seen');
+  initOnboarding();
+});
+
 document.getElementById('ratings-filter').addEventListener('click', e => {
   const chip = e.target.closest('.filter-chip');
   if (!chip) return;

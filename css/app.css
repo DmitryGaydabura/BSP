@@ -86,15 +86,19 @@
       letter-spacing: 0.22em; text-transform: uppercase;
       color: var(--text-muted);
     }
-    #header .header-badge {
-      font-size: 10px; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--navy-deep);
-      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-      padding: 4px 10px;
-      border-radius: 20px;
-      white-space: nowrap;
+    .header-help-btn {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border-sub);
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 200ms, border-color 200ms;
     }
+    .header-help-btn:active { color: var(--text-muted); border-color: var(--border-str); }
 
     /* ── Content ────────────────────────────────────────────────── */
     #content {
