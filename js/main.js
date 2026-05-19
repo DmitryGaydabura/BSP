@@ -2416,6 +2416,23 @@ async function openUsersModal() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
         </div>
+        <div class="user-raketo-link" style="width:100%;padding-top:4px;border-top:1px solid var(--border-subtle);margin-top:2px">
+          ${u.raketoDocId
+            ? `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
+                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                 Raketo: <span style="font-family:monospace;color:var(--text-dim)">${u.raketoDocId.slice(0,10)}…</span>
+                 <button class="rl-change-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
+               </div>`
+            : `<button class="rl-link-btn btn-secondary" style="width:100%;font-size:11px;padding:4px 0">Прив'язати Raketo профіль</button>`
+          }
+          <div class="rl-search-area" style="display:none;margin-top:6px">
+            <div style="display:flex;gap:4px;margin-bottom:4px">
+              <input class="form-input rl-search-input" placeholder="Ім'я в Raketo..." style="flex:1;font-size:12px">
+              <button class="btn-secondary rl-search-btn" style="font-size:11px;padding:0 10px">Шукати</button>
+            </div>
+            <div class="rl-results"></div>
+          </div>
+        </div>
       </div>
     `).join('');
 
@@ -2485,6 +2502,62 @@ async function openUsersModal() {
           btn.disabled = false;
         }
       });
+    });
+
+    list.querySelectorAll('.user-list-item').forEach(item => {
+      const userId = item.dataset.userId;
+      const linkArea = item.querySelector('.rl-search-area');
+      const resultsBox = item.querySelector('.rl-results');
+
+      const openSearch = () => { linkArea.style.display = 'block'; };
+
+      item.querySelector('.rl-link-btn')?.addEventListener('click', openSearch);
+      item.querySelector('.rl-change-btn')?.addEventListener('click', openSearch);
+
+      const searchBtn = item.querySelector('.rl-search-btn');
+      const searchInput = item.querySelector('.rl-search-input');
+      if (!searchBtn) return;
+
+      const doRlSearch = async () => {
+        const q = searchInput.value.trim();
+        if (q.length < 2) { resultsBox.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Мінімум 2 символи</div>'; return; }
+        searchBtn.disabled = true; searchBtn.textContent = '...';
+        resultsBox.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Пошук...</div>';
+        try {
+          const results = await searchRaketoByName(q);
+          if (!results.length) { resultsBox.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Не знайдено</div>'; return; }
+          resultsBox.innerHTML = results.map(r =>
+            `<div class="rl-pick" data-doc-id="${r.docId}" style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
+               <div style="font-weight:600">${r.name}</div>
+               <div style="color:var(--text-muted);font-size:11px">${r.padelRating > 0 ? r.padelRating.toFixed(3) : '—'} · ${r.padelMatches} матчів${r.telegramHandle ? ' · @' + r.telegramHandle : ''}</div>
+             </div>`
+          ).join('');
+          resultsBox.querySelectorAll('.rl-pick').forEach(pick => {
+            pick.addEventListener('click', async () => {
+              pick.style.opacity = '0.5';
+              try {
+                await API.users.setRaketoDocId(userId, pick.dataset.docId);
+                linkArea.style.display = 'none';
+                const linkDiv = item.querySelector('.user-raketo-link');
+                linkDiv.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  Raketo: <span style="font-family:monospace;color:var(--text-dim)">${pick.dataset.docId.slice(0,10)}…</span>
+                </div>`;
+              } catch (e) {
+                alert('Помилка: ' + (e.message || 'unknown'));
+                pick.style.opacity = '1';
+              }
+            });
+          });
+        } catch (e) {
+          resultsBox.innerHTML = `<div style="font-size:11px;color:var(--error)">${e.message || 'Помилка'}</div>`;
+        } finally {
+          searchBtn.disabled = false; searchBtn.textContent = 'Шукати';
+        }
+      };
+
+      searchBtn.addEventListener('click', doRlSearch);
+      searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doRlSearch(); });
     });
   } catch (e) {
     list.innerHTML = `<div style="color:var(--error);font-size:13px">${e.message}</div>`;
