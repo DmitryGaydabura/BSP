@@ -692,6 +692,14 @@ function _lbRowTap(id, rank) {
   if (player) openPlayerProfile(player, rank);
 }
 
+function _actRowTap(userId, displayName) {
+  const source = ratingsData || RATINGS;
+  const player = source.find(p => String(p.id) === String(userId))
+    || { id: userId, name: displayName, pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0, change: '=' };
+  const rank = source.indexOf(player) + 1 || 0;
+  openPlayerProfile(player, rank);
+}
+
 async function openPlayerProfile(player, rank) {
   const body = document.getElementById('player-profile-body');
   const lvl = levelFromPoints(player.pts);
@@ -701,15 +709,18 @@ async function openPlayerProfile(player, rank) {
   const total = wins + losses;
   const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
 
+  const tier = tierClass(lvl);
   body.innerHTML = `
-    <div class="pp-hero">
+    <div class="pp-hero ${tier}">
       <div class="pp-avatar">${player.photoUrl
         ? `<img src="${player.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(player.name)}'">`
         : initials(player.name)}</div>
-      <div class="pp-name">${player.name}</div>
-      <div class="pp-meta">
-        <span class="level-badge level-badge-md ${lvlCls}">${lvl}</span>
-        <span class="pp-rank-badge">#${rank} у рейтингу</span>
+      <div class="pp-info">
+        <div class="pp-name">${player.name}</div>
+        <span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>
+        <div class="pp-meta">
+          <span class="pp-rank-badge">#${rank} у рейтингу</span>
+        </div>
       </div>
     </div>
 
@@ -771,7 +782,7 @@ async function openPlayerProfile(player, rank) {
     if (activityResult.status === 'fulfilled') {
       const entry = activityResult.value?.find(e => e.userId === player.id);
       if (actVal) actVal.textContent = entry ? entry.activityPoints : '—';
-      if (actLbl) actLbl.textContent = entry ? `балів · #${entry.rank}` : 'Активність';
+      if (actLbl) actLbl.textContent = entry ? `Активність · #${entry.rank}` : 'Активність';
     }
   }
 }
@@ -866,7 +877,7 @@ async function renderActivityList() {
     }
 
     wrap.innerHTML = data.map(e => `
-      <div class="activity-row">
+      <div class="activity-row lb-row-tap" onclick="_actRowTap('${e.userId}','${e.displayName}')">
         <div class="activity-rank ${e.rank === 1 ? 'top1' : e.rank === 2 ? 'top2' : e.rank === 3 ? 'top3' : ''}">
           ${e.rank === 1 ? '★' : e.rank}
         </div>
@@ -960,19 +971,17 @@ function renderProfile() {
 
   container.innerHTML = `
     <div class="profile-hero ${tier}">
-      <div class="profile-hero-top">
-        <div class="profile-avatar">
-          ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
-        </div>
+      <div class="profile-avatar">
+        ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
+      </div>
+      <div class="profile-info">
         <div class="profile-name">${u.displayName}</div>
         ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
-      </div>
-      <div class="profile-level-showcase">
-        <span class="level-badge level-badge-xl ${levelClass(level)}">${level}</span>
-      </div>
-      <div class="profile-hero-meta">
-        <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
-        ${globalRank > 0 ? `<span class="profile-hero-rank">#${globalRank} у рейтингу</span>` : ''}
+        <span class="level-badge level-badge-hero ${levelClass(level)}">${level}</span>
+        <div class="profile-hero-meta">
+          <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
+          ${globalRank > 0 ? `<span class="profile-hero-rank">#${globalRank} у рейтингу</span>` : ''}
+        </div>
       </div>
     </div>
 
