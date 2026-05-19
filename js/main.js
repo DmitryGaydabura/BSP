@@ -1655,12 +1655,19 @@ async function openAdminAnalysisModal() {
   list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Завантаження...</div>';
 
   try {
-    const tournaments = await API.tournaments.list();
+    // Load BSP users to build the "Odessa filter" — tournaments containing our players
+    const [tournaments, allUsers] = await Promise.all([
+      API.tournaments.list(),
+      API.users.list(),
+    ]);
+    const bspRaketoIds = new Set(allUsers.map(u => u.raketoDocId).filter(Boolean));
+
     const finished = tournaments.filter(t => t.status === 'FINISHED');
     if (!finished.length) {
       list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Немає завершених турнірів</div>';
       return;
     }
+
     list.innerHTML = finished.map(t => `
       <div class="aa-item" data-id="${t.id}" data-date="${t.date}">
         <div class="aa-item-header">
@@ -1673,10 +1680,15 @@ async function openAdminAnalysisModal() {
                Ракето підключено
                <button class="aa-unlink-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
              </div>`
-          : `<button class="btn-secondary aa-find-btn" style="width:100%;font-size:12px;margin-top:4px">
-               Знайти в Ракето
-             </button>`}
-        <div class="aa-picker" style="display:none"></div>
+          : ''}
+        <div class="aa-picker" style="display:none">
+          <div class="aa-date-row">
+            <input type="date" class="form-input aa-date-input" value="${t.date}" style="flex:1;font-size:13px">
+            <button class="btn-secondary aa-search-btn" style="flex-shrink:0;font-size:12px;padding:0 14px">Шукати</button>
+          </div>
+          <div class="aa-results"></div>
+        </div>
+        ${!t.raketoId ? `<button class="btn-secondary aa-find-btn" style="width:100%;font-size:12px;margin-top:6px">Знайти в Ракето</button>` : ''}
         <button class="btn-primary aa-generate-btn" ${!t.raketoId ? 'disabled' : ''} style="width:100%;margin-top:6px;font-size:12px">
           ${t.hasAnalysis ? 'Перегенерувати аналіз' : 'Згенерувати аналіз'}
         </button>
@@ -1685,59 +1697,75 @@ async function openAdminAnalysisModal() {
     `).join('');
 
     list.querySelectorAll('.aa-item').forEach(item => {
-      const id = item.dataset.id;
-      const date = item.dataset.date;
-      const generateBtn = item.querySelector('.aa-generate-btn');
-      const picker = item.querySelector('.aa-picker');
+      const bspId   = item.dataset.id;
+      const picker  = item.querySelector('.aa-picker');
+      const results = item.querySelector('.aa-results');
       const findBtn = item.querySelector('.aa-find-btn');
       const unlinkBtn = item.querySelector('.aa-unlink-btn');
+      const searchBtn = item.querySelector('.aa-search-btn');
+      const dateInput = item.querySelector('.aa-date-input');
+      const generateBtn = item.querySelector('.aa-generate-btn');
 
-      const showPicker = async () => {
+      const openPicker = () => {
         picker.style.display = 'block';
         if (findBtn) findBtn.style.display = 'none';
-        if (unlinkBtn) unlinkBtn.closest('.aa-linked').style.display = 'none';
-        picker.innerHTML = '<div class="aa-picker-loading"><div class="analysis-spinner" style="width:18px;height:18px;border-width:2px"></div>Шукаю в Ракето...</div>';
+      };
+
+      const doSearch = async () => {
+        const date = dateInput.value;
+        if (!date) return;
+        searchBtn.disabled = true; searchBtn.textContent = '...';
+        results.innerHTML = '<div class="aa-picker-loading"><div class="analysis-spinner" style="width:18px;height:18px;border-width:2px"></div>Шукаю в Ракето...</div>';
         try {
-          const raketo = await fetchRaketoNearDate(date);
+          const raketo = await fetchRaketoForDate(date, bspRaketoIds);
           if (!raketo.length) {
-            picker.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">Турнірів не знайдено поблизу цієї дати</div>';
-            return;
-          }
-          picker.innerHTML = raketo.map(r => `
-            <div class="aa-raketo-pick" data-raketo-id="${r.id}">
-              <div class="aa-pick-datetime">${r.dateStr} · ${r.timeStr}</div>
-              <div class="aa-pick-court">${r.courtName}</div>
-              <div class="aa-pick-players">${r.players.join(' · ')}</div>
-            </div>
-          `).join('');
-          picker.querySelectorAll('.aa-raketo-pick').forEach(pick => {
-            pick.addEventListener('click', async () => {
-              const raketoId = pick.dataset.raketoId;
-              try {
-                await API.tournaments.setRaketoId(id, raketoId);
-                tournamentsData = null;
-                generateBtn.disabled = false;
-                picker.innerHTML = `<div class="aa-linked">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  Ракето підключено
-                </div>`;
-              } catch (e) {
-                alert('Помилка: ' + (e.message || 'unknown'));
-              }
+            results.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">Одеських турнірів за цей день не знайдено</div>';
+          } else {
+            results.innerHTML = raketo.map(r => `
+              <div class="aa-raketo-pick" data-raketo-id="${r.id}">
+                <div class="aa-pick-datetime">${r.dateStr} · ${r.timeStr}</div>
+                <div class="aa-pick-court">${r.courtName}</div>
+                <div class="aa-pick-players">${r.players.join(' · ')}</div>
+              </div>
+            `).join('');
+            results.querySelectorAll('.aa-raketo-pick').forEach(pick => {
+              pick.addEventListener('click', async () => {
+                try {
+                  await API.tournaments.setRaketoId(bspId, pick.dataset.raketoId);
+                  tournamentsData = null;
+                  generateBtn.disabled = false;
+                  picker.style.display = 'none';
+                  const linkedEl = item.querySelector('.aa-linked');
+                  if (linkedEl) {
+                    linkedEl.style.display = 'flex';
+                  } else {
+                    item.querySelector('.aa-item-header').insertAdjacentHTML('afterend',
+                      `<div class="aa-linked">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        Ракето підключено
+                        <button class="aa-unlink-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
+                      </div>`);
+                    item.querySelector('.aa-unlink-btn')?.addEventListener('click', openPicker);
+                  }
+                } catch (e) { alert('Помилка: ' + (e.message || 'unknown')); }
+              });
             });
-          });
+          }
         } catch (e) {
-          picker.innerHTML = `<div style="font-size:12px;color:var(--error);padding:6px 0">${e.message || 'Помилка'}</div>`;
+          results.innerHTML = `<div style="font-size:12px;color:var(--error);padding:6px 0">${e.message || 'Помилка'}</div>`;
+        } finally {
+          searchBtn.disabled = false; searchBtn.textContent = 'Шукати';
         }
       };
 
-      if (findBtn) findBtn.addEventListener('click', showPicker);
-      if (unlinkBtn) unlinkBtn.addEventListener('click', showPicker);
+      if (findBtn)   findBtn.addEventListener('click', openPicker);
+      if (unlinkBtn) unlinkBtn.addEventListener('click', openPicker);
+      searchBtn.addEventListener('click', doSearch);
 
       generateBtn.addEventListener('click', async () => {
         generateBtn.disabled = true; generateBtn.textContent = 'Генерую...';
         try {
-          await API.tournaments.generateAnalysis(id);
+          await API.tournaments.generateAnalysis(bspId);
           tournamentsData = null;
           const statusEl = item.querySelector('.aa-status');
           if (statusEl) statusEl.textContent = `Аналіз готовий · ${fmtDatetime(new Date().toISOString())}`;
@@ -1756,10 +1784,10 @@ async function openAdminAnalysisModal() {
   }
 }
 
-async function fetchRaketoNearDate(bspDate) {
-  const center = new Date(bspDate + 'T12:00:00Z');
-  const from = new Date(center); from.setDate(from.getDate() - 3);
-  const to   = new Date(center); to.setDate(to.getDate() + 4);
+async function fetchRaketoForDate(date, bspRaketoIds) {
+  // Query the full day in UTC (covers local timezones with up to UTC+14 offset)
+  const from = new Date(date + 'T00:00:00Z');
+  const to   = new Date(date + 'T23:59:59Z');
 
   const res = await fetch(`${RAKETO_FS}:runQuery`, {
     method: 'POST',
@@ -1772,82 +1800,82 @@ async function fetchRaketoNearDate(bspDate) {
             op: 'AND',
             filters: [
               { fieldFilter: { field: { fieldPath: 'time_from' }, op: 'GREATER_THAN_OR_EQUAL', value: { timestampValue: from.toISOString() } } },
-              { fieldFilter: { field: { fieldPath: 'time_from' }, op: 'LESS_THAN',             value: { timestampValue: to.toISOString() } } },
+              { fieldFilter: { field: { fieldPath: 'time_from' }, op: 'LESS_THAN_OR_EQUAL',    value: { timestampValue: to.toISOString() } } },
             ],
           },
         },
         orderBy: [{ field: { fieldPath: 'time_from' }, direction: 'ASCENDING' }],
-        limit: 30,
+        limit: 50,
       },
     }),
   });
+
   const body = await res.json();
   const items = Array.isArray(body) ? body : [];
-  const docs = items.filter(i => i.document && !fsStr(i.document.fields, 'deleted')).map(i => i.document);
-  const finalized = docs.filter(d => fsBool(d.fields, 'finalized'));
+  const docs = items
+    .filter(i => i.document)
+    .map(i => i.document)
+    .filter(d => fsBool(d.fields, 'finalized') && !fsBool(d.fields, 'deleted'));
 
-  if (!finalized.length) return [];
+  if (!docs.length) return [];
 
-  const courtIds = [...new Set(finalized.map(d => fsRefId(d.fields, 'courts')).filter(Boolean))];
-  const courtMap = {};
-  await Promise.all(courtIds.map(async cid => {
-    try {
-      const r = await fetch(`${RAKETO_FS}/courts/${cid}`);
-      const doc = await r.json();
-      const f = doc.fields || {};
-      const name = f.name?.stringValue || '';
-      const city = f.city?.stringValue || '';
-      courtMap[cid] = city ? `${name}, ${city}` : name || cid.slice(0, 8);
-    } catch { courtMap[cid] = cid.slice(0, 8); }
-  }));
-
-  const allPlayerUids = new Set();
-  finalized.forEach(d => {
-    const standings = d.fields?.standings?.arrayValue?.values || [];
-    const players   = d.fields?.players?.arrayValue?.values || [];
-    const source = standings.length ? standings : players;
-    source.slice(0, 3).forEach(v => {
-      const uid = standings.length
-        ? v.mapValue?.fields?.playerRef?.referenceValue?.split('/').pop()
-        : v.referenceValue?.split('/').pop();
-      if (uid) allPlayerUids.add(uid);
-    });
+  // Odessa filter: keep only tournaments where ≥2 players are known BSP users
+  const odessa = docs.filter(d => {
+    const uids = raketoPlayerUids(d.fields);
+    return uids.filter(uid => bspRaketoIds.has(uid)).length >= 2;
   });
 
-  const userMap = {};
-  await Promise.all([...allPlayerUids].map(async uid => {
-    try {
-      const r = await fetch(`${RAKETO_FS}/users/${uid}`);
-      const doc = await r.json();
-      userMap[uid] = doc.fields?.display_name?.stringValue || uid.slice(0, 6);
-    } catch { userMap[uid] = uid.slice(0, 6); }
-  }));
+  if (!odessa.length) return [];
 
-  return finalized.map(d => {
-    const f = d.fields || {};
-    const ts = f.time_from?.timestampValue;
-    const date = ts ? new Date(ts) : null;
-    const courtId = fsRefId(f, 'courts');
-    const standings = f.standings?.arrayValue?.values || [];
-    const players   = f.players?.arrayValue?.values || [];
-    const source = standings.length ? standings : players;
-    const playerNames = source.slice(0, 3).map(v => {
-      const uid = standings.length
-        ? v.mapValue?.fields?.playerRef?.referenceValue?.split('/').pop()
-        : v.referenceValue?.split('/').pop();
-      return uid ? (userMap[uid] || uid.slice(0, 6)) : '?';
-    });
+  // Fetch court names and player display names in parallel
+  const courtIds = [...new Set(odessa.map(d => fsRefId(d.fields, 'courts')).filter(Boolean))];
+  const allUids  = new Set(odessa.flatMap(d => raketoPlayerUids(d.fields).slice(0, 3)));
+
+  const [courtMap, userMap] = await Promise.all([
+    Promise.all(courtIds.map(async cid => {
+      try {
+        const r = await fetch(`${RAKETO_FS}/courts/${cid}`);
+        const f = (await r.json()).fields || {};
+        const name = f.name?.stringValue || '';
+        const city = f.city?.stringValue || '';
+        return [cid, city ? `${name}, ${city}` : name || '?'];
+      } catch { return [cid, '?']; }
+    })).then(Object.fromEntries),
+    Promise.all([...allUids].map(async uid => {
+      try {
+        const r = await fetch(`${RAKETO_FS}/users/${uid}`);
+        const f = (await r.json()).fields || {};
+        return [uid, f.display_name?.stringValue || uid.slice(0, 6)];
+      } catch { return [uid, uid.slice(0, 6)]; }
+    })).then(Object.fromEntries),
+  ]);
+
+  return odessa.map(d => {
+    const f   = d.fields || {};
+    const ts  = f.time_from?.timestampValue;
+    const dt  = ts ? new Date(ts) : null;
+    const cid = fsRefId(f, 'courts');
+    const playerNames = raketoPlayerUids(d.fields).slice(0, 3).map(uid => userMap[uid] || uid.slice(0, 6));
     return {
       id: d.name.split('/').pop(),
-      dateStr: date ? date.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-      timeStr: date ? date.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '',
-      courtName: courtId ? (courtMap[courtId] || courtId.slice(0, 8)) : 'Без корту',
-      players: playerNames,
+      dateStr:   dt ? dt.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      timeStr:   dt ? dt.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '',
+      courtName: cid ? (courtMap[cid] || '?') : 'Без корту',
+      players:   playerNames,
     };
   });
 }
 
-function fsStr(fields, key) { return fields?.[key]?.stringValue || null; }
+function raketoPlayerUids(fields) {
+  const standings = fields?.standings?.arrayValue?.values || [];
+  const players   = fields?.players?.arrayValue?.values  || [];
+  if (standings.length) {
+    return standings.map(v => v.mapValue?.fields?.playerRef?.referenceValue?.split('/').pop()).filter(Boolean);
+  }
+  return players.map(v => v.referenceValue?.split('/').pop()).filter(Boolean);
+}
+
+function fsStr(fields, key)  { return fields?.[key]?.stringValue   || null; }
 function fsBool(fields, key) { return fields?.[key]?.booleanValue === true; }
 function fsRefId(fields, key) {
   const ref = fields?.[key]?.referenceValue;
