@@ -1989,6 +1989,44 @@
     }
     .pp-wl-pct { color: var(--text-muted); }
 
+    /* ─── Achievements ─── */
+    .achievements-section { margin-bottom: 14px; }
+    .achievements-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .achievements-list {
+      display: flex; gap: 8px;
+      overflow-x: auto; padding-bottom: 2px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .achievements-list::-webkit-scrollbar { display: none; }
+    .ach-cup {
+      flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: var(--navy-mid); border: 1px solid var(--border-def);
+      border-radius: 10px; padding: 10px 10px 8px;
+      min-width: 70px; text-align: center;
+    }
+    .ach-cup.cup-gold {
+      border-color: rgba(201,168,76,0.5);
+      background: linear-gradient(180deg, rgba(201,168,76,0.12) 0%, var(--navy-mid) 70%);
+      box-shadow: 0 0 14px rgba(201,168,76,0.18);
+    }
+    .ach-cup.cup-silver {
+      border-color: rgba(176,196,216,0.35);
+      background: linear-gradient(180deg, rgba(176,196,216,0.08) 0%, var(--navy-mid) 70%);
+    }
+    .ach-cup.cup-bronze {
+      border-color: rgba(184,115,42,0.35);
+      background: linear-gradient(180deg, rgba(184,115,42,0.08) 0%, var(--navy-mid) 70%);
+    }
+    .ach-name {
+      font-size: 9px; font-weight: 600; color: var(--white-warm); line-height: 1.3;
+      max-width: 64px;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .ach-date { font-size: 8px; color: var(--text-muted); }
+
     /* ─── Onboarding Slideshow ─── */
     #onboarding-overlay {
       position: fixed; inset: 0; z-index: 9999;

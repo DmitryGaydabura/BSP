@@ -755,6 +755,8 @@ async function openPlayerProfile(player, rank) {
       </div>
     </div>
 
+    ${renderAchievements(player.id, player.name)}
+
     ${total > 0 ? `
     <div class="pp-wl">
       <div class="pp-wl-bar"><div class="pp-wl-fill" style="width:${winPct}%"></div></div>
@@ -1010,6 +1012,8 @@ function renderProfile() {
       </div>
     </div>
 
+    ${renderAchievements(u.id, u.displayName)}
+
     <div class="profile-activity-card" id="profile-activity-card">
       <div class="pac-left">
         <div class="pac-label">Активність</div>
@@ -1111,6 +1115,52 @@ function tierClass(lvl) {
   if (['B−','B','B+'].includes(lvl)) return 'tier-gold';
   if (['C−','C','C+'].includes(lvl)) return 'tier-silver';
   return 'tier-bronze';
+}
+
+function cupTierClass(levelLabel) {
+  if (!levelLabel) return 'cup-bronze';
+  const l = String(levelLabel).toUpperCase();
+  if (l.startsWith('B')) return 'cup-gold';
+  if (l.startsWith('C')) return 'cup-silver';
+  return 'cup-bronze';
+}
+
+function trophySvg(tier) {
+  const c = tier === 'cup-gold' ? '#C9A84C' : tier === 'cup-silver' ? '#B0C4D8' : '#B87333';
+  const glow = tier === 'cup-gold' ? 'filter:drop-shadow(0 0 4px rgba(201,168,76,0.9))' : '';
+  return `<svg width="22" height="22" viewBox="0 0 24 24" style="${glow}" xmlns="http://www.w3.org/2000/svg">
+    <path d="M7 2h10v5a5 5 0 01-10 0V2z" fill="${c}" fill-opacity="0.9"/>
+    <path d="M7 4h-2a2 2 0 000 4h2M17 4h2a2 2 0 010 4h-2" stroke="${c}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <line x1="12" y1="12" x2="12" y2="16" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M9 18h6" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderAchievements(playerId, playerName) {
+  const source = tournamentsData || TOURNAMENTS;
+  const MONTHS = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+  const wins = source
+    .filter(t => t.status === 'FINISHED' && (t.results || []).some(r =>
+      r.pos === 1 && (r.players || []).some(p =>
+        (playerId && String(p.id) === String(playerId)) ||
+        (p.name && p.name === playerName)
+      )
+    ))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!wins.length) return '';
+  const cups = wins.map(t => {
+    const tier = cupTierClass(t.levelLabel);
+    const d = new Date(t.date);
+    return `<div class="ach-cup ${tier}">
+      ${trophySvg(tier)}
+      <div class="ach-name">${t.name}</div>
+      <div class="ach-date">${MONTHS[d.getMonth()]} ${d.getFullYear()}</div>
+    </div>`;
+  }).join('');
+  return `<div class="achievements-section">
+    <div class="achievements-title">Перемоги</div>
+    <div class="achievements-list">${cups}</div>
+  </div>`;
 }
 
 function buildRatingChart(history, startingPoints) {
