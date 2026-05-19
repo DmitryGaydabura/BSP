@@ -616,7 +616,7 @@ function renderPodium(players) {
       ? `<img src="${p.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(p.name)}'">`
       : initials(p.name);
     return `
-      <div class="podium-place">
+      <div class="podium-place lb-row-tap" onclick="_lbRowTap('${p.id || ''}',${podiumRanks[i]})">
         <div class="podium-avatar ${podiumAvatarCls[i]}">
           ${crowns[i] ? `<span class="podium-crown">${crowns[i]}</span>` : ''}
           ${avatarContent}
@@ -890,7 +890,7 @@ async function renderActivityList() {
         </div>
         <div>
           <div class="activity-pts">${e.activityPoints}</div>
-          <div class="activity-pts-label">балів</div>
+          <div class="activity-pts-label">Активність</div>
         </div>
       </div>
     `).join('');
