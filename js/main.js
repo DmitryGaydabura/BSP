@@ -726,9 +726,9 @@ async function openPlayerProfile(player, rank) {
         <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
         <div class="pp-stat-lbl">Турніри</div>
       </div>
-      <div class="pp-stat">
-        <div class="pp-stat-val">${total || '—'}</div>
-        <div class="pp-stat-lbl">Матчі</div>
+      <div class="pp-stat" id="pp-act-stat">
+        <div class="pp-stat-val" id="pp-act-val">—</div>
+        <div class="pp-stat-lbl" id="pp-act-lbl">Активність</div>
       </div>
     </div>
 
@@ -752,12 +752,26 @@ async function openPlayerProfile(player, rank) {
 
   if (player.id && apiAvailable) {
     const chartBody = document.getElementById('pp-chart-body');
-    try {
-      const history = await API.users.userHistory(player.id);
+    const actVal = document.getElementById('pp-act-val');
+    const actLbl = document.getElementById('pp-act-lbl');
+
+    const [historyResult, activityResult] = await Promise.allSettled([
+      API.users.userHistory(player.id),
+      API.activity.monthly(currentYearMonth()),
+    ]);
+
+    if (historyResult.status === 'fulfilled') {
+      const history = historyResult.value;
       const svg = history?.length >= 1 ? buildRatingChart(history, player.startingPts) : null;
-      chartBody.innerHTML = svg ?? '<div class="history-empty">Немає турнірних результатів</div>';
-    } catch {
-      chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+      if (chartBody) chartBody.innerHTML = svg ?? '<div class="history-empty">Немає турнірних результатів</div>';
+    } else {
+      if (chartBody) chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+    }
+
+    if (activityResult.status === 'fulfilled') {
+      const entry = activityResult.value?.find(e => e.userId === player.id);
+      if (actVal) actVal.textContent = entry ? entry.activityPoints : '—';
+      if (actLbl) actLbl.textContent = entry ? `балів · #${entry.rank}` : 'Активність';
     }
   }
 }
@@ -939,21 +953,26 @@ function renderProfile() {
   const u = currentUser;
   const isAdmin = u.role === 'ADMIN';
   const level = levelFromPoints(u.ratingPoints);
+  const tier = tierClass(level);
+  const globalRank = ratingsData ? ratingsData.findIndex(p => p.id === u.id) + 1 : 0;
   const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
   const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
 
   container.innerHTML = `
-    <div class="profile-hero">
-      <div class="profile-avatar">
-        ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
-      </div>
-      <div class="profile-info">
+    <div class="profile-hero ${tier}">
+      <div class="profile-hero-top">
+        <div class="profile-avatar">
+          ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
+        </div>
         <div class="profile-name">${u.displayName}</div>
         ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px">
-          <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
-          <span class="level-badge level-badge-md ${levelClass(level)}">${level}</span>
-        </div>
+      </div>
+      <div class="profile-level-showcase">
+        <span class="level-badge level-badge-xl ${levelClass(level)}">${level}</span>
+      </div>
+      <div class="profile-hero-meta">
+        <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
+        ${globalRank > 0 ? `<span class="profile-hero-rank">#${globalRank} у рейтингу</span>` : ''}
       </div>
     </div>
 
@@ -1067,13 +1086,19 @@ function levelClass(lvl) {
   }[lvl] || 'level-d';
 }
 
+function tierClass(lvl) {
+  if (['B−','B','B+'].includes(lvl)) return 'tier-gold';
+  if (['C−','C','C+'].includes(lvl)) return 'tier-silver';
+  return 'tier-bronze';
+}
+
 function buildRatingChart(history, startingPoints) {
   const sorted = [...history].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
   const pts = [{ value: startingPoints, date: null }];
   let running = startingPoints;
   for (const h of sorted) {
-    running = h.totalPointsAfter ?? (running + h.pointsDelta);
+    running = (h.totalPointsAfter > 0 ? h.totalPointsAfter : null) ?? (running + (h.pointsDelta || 0));
     pts.push({ value: running, date: new Date(h.createdAt) });
   }
 

@@ -934,29 +934,53 @@
     .profile-hero {
       background: var(--navy-mid);
       border: 1px solid var(--border-def);
-      border-radius: 14px;
-      padding: 18px 20px;
-      display: flex; align-items: center; gap: 16px;
+      border-radius: 16px;
+      padding: 24px 20px 20px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 14px; text-align: center;
+      position: relative; overflow: hidden;
     }
+    .profile-hero::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+    }
+    .profile-hero.tier-bronze::before { background: linear-gradient(90deg, transparent, #B8732A, transparent); }
+    .profile-hero.tier-silver::before { background: linear-gradient(90deg, transparent, #B8CCD8, transparent); }
+    .profile-hero.tier-gold::before   { background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .profile-hero.tier-gold   { border-color: rgba(201,168,76,0.3); background: linear-gradient(180deg, rgba(201,168,76,0.07) 0%, var(--navy-mid) 60%); }
+    .profile-hero.tier-silver { border-color: rgba(184,204,216,0.25); background: linear-gradient(180deg, rgba(184,204,216,0.06) 0%, var(--navy-mid) 60%); }
+    .profile-hero.tier-bronze { border-color: rgba(184,115,42,0.2); }
+
+    .profile-hero-top { display: flex; flex-direction: column; align-items: center; gap: 8px; }
     .profile-avatar {
-      width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+      width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0;
       background: var(--navy-light);
       border: 2px solid var(--border-str);
       display: flex; align-items: center; justify-content: center;
       font-family: var(--font-brand);
-      font-size: 24px; font-weight: 700; color: var(--gold);
+      font-size: 28px; font-weight: 700; color: var(--gold);
       overflow: hidden;
     }
+    .profile-hero.tier-gold .profile-avatar   { border-color: rgba(201,168,76,0.6); box-shadow: 0 0 16px rgba(201,168,76,0.25); }
+    .profile-hero.tier-silver .profile-avatar { border-color: rgba(184,204,216,0.5); }
     .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .profile-info { flex: 1; min-width: 0; }
     .profile-name {
       font-family: var(--font-display);
-      font-size: 18px; font-weight: 700;
+      font-size: 19px; font-weight: 700;
       color: var(--white-warm);
-      margin-bottom: 2px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.2;
     }
-    .profile-username { font-size: 12px; color: var(--text-muted); margin-bottom: 7px; }
+    .profile-username { font-size: 12px; color: var(--text-muted); }
+    .profile-level-showcase { padding: 4px 0 2px; }
+    .level-badge-xl {
+      font-size: 30px; padding: 10px 28px; border-radius: 14px;
+      letter-spacing: 0.04em;
+    }
+    .profile-hero-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .profile-hero-rank {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      background: var(--navy-light); border-radius: 20px; padding: 3px 10px;
+    }
     .profile-role-badge {
       display: inline-block;
       font-size: 9px; font-weight: 700;
