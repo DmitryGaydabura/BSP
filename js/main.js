@@ -741,9 +741,25 @@ async function openPlayerProfile(player, rank) {
         <span class="clr-neg">${losses} поразок</span>
       </div>
     </div>` : ''}
+
+    <div class="rating-chart-card">
+      <div class="history-card-title">Прогрес рейтингу</div>
+      <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
+    </div>
   `;
 
   openModal('modal-player-profile');
+
+  if (player.id && apiAvailable) {
+    const chartBody = document.getElementById('pp-chart-body');
+    try {
+      const history = await API.users.userHistory(player.id);
+      const svg = history?.length >= 1 ? buildRatingChart(history, player.startingPts) : null;
+      chartBody.innerHTML = svg ?? '<div class="history-empty">Немає турнірних результатів</div>';
+    } catch {
+      chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+    }
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1057,7 +1073,7 @@ function buildRatingChart(history, startingPoints) {
   const pts = [{ value: startingPoints, date: null }];
   let running = startingPoints;
   for (const h of sorted) {
-    running += h.pointsDelta;
+    running = h.totalPointsAfter ?? (running + h.pointsDelta);
     pts.push({ value: running, date: new Date(h.createdAt) });
   }
 
