@@ -1125,8 +1125,8 @@ function buildRatingChart(history, startingPoints) {
 
   if (pts.length < 2) return null;
 
-  const W = 360, H = 110;
-  const pL = 42, pR = 14, pT = 18, pB = 26;
+  const W = 360, H = 118;
+  const pL = 42, pR = 14, pT = 18, pB = 30;
   const plotW = W - pL - pR, plotH = H - pT - pB;
 
   const vals = pts.map(p => p.value);
@@ -1141,7 +1141,6 @@ function buildRatingChart(history, startingPoints) {
 
   const lastIdx = pts.length - 1;
   const lastX = xOf(lastIdx), lastY = yOf(pts[lastIdx].value);
-  const fmtDate = d => d.toLocaleDateString('uk-UA', { month: 'short', year: '2-digit' });
 
   const gridVals = range > 0 ? [minV, Math.round((minV + maxV) / 2), maxV] : [minV];
   const grids = gridVals.map(v => `
@@ -1158,6 +1157,33 @@ function buildRatingChart(history, startingPoints) {
   const calloutX = (calloutAnchor === 'end' ? lastX - 8 : lastX + 8).toFixed(1);
   const calloutY = Math.max(lastY - 7, pT + 11).toFixed(1);
 
+  // Group points by year-month to build month bands
+  const MONTHS_SHORT = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+  const groups = new Map();
+  for (let i = 1; i < pts.length; i++) {
+    const d = pts[i].date;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!groups.has(key)) groups.set(key, { year: d.getFullYear(), month: d.getMonth(), minI: i, maxI: i });
+    else groups.get(key).maxI = i;
+  }
+  const groupArr = [...groups.values()];
+
+  const bands = groupArr.map((g, idx) => {
+    const startX = idx === 0 ? pL : (xOf(groupArr[idx - 1].maxI) + xOf(g.minI)) / 2;
+    const endX   = idx === groupArr.length - 1 ? W - pR : (xOf(g.maxI) + xOf(groupArr[idx + 1].minI)) / 2;
+    return { startX, endX, label: `${MONTHS_SHORT[g.month]} ${g.year}` };
+  });
+
+  const monthLinesSvg = bands.slice(1).map(b =>
+    `<line x1="${b.startX.toFixed(1)}" y1="${pT}" x2="${b.startX.toFixed(1)}" y2="${(pT + plotH).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,4"/>`
+  ).join('');
+
+  const monthLabelsSvg = bands.map(b => {
+    const cx = (b.startX + b.endX) / 2;
+    if (b.endX - b.startX < 30) return '';
+    return `<text x="${cx.toFixed(1)}" y="${(H - 4).toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.38)">${b.label}</text>`;
+  }).join('');
+
   return `
 <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
   <defs>
@@ -1167,11 +1193,11 @@ function buildRatingChart(history, startingPoints) {
     </linearGradient>
   </defs>
   ${grids}
+  ${monthLinesSvg}
   <path d="${areaD}" fill="url(#rg-fill)"/>
   <path d="${lineD}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   ${dots}
-  <text x="${pL}" y="${H - 5}" font-size="9" fill="rgba(255,255,255,0.3)">Старт: ${pts[0].value}</text>
-  <text x="${(W - pR).toFixed(0)}" y="${H - 5}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${fmtDate(pts[lastIdx].date)}</text>
+  ${monthLabelsSvg}
   <text x="${calloutX}" y="${calloutY}" text-anchor="${calloutAnchor}" font-size="13" font-weight="700" fill="var(--gold)">${pts[lastIdx].value}</text>
 </svg>`;
 }
