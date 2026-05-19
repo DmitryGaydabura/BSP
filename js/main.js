@@ -1125,30 +1125,23 @@ function buildRatingChart(history, startingPoints) {
 
   if (pts.length < 2) return null;
 
-  const W = 360, H = 118;
-  const pL = 42, pR = 14, pT = 18, pB = 30;
+  const W = 360, H = 110;
+  const pL = 42, pR = 14, pT = 18, pB = 26;
   const plotW = W - pL - pR, plotH = H - pT - pB;
 
   const vals = pts.map(p => p.value);
   const minV = Math.min(...vals), maxV = Math.max(...vals);
   const range = maxV - minV || 1;
-  const yOf = v => pT + plotH - ((v - minV) / range) * plotH;
 
-  // True time-proportional x axis
-  const minDate = pts[1].date.getTime();
-  const maxDate = pts[pts.length - 1].date.getTime();
-  const dateRange = maxDate - minDate;
-  // Small left buffer so pts[0] (start, no date) visually precedes the first tournament
-  const leftBuffer = dateRange > 0 ? dateRange * 0.08 : 7 * 24 * 3600 * 1000;
-  const chartMin = minDate - leftBuffer;
-  const chartRange = maxDate - chartMin;
-  const xOf = i => i === 0 ? pL : pL + ((pts[i].date.getTime() - chartMin) / chartRange) * plotW;
+  const xOf = i => pL + (i / (pts.length - 1)) * plotW;
+  const yOf = v => pT + plotH - ((v - minV) / range) * plotH;
 
   const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(1)} ${yOf(p.value).toFixed(1)}`).join(' ');
   const areaD = `${lineD} L${xOf(pts.length - 1).toFixed(1)} ${(pT + plotH).toFixed(1)} L${pL} ${(pT + plotH).toFixed(1)} Z`;
 
   const lastIdx = pts.length - 1;
   const lastX = xOf(lastIdx), lastY = yOf(pts[lastIdx].value);
+  const fmtDate = d => d.toLocaleDateString('uk-UA', { month: 'short', year: '2-digit' });
 
   const gridVals = range > 0 ? [minV, Math.round((minV + maxV) / 2), maxV] : [minV];
   const grids = gridVals.map(v => `
@@ -1165,40 +1158,6 @@ function buildRatingChart(history, startingPoints) {
   const calloutX = (calloutAnchor === 'end' ? lastX - 8 : lastX + 8).toFixed(1);
   const calloutY = Math.max(lastY - 7, pT + 11).toFixed(1);
 
-  // Month separator lines at real calendar positions
-  const MONTHS_SHORT = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
-  const boundaries = [];
-  {
-    const d0 = new Date(chartMin);
-    let y = d0.getFullYear(), m = d0.getMonth() + 1;
-    if (m > 11) { m = 0; y++; }
-    while (true) {
-      const t = new Date(y, m, 1).getTime();
-      if (t > maxDate) break;
-      const x = pL + ((t - chartMin) / chartRange) * plotW;
-      if (x > pL + 10 && x < W - pR - 10) boundaries.push({ x, year: y, month: m });
-      m++; if (m > 11) { m = 0; y++; }
-    }
-  }
-
-  const monthLinesSvg = boundaries.map(b =>
-    `<line x1="${b.x.toFixed(1)}" y1="${pT}" x2="${b.x.toFixed(1)}" y2="${(pT + plotH).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,4"/>`
-  ).join('');
-
-  // Label each band between adjacent boundaries (including edges)
-  const boundaryXs = [pL, ...boundaries.map(b => b.x), W - pR];
-  const d0 = new Date(chartMin);
-  const bandMonths = [
-    { year: d0.getFullYear(), month: d0.getMonth() },
-    ...boundaries.map(b => ({ year: b.year, month: b.month })),
-  ];
-  const monthLabelsSvg = bandMonths.map((bm, i) => {
-    const startX = boundaryXs[i], endX = boundaryXs[i + 1];
-    if (endX - startX < 30) return '';
-    const cx = (startX + endX) / 2;
-    return `<text x="${cx.toFixed(1)}" y="${(H - 4).toFixed(1)}" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.38)">${MONTHS_SHORT[bm.month]} ${bm.year}</text>`;
-  }).join('');
-
   return `
 <svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
   <defs>
@@ -1208,11 +1167,11 @@ function buildRatingChart(history, startingPoints) {
     </linearGradient>
   </defs>
   ${grids}
-  ${monthLinesSvg}
   <path d="${areaD}" fill="url(#rg-fill)"/>
   <path d="${lineD}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   ${dots}
-  ${monthLabelsSvg}
+  <text x="${pL}" y="${H - 5}" font-size="9" fill="rgba(255,255,255,0.3)">Старт: ${pts[0].value}</text>
+  <text x="${(W - pR).toFixed(0)}" y="${H - 5}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${fmtDate(pts[lastIdx].date)}</text>
   <text x="${calloutX}" y="${calloutY}" text-anchor="${calloutAnchor}" font-size="13" font-weight="700" fill="var(--gold)">${pts[lastIdx].value}</text>
 </svg>`;
 }
