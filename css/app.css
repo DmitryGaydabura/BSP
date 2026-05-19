@@ -655,6 +655,8 @@
       border-radius: 10px;
       transition: background 200ms var(--ease);
     }
+    .lb-row-tap { cursor: pointer; }
+    .lb-row-tap:active { background: rgba(201,168,76,0.12) !important; }
     .lb-row:nth-child(odd) { background: rgba(26,47,74,0.35); }
     .lb-row.top3 {
       background: rgba(201,168,76,0.07);
@@ -1884,6 +1886,62 @@
       transform: translateX(-50%) translateY(0);
       pointer-events: auto;
     }
+
+    /* ─── Player Public Profile ─── */
+    .pp-hero {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 8px 0 20px; gap: 8px;
+    }
+    .pp-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--navy-light);
+      border: 2px solid var(--border-str);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 700; color: var(--gold);
+      overflow: hidden; flex-shrink: 0;
+    }
+    .pp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .pp-name {
+      font-size: 18px; font-weight: 700; color: var(--white-warm);
+      text-align: center;
+    }
+    .pp-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .pp-rank-badge {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      background: var(--navy-light); border-radius: 20px; padding: 3px 10px;
+    }
+    .pp-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 12px;
+    }
+    .pp-stat {
+      background: var(--navy-mid); border: 1px solid var(--border-def);
+      border-radius: 12px; padding: 10px 6px; text-align: center;
+    }
+    .pp-stat-val {
+      font-size: 16px; font-weight: 700; color: var(--white-warm);
+      font-family: var(--font-mono); line-height: 1;
+    }
+    .pp-stat-lbl {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-dim); margin-top: 4px;
+    }
+    .clr-pos { color: var(--success); }
+    .clr-neg { color: var(--error); }
+    .pp-wl {
+      background: var(--navy-mid); border: 1px solid var(--border-def);
+      border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+    }
+    .pp-wl-bar {
+      height: 5px; background: rgba(255,255,255,0.08);
+      border-radius: 3px; overflow: hidden; margin-bottom: 7px;
+    }
+    .pp-wl-fill { height: 100%; background: var(--success); border-radius: 3px; }
+    .pp-wl-labels {
+      display: flex; justify-content: space-between;
+      font-size: 11px; font-weight: 600;
+    }
+    .pp-wl-pct { color: var(--text-muted); }
 
     /* ─── Onboarding Slideshow ─── */
     #onboarding-overlay {

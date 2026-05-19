@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=4">
+  <link rel="stylesheet" href="css/app.css?v=5">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -551,6 +551,18 @@
 
 </div>
 
-<script src="js/main.js?v=3" defer></script>
+<!-- Player public profile modal -->
+<div class="modal-overlay" id="modal-player-profile">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Профіль гравця</span>
+      <button class="modal-close" data-close="modal-player-profile">✕</button>
+    </div>
+    <div class="modal-body" id="player-profile-body"></div>
+  </div>
+</div>
+
+<script src="js/main.js?v=4" defer></script>
 </body>
 </html>

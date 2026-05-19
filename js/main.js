@@ -586,7 +586,7 @@ function renderLbRow(p, rank, showLevel) {
     ? `<img src="${p.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${initials(p.name)}'">`
     : initials(p.name);
   return `
-    <div class="lb-row ${top3cls}">
+    <div class="lb-row ${top3cls} lb-row-tap" data-player-id="${p.id || ''}" data-player-rank="${rank}">
       <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
       <div class="lb-avatar">${avatarContent}</div>
       <div class="lb-name">
@@ -680,6 +680,98 @@ async function renderRatings() {
   /* Updated date */
   document.getElementById('ratings-updated').textContent =
     'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PLAYER PUBLIC PROFILE
+════════════════════════════════════════════════════════════════ */
+
+document.getElementById('leaderboard-rows').addEventListener('click', e => {
+  const row = e.target.closest('.lb-row-tap');
+  if (!row) return;
+  const source = ratingsData || RATINGS;
+  const id = row.dataset.playerId;
+  const rank = parseInt(row.dataset.playerRank, 10);
+  const player = id ? source.find(p => String(p.id) === id) : source[rank - 1];
+  if (player) openPlayerProfile(player, rank);
+});
+
+async function openPlayerProfile(player, rank) {
+  const body = document.getElementById('player-profile-body');
+  const lvl = levelFromPoints(player.pts);
+  const lvlCls = levelClass(lvl);
+  const changeCls = player.change.startsWith('+') ? 'up' : player.change.startsWith('-') ? 'down' : 'same';
+  const changeSign = player.change === '=' ? '–' : player.change;
+  const wins = player.wins || 0;
+  const losses = player.losses || 0;
+  const total = wins + losses;
+  const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
+
+  body.innerHTML = `
+    <div class="pp-hero">
+      <div class="pp-avatar">${player.photoUrl
+        ? `<img src="${player.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(player.name)}'">`
+        : initials(player.name)}</div>
+      <div class="pp-name">${player.name}</div>
+      <div class="pp-meta">
+        <span class="level-badge level-badge-md ${lvlCls}">${lvl}</span>
+        <span class="pp-rank-badge">#${rank} у рейтингу</span>
+      </div>
+    </div>
+
+    <div class="pp-stats">
+      <div class="pp-stat">
+        <div class="pp-stat-val">${player.pts}</div>
+        <div class="pp-stat-lbl">Рейтинг</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-val">${player.startingPts}</div>
+        <div class="pp-stat-lbl">Старт</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
+        <div class="pp-stat-lbl">Турніри</div>
+      </div>
+      <div class="pp-stat">
+        <div class="pp-stat-val lb-change ${changeCls}">${changeSign}</div>
+        <div class="pp-stat-lbl">Зміна</div>
+      </div>
+    </div>
+
+    ${total > 0 ? `
+    <div class="pp-wl">
+      <div class="pp-wl-bar"><div class="pp-wl-fill" style="width:${winPct}%"></div></div>
+      <div class="pp-wl-labels">
+        <span class="clr-pos">${wins} перемог</span>
+        <span class="pp-wl-pct">${winPct}%</span>
+        <span class="clr-neg">${losses} поразок</span>
+      </div>
+    </div>` : ''}
+
+    <div class="rating-chart-card">
+      <div class="history-card-title">Прогрес рейтингу</div>
+      <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
+    </div>
+  `;
+
+  openModal('modal-player-profile');
+
+  const chartBody = document.getElementById('pp-chart-body');
+  if (player.id && apiAvailable) {
+    try {
+      const history = await API.users.userHistory(player.id);
+      if (history && history.length >= 1) {
+        const svg = buildRatingChart(history, player.startingPts);
+        chartBody.innerHTML = svg ?? '<div class="history-empty">Недостатньо даних</div>';
+      } else {
+        chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+      }
+    } catch {
+      chartBody.innerHTML = '<div class="history-empty">Дані недоступні</div>';
+    }
+  } else {
+    chartBody.innerHTML = '<div class="history-empty">Дані недоступні</div>';
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
