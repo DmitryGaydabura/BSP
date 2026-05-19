@@ -64,6 +64,11 @@ const API = (() => {
       removeParticipant:(id, userId)   => request('DELETE', `/tournaments/${id}/participants/${userId}`),
       join:             id             => request('POST',   `/tournaments/${id}/join`),
       leave:            id             => request('DELETE', `/tournaments/${id}/leave`),
+      setRaketoId:      (id, raketoId) => request('PATCH',  `/tournaments/${id}/raketo`, { raketoId }),
+      generateAnalysis: id             => request('POST',   `/tournaments/${id}/analysis`),
+      getAnalysis:      id             => request('GET',    `/tournaments/${id}/analysis`),
+      generatePlayerAnalysis: id       => request('POST',   `/tournaments/${id}/player-analysis`),
+      getPlayerAnalysis:      id       => request('GET',    `/tournaments/${id}/player-analysis`),
     },
 
     ratings: {

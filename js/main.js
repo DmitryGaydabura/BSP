@@ -246,6 +246,9 @@ function normalizeTournament(t) {
     participantCount: t.participantCount || (t.participants || []).length,
     participants: t.participants || [],
     reserveParticipants: t.reserveParticipants || [],
+    raketoId: t.raketoId || null,
+    hasAnalysis: t.hasAnalysis || false,
+    analysisGeneratedAt: t.analysisGeneratedAt || null,
     results: (t.pairs || [])
       .sort((a, b) => (a.position || 99) - (b.position || 99))
       .map(p => ({
@@ -458,6 +461,13 @@ function renderFinishedList(source, list) {
         </div>`
       : '';
 
+    const analysisBtn = t.hasAnalysis
+      ? `<button class="analysis-btn" onclick="openAnalysisModal(${t.id})">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+           Аналіз турніру
+         </button>`
+      : '';
+
     return `<div class="finished-card">
       <div class="finished-card-header">
         <div class="finished-card-name">${t.name}</div>
@@ -474,6 +484,7 @@ function renderFinishedList(source, list) {
       </div>
       ${podiumHtml}
       ${restHtml}
+      ${analysisBtn}
     </div>`;
   }).join('');
 
@@ -1553,9 +1564,160 @@ function renderAdminPanel() {
           <span class="admin-action-label">Імпорт з Raketo</span>
           <span class="admin-action-arrow">›</span>
         </button>
+        <button class="admin-action-btn" id="btn-admin-analysis">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <span class="admin-action-label">AI Аналіз турнірів</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
       </div>
     </div>
   `;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AI ANALYSIS
+════════════════════════════════════════════════════════════════ */
+
+async function openAnalysisModal(tournamentId) {
+  openModal('modal-analysis');
+  const content = document.getElementById('analysis-content');
+  const playerSection = document.getElementById('analysis-player-section');
+  const playerContent = document.getElementById('analysis-player-content');
+  playerSection.style.display = 'none';
+  content.innerHTML = analysisLoadingHtml('Завантаження аналізу...');
+
+  try {
+    const data = await API.tournaments.getAnalysis(tournamentId);
+    content.innerHTML = `
+      <div class="analysis-text">${escapeHtml(data.analysis)}</div>
+      ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
+    `;
+
+    if (currentUser && currentUser.raketoDocId) {
+      playerSection.style.display = 'block';
+      const cached = await API.tournaments.getPlayerAnalysis(tournamentId).catch(() => null);
+      if (cached) {
+        renderPlayerAnalysis(playerContent, cached);
+      } else {
+        playerContent.innerHTML = `
+          <button class="btn-secondary" id="btn-my-analysis" style="width:100%">
+            Аналіз мого гейму
+          </button>`;
+        document.getElementById('btn-my-analysis').addEventListener('click', async () => {
+          playerContent.innerHTML = analysisLoadingHtml('Аналізую твій виступ...');
+          try {
+            const result = await API.tournaments.generatePlayerAnalysis(tournamentId);
+            renderPlayerAnalysis(playerContent, result);
+          } catch (e) {
+            playerContent.innerHTML = `<div class="analysis-error">${e.message || 'Помилка генерації'}</div>`;
+          }
+        });
+      }
+    }
+  } catch (e) {
+    content.innerHTML = `<div class="analysis-error">${e.message || 'Помилка завантаження'}</div>`;
+  }
+}
+
+function renderPlayerAnalysis(container, data) {
+  container.innerHTML = `
+    <div class="analysis-player-title">Аналіз мого гейму</div>
+    <div class="analysis-text">${escapeHtml(data.analysis)}</div>
+    ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
+  `;
+}
+
+function analysisLoadingHtml(msg) {
+  return `<div class="analysis-loading"><div class="analysis-spinner"></div><div>${msg}</div></div>`;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+}
+
+function fmtDatetime(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return ''; }
+}
+
+/* ── Admin Analysis Modal ────────────────────────────────────────── */
+
+async function openAdminAnalysisModal() {
+  openModal('modal-admin-analysis');
+  const list = document.getElementById('aa-tournament-list');
+  list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Завантаження...</div>';
+
+  try {
+    const tournaments = await API.tournaments.list();
+    const finished = tournaments.filter(t => t.status === 'FINISHED');
+    if (!finished.length) {
+      list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Немає завершених турнірів</div>';
+      return;
+    }
+    list.innerHTML = finished.map(t => `
+      <div class="aa-item" data-id="${t.id}">
+        <div class="aa-item-header">
+          <div class="aa-item-name">${t.name}</div>
+          <div class="aa-item-date">${fmt(t.date)}</div>
+        </div>
+        <div class="aa-raketo-row">
+          <input class="form-input aa-raketo-input" placeholder="Raketo ID турніру" value="${t.raketoId || ''}" style="flex:1;font-size:12px">
+          <button class="btn-secondary aa-save-raketo-btn" style="font-size:11px;padding:4px 10px;flex-shrink:0">Зберегти</button>
+        </div>
+        <button class="btn-primary aa-generate-btn" ${!t.raketoId ? 'disabled' : ''} style="width:100%;margin-top:6px;font-size:12px">
+          ${t.hasAnalysis ? 'Перегенерувати аналіз' : 'Згенерувати аналіз'}
+        </button>
+        ${t.hasAnalysis ? `<div class="aa-status">Аналіз є · ${fmtDatetime(t.analysisGeneratedAt)}</div>` : ''}
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.aa-item').forEach(item => {
+      const id = item.dataset.id;
+      const raketoInput = item.querySelector('.aa-raketo-input');
+      const saveBtn = item.querySelector('.aa-save-raketo-btn');
+      const generateBtn = item.querySelector('.aa-generate-btn');
+
+      saveBtn.addEventListener('click', async () => {
+        saveBtn.disabled = true; saveBtn.textContent = '...';
+        try {
+          const updated = await API.tournaments.setRaketoId(id, raketoInput.value.trim());
+          generateBtn.disabled = !updated.raketoId;
+          saveBtn.textContent = 'Збережено';
+          tournamentsData = null;
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
+          saveBtn.textContent = 'Зберегти';
+        } finally {
+          saveBtn.disabled = false;
+        }
+      });
+
+      generateBtn.addEventListener('click', async () => {
+        generateBtn.disabled = true; generateBtn.textContent = 'Генерую...';
+        try {
+          await API.tournaments.generateAnalysis(id);
+          tournamentsData = null;
+          generateBtn.textContent = 'Готово!';
+          const statusEl = item.querySelector('.aa-status');
+          if (statusEl) statusEl.textContent = `Аналіз є · ${fmtDatetime(new Date().toISOString())}`;
+          else item.insertAdjacentHTML('beforeend', `<div class="aa-status">Аналіз є · щойно</div>`);
+          generateBtn.textContent = 'Перегенерувати аналіз';
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
+          generateBtn.textContent = 'Згенерувати аналіз';
+        } finally {
+          generateBtn.disabled = false;
+        }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--error);font-size:13px">${e.message || 'Помилка'}</div>`;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1568,6 +1730,7 @@ function wireAdminPanel() {
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);
   document.getElementById('btn-users').addEventListener('click', openUsersModal);
   document.getElementById('btn-admin-import').addEventListener('click', openAdminImportModal);
+  document.getElementById('btn-admin-analysis').addEventListener('click', openAdminAnalysisModal);
   initAdminImportModal();
 }
 
