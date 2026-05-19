@@ -1951,7 +1951,9 @@ document.getElementById('sr-tournament-select').addEventListener('change', async
 
 function participantOptions() {
   return `<option value="">— гравець —</option>` +
-    srParticipants.map(u => `<option value="${u.id}">${u.displayName}</option>`).join('');
+    [...srParticipants]
+      .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''))
+      .map(u => `<option value="${u.id}">${u.displayName}</option>`).join('');
 }
 
 function renderPositionRows() {
@@ -2008,11 +2010,12 @@ document.getElementById('sr-submit').addEventListener('click', async () => {
     const pairs = buildPairsPayload();
     await API.tournaments.submitResults(tournamentId, { pairs });
     tournamentsData = null;
+    closeModal('modal-submit-results');
     alert('Результати збережено!');
   } catch (e) {
     alert('Помилка: ' + (e.message || 'unknown'));
   } finally {
-    btn.disabled = false; btn.textContent = 'Зберегти результати';
+    btn.disabled = false; btn.textContent = 'Зберегти';
   }
 });
 
@@ -2262,7 +2265,7 @@ function renderAddableList() {
   const available = pmAllUsers.filter(u =>
     !pmParticipantIds.has(u.id) &&
     (!query || u.displayName.toLowerCase().includes(query))
-  );
+  ).sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
 
   if (!available.length) {
     list.innerHTML = query
