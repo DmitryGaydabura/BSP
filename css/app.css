@@ -1131,6 +1131,14 @@
     .points-matrix tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
 
     /* Profile history card */
+    .rating-chart-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 14px; overflow: hidden;
+    }
+    .rating-chart-card #rating-chart-body {
+      padding: 12px 14px 10px;
+    }
     .history-card {
       background: var(--navy-mid);
       border: 1px solid var(--border-def);

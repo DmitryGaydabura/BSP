@@ -921,6 +921,11 @@ function renderProfile() {
 
     ${isAdmin ? renderAdminPanel() : ''}
 
+    <div class="rating-chart-card" id="rating-chart-card">
+      <div class="history-card-title">Прогрес рейтингу</div>
+      <div id="rating-chart-body"><div class="history-loading">Завантаження...</div></div>
+    </div>
+
     <div class="history-card">
       <div class="history-card-title">Історія турнірів</div>
       <div id="history-list"><div class="history-loading">Завантаження...</div></div>
@@ -982,19 +987,91 @@ function levelClass(lvl) {
   }[lvl] || 'level-d';
 }
 
+function buildRatingChart(history, startingPoints) {
+  const sorted = [...history].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  const pts = [{ value: startingPoints, date: null }];
+  let running = startingPoints;
+  for (const h of sorted) {
+    running += h.pointsDelta;
+    pts.push({ value: running, date: new Date(h.createdAt) });
+  }
+
+  if (pts.length < 2) return null;
+
+  const W = 360, H = 110;
+  const pL = 42, pR = 14, pT = 18, pB = 26;
+  const plotW = W - pL - pR, plotH = H - pT - pB;
+
+  const vals = pts.map(p => p.value);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+
+  const xOf = i => pL + (i / (pts.length - 1)) * plotW;
+  const yOf = v => pT + plotH - ((v - minV) / range) * plotH;
+
+  const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${xOf(i).toFixed(1)} ${yOf(p.value).toFixed(1)}`).join(' ');
+  const areaD = `${lineD} L${xOf(pts.length - 1).toFixed(1)} ${(pT + plotH).toFixed(1)} L${pL} ${(pT + plotH).toFixed(1)} Z`;
+
+  const lastIdx = pts.length - 1;
+  const lastX = xOf(lastIdx), lastY = yOf(pts[lastIdx].value);
+  const fmtDate = d => d.toLocaleDateString('uk-UA', { month: 'short', year: '2-digit' });
+
+  const gridVals = range > 0 ? [minV, Math.round((minV + maxV) / 2), maxV] : [minV];
+  const grids = gridVals.map(v => `
+    <line x1="${pL}" y1="${yOf(v).toFixed(1)}" x2="${W - pR}" y2="${yOf(v).toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+    <text x="${(pL - 6).toFixed(0)}" y="${(yOf(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${v}</text>
+  `).join('');
+
+  const dots = pts.map((p, i) => {
+    const isEnd = i === 0 || i === lastIdx;
+    return `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(p.value).toFixed(1)}" r="${isEnd ? 4 : 2.5}" fill="${isEnd ? 'var(--gold)' : 'var(--navy-mid)'}" stroke="var(--gold)" stroke-width="1.5"/>`;
+  }).join('');
+
+  const calloutAnchor = lastX > W * 0.75 ? 'end' : 'start';
+  const calloutX = (calloutAnchor === 'end' ? lastX - 8 : lastX + 8).toFixed(1);
+  const calloutY = Math.max(lastY - 7, pT + 11).toFixed(1);
+
+  return `
+<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+  <defs>
+    <linearGradient id="rg-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--gold)" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="var(--gold)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  ${grids}
+  <path d="${areaD}" fill="url(#rg-fill)"/>
+  <path d="${lineD}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  ${dots}
+  <text x="${pL}" y="${H - 5}" font-size="9" fill="rgba(255,255,255,0.3)">Старт: ${pts[0].value}</text>
+  <text x="${(W - pR).toFixed(0)}" y="${H - 5}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${fmtDate(pts[lastIdx].date)}</text>
+  <text x="${calloutX}" y="${calloutY}" text-anchor="${calloutAnchor}" font-size="13" font-weight="700" fill="var(--gold)">${pts[lastIdx].value}</text>
+</svg>`;
+}
+
 async function loadHistory() {
   const container = document.getElementById('history-list');
+  const chartBody = document.getElementById('rating-chart-body');
   if (!container) return;
   if (!apiAvailable) {
     container.innerHTML = '<div class="history-empty">Backend недоступний</div>';
+    if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';
     return;
   }
   try {
     const history = await API.users.history();
     if (!history || history.length === 0) {
       container.innerHTML = '<div class="history-empty">Немає записів</div>';
+      if (chartBody) chartBody.innerHTML = '<div class="history-empty">Недостатньо даних</div>';
       return;
     }
+
+    if (chartBody) {
+      const svg = buildRatingChart(history, currentUser?.startingPoints || 0);
+      chartBody.innerHTML = svg ?? '<div class="history-empty">Недостатньо даних</div>';
+    }
+
     container.innerHTML = history.map(h => {
       const sign = h.pointsDelta >= 0 ? '+' : '';
       const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
@@ -1011,6 +1088,7 @@ async function loadHistory() {
     }).join('');
   } catch {
     container.innerHTML = '<div class="history-empty">Помилка завантаження</div>';
+    if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';
   }
 }
 
