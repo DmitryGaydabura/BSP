@@ -586,7 +586,7 @@ function renderLbRow(p, rank, showLevel) {
     ? `<img src="${p.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${initials(p.name)}'">`
     : initials(p.name);
   return `
-    <div class="lb-row ${top3cls} lb-row-tap" data-player-id="${p.id || ''}" data-player-rank="${rank}">
+    <div class="lb-row ${top3cls} lb-row-tap" onclick="_lbRowTap('${p.id || ''}',${rank})">
       <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
       <div class="lb-avatar">${avatarContent}</div>
       <div class="lb-name">
@@ -686,22 +686,16 @@ async function renderRatings() {
    PLAYER PUBLIC PROFILE
 ════════════════════════════════════════════════════════════════ */
 
-document.getElementById('leaderboard-rows').addEventListener('click', e => {
-  const row = e.target.closest('.lb-row-tap');
-  if (!row) return;
+function _lbRowTap(id, rank) {
   const source = ratingsData || RATINGS;
-  const id = row.dataset.playerId;
-  const rank = parseInt(row.dataset.playerRank, 10);
   const player = id ? source.find(p => String(p.id) === id) : source[rank - 1];
   if (player) openPlayerProfile(player, rank);
-});
+}
 
 async function openPlayerProfile(player, rank) {
   const body = document.getElementById('player-profile-body');
   const lvl = levelFromPoints(player.pts);
   const lvlCls = levelClass(lvl);
-  const changeCls = player.change.startsWith('+') ? 'up' : player.change.startsWith('-') ? 'down' : 'same';
-  const changeSign = player.change === '=' ? '–' : player.change;
   const wins = player.wins || 0;
   const losses = player.losses || 0;
   const total = wins + losses;
@@ -733,8 +727,8 @@ async function openPlayerProfile(player, rank) {
         <div class="pp-stat-lbl">Турніри</div>
       </div>
       <div class="pp-stat">
-        <div class="pp-stat-val lb-change ${changeCls}">${changeSign}</div>
-        <div class="pp-stat-lbl">Зміна</div>
+        <div class="pp-stat-val">${total || '—'}</div>
+        <div class="pp-stat-lbl">Матчі</div>
       </div>
     </div>
 
@@ -747,31 +741,9 @@ async function openPlayerProfile(player, rank) {
         <span class="clr-neg">${losses} поразок</span>
       </div>
     </div>` : ''}
-
-    <div class="rating-chart-card">
-      <div class="history-card-title">Прогрес рейтингу</div>
-      <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
-    </div>
   `;
 
   openModal('modal-player-profile');
-
-  const chartBody = document.getElementById('pp-chart-body');
-  if (player.id && apiAvailable) {
-    try {
-      const history = await API.users.userHistory(player.id);
-      if (history && history.length >= 1) {
-        const svg = buildRatingChart(history, player.startingPts);
-        chartBody.innerHTML = svg ?? '<div class="history-empty">Недостатньо даних</div>';
-      } else {
-        chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
-      }
-    } catch {
-      chartBody.innerHTML = '<div class="history-empty">Дані недоступні</div>';
-    }
-  } else {
-    chartBody.innerHTML = '<div class="history-empty">Дані недоступні</div>';
-  }
 }
 
 /* ════════════════════════════════════════════════════════════════
