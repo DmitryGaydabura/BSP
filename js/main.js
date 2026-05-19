@@ -1012,7 +1012,7 @@ function renderProfile() {
       </div>
     </div>
 
-    ${renderAchievements(u.id, u.displayName)}
+    <div id="profile-achievements"></div>
 
     <div class="profile-activity-card" id="profile-activity-card">
       <div class="pac-left">
@@ -1149,10 +1149,9 @@ function renderAchievements(playerId, playerName) {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
   if (!wins.length) return '';
   const cups = wins.map(t => {
-    const tier = cupTierClass(t.levelLabel);
     const d = new Date(t.date);
-    return `<div class="ach-cup ${tier}">
-      ${trophySvg(tier)}
+    return `<div class="ach-cup cup-gold">
+      ${trophySvg('cup-gold')}
       <div class="ach-name">${t.name}</div>
       <div class="ach-date">${MONTHS[d.getMonth()]} ${d.getFullYear()}</div>
     </div>`;
@@ -1235,6 +1234,15 @@ async function loadHistory() {
     if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';
     return;
   }
+  // Load tournaments for achievements if not yet cached
+  if (!tournamentsData && apiAvailable) {
+    try {
+      tournamentsData = (await API.tournaments.list()).map(normalizeTournament);
+    } catch { /* ignore — achievements will be empty */ }
+  }
+  const achEl = document.getElementById('profile-achievements');
+  if (achEl && currentUser) achEl.innerHTML = renderAchievements(currentUser.id, currentUser.displayName);
+
   try {
     const history = await API.users.history();
     if (!history || history.length === 0) {
