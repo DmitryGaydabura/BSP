@@ -254,8 +254,8 @@ function normalizeTournament(t) {
           ? [p.player1?.displayName || '?', p.player2?.displayName]
           : [p.player1?.displayName || '?'],
         players: [
-          { name: p.player1?.displayName || '?', photoUrl: p.player1?.photoUrl || null },
-          ...(p.player2 ? [{ name: p.player2.displayName || '?', photoUrl: p.player2.photoUrl || null }] : []),
+          { id: p.player1?.id || null, name: p.player1?.displayName || '?', photoUrl: p.player1?.photoUrl || null },
+          ...(p.player2 ? [{ id: p.player2.id || null, name: p.player2.displayName || '?', photoUrl: p.player2.photoUrl || null }] : []),
         ],
         score: p.score || '',
         pts: p.pointsEarned || 0,
@@ -427,11 +427,11 @@ function renderFinishedList(source, list) {
           ${podiumConfig.map(({ pos, cls, blockCls, rankCls, crown }) => {
             const r = top3.find(r => r.pos === pos);
             if (!r) return '';
-            const players = r.players || r.pair.map(n => ({ name: n, photoUrl: null }));
+            const players = r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
             const avatarSection = players.length > 1
-              ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar">${fpAvatarHtml(p)}</div>`).join('')}</div>`
-              : `<div class="fp-avatar-wrap">${crown}<div class="fp-avatar">${fpAvatarHtml(players[0])}</div></div>`;
-            const names = players.map(p => p.name).join('<span class="fp-name-sep"> / </span>');
+              ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar lb-row-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${(p.name).replace(/'/g, "&#39;")}')">${fpAvatarHtml(p)}</div>`).join('')}</div>`
+              : `<div class="fp-avatar-wrap lb-row-tap" onclick="_tournamentPlayerTap('${players[0].id || ''}','${(players[0].name).replace(/'/g, "&#39;")}')"> ${crown}<div class="fp-avatar">${fpAvatarHtml(players[0])}</div></div>`;
+            const names = players.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${(p.name).replace(/'/g, "&#39;")}')">${p.name}</span>`).join('<span class="fp-name-sep"> / </span>');
             return `<div class="fp-place ${cls}">
               ${avatarSection}
               <div class="fp-names">${names}</div>
@@ -444,13 +444,17 @@ function renderFinishedList(source, list) {
 
     const restHtml = rest.length > 0
       ? `<div class="results-table">
-          ${rest.map(r => `
+          ${rest.map(r => {
+            const rPlayers = r.players || r.pair.map(n => ({ id: null, name: n }));
+            const nameSpans = rPlayers.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${(p.name).replace(/'/g, "&#39;")}')">${p.name}</span>`).join('<span class="separator"> / </span>');
+            return `
             <div class="results-row">
               <span class="results-pos pos-${r.pos}">${r.pos}</span>
-              <div class="results-pair"><div class="results-pair-names">${r.pair.join('<span class="separator"> / </span>')}</div></div>
+              <div class="results-pair"><div class="results-pair-names">${nameSpans}</div></div>
               ${r.score ? `<span class="results-score">${r.score}</span>` : ''}
               <span class="results-pts">+${r.pts}</span>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>`
       : '';
 
@@ -692,6 +696,15 @@ function _lbRowTap(id, rank) {
   if (player) openPlayerProfile(player, rank);
 }
 
+function _tournamentPlayerTap(id, name) {
+  const source = ratingsData || RATINGS;
+  const player = (id && source.find(p => String(p.id) === String(id)))
+    || source.find(p => p.name === name)
+    || { id, name, pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0 };
+  const rank = source.indexOf(player) + 1 || 0;
+  openPlayerProfile(player, rank);
+}
+
 function _actRowTap(userId, displayName) {
   const source = ratingsData || RATINGS;
   const player = source.find(p => String(p.id) === String(userId))
@@ -721,25 +734,24 @@ async function openPlayerProfile(player, rank) {
         <div class="pp-meta">
           <span class="pp-rank-badge">#${rank} у рейтингу</span>
         </div>
-      </div>
-    </div>
-
-    <div class="pp-stats">
-      <div class="pp-stat">
-        <div class="pp-stat-val">${player.pts}</div>
-        <div class="pp-stat-lbl">Рейтинг</div>
-      </div>
-      <div class="pp-stat">
-        <div class="pp-stat-val">${player.startingPts}</div>
-        <div class="pp-stat-lbl">Старт</div>
-      </div>
-      <div class="pp-stat">
-        <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
-        <div class="pp-stat-lbl">Турніри</div>
-      </div>
-      <div class="pp-stat" id="pp-act-stat">
-        <div class="pp-stat-val" id="pp-act-val">—</div>
-        <div class="pp-stat-lbl" id="pp-act-lbl">Активність</div>
+        <div class="pp-stats-compact">
+          <div class="pp-stat-c">
+            <div class="pp-stat-val">${player.pts}</div>
+            <div class="pp-stat-lbl">Рейтинг</div>
+          </div>
+          <div class="pp-stat-c">
+            <div class="pp-stat-val">${player.startingPts}</div>
+            <div class="pp-stat-lbl">Старт</div>
+          </div>
+          <div class="pp-stat-c">
+            <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
+            <div class="pp-stat-lbl">Турніри</div>
+          </div>
+          <div class="pp-stat-c" id="pp-act-stat">
+            <div class="pp-stat-val" id="pp-act-val">—</div>
+            <div class="pp-stat-lbl" id="pp-act-lbl">Активність</div>
+          </div>
+        </div>
       </div>
     </div>
 

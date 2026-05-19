@@ -1934,7 +1934,15 @@
     .pp-hero.tier-bronze { border-color: rgba(184,115,42,0.2); }
     .pp-hero.tier-gold .pp-avatar   { border-color: rgba(201,168,76,0.6); box-shadow: 0 0 14px rgba(201,168,76,0.22); }
     .pp-hero.tier-silver .pp-avatar { border-color: rgba(184,204,216,0.5); }
-    .pp-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .pp-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+    .pp-stats-compact {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 4px; margin-top: 2px;
+    }
+    .pp-stat-c {
+      background: rgba(255,255,255,0.07); border-radius: 8px;
+      padding: 5px 6px; text-align: center;
+    }
     .pp-avatar {
       width: 72px; height: 72px; border-radius: 50%;
       background: var(--navy-light);
@@ -1951,10 +1959,6 @@
     .pp-rank-badge {
       font-size: 11px; font-weight: 600; color: var(--text-muted);
       background: var(--navy-light); border-radius: 20px; padding: 3px 10px;
-    }
-    .pp-stats {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-      margin-bottom: 12px;
     }
     .pp-stat {
       background: var(--navy-mid); border: 1px solid var(--border-def);
