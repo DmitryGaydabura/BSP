@@ -755,7 +755,7 @@ async function openPlayerProfile(player, rank) {
       </div>
     </div>
 
-    ${renderAchievements(player.id, player.name)}
+    <div id="pp-achievements"></div>
 
     ${total > 0 ? `
     <div class="pp-wl">
@@ -779,6 +779,14 @@ async function openPlayerProfile(player, rank) {
     const chartBody = document.getElementById('pp-chart-body');
     const actVal = document.getElementById('pp-act-val');
     const actLbl = document.getElementById('pp-act-lbl');
+
+    if (!tournamentsData) {
+      try {
+        tournamentsData = (await API.tournaments.list()).map(normalizeTournament);
+      } catch { /* achievements stay empty */ }
+    }
+    const achEl = document.getElementById('pp-achievements');
+    if (achEl) achEl.innerHTML = renderAchievements(player.id, player.name);
 
     const [historyResult, activityResult] = await Promise.allSettled([
       API.users.userHistory(player.id),
