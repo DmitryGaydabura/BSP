@@ -1578,7 +1578,22 @@ function renderAdminPanel() {
    AI ANALYSIS
 ════════════════════════════════════════════════════════════════ */
 
+let _tournamentChart = null;
+let _radarChart = null;
+
+function destroyCharts() {
+  if (_tournamentChart) { _tournamentChart.destroy(); _tournamentChart = null; }
+  if (_radarChart)      { _radarChart.destroy();      _radarChart = null; }
+}
+
+const CHART_PALETTE = [
+  '#4fc3f7','#81c784','#ffb74d','#e57373','#ce93d8',
+  '#80cbc4','#fff176','#ff8a65','#90caf9','#a5d6a7',
+  '#f48fb1','#b0bec5','#80deea','#ffe082','#bcaaa4','#c5e1a5',
+];
+
 async function openAnalysisModal(tournamentId) {
+  destroyCharts();
   openModal('modal-analysis');
   const content = document.getElementById('analysis-content');
   const playerSection = document.getElementById('analysis-player-section');
@@ -1590,8 +1605,11 @@ async function openAnalysisModal(tournamentId) {
     const data = await API.tournaments.getAnalysis(tournamentId);
     content.innerHTML = `
       <div class="analysis-text">${escapeHtml(data.analysis)}</div>
+      ${data.chartData ? '<canvas id="tournament-chart" style="margin-top:20px;max-height:260px"></canvas>' : ''}
       ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
     `;
+
+    if (data.chartData) renderTournamentChart(data.chartData);
 
     if (currentUser && currentUser.raketoDocId) {
       playerSection.style.display = 'block';
@@ -1619,12 +1637,101 @@ async function openAnalysisModal(tournamentId) {
   }
 }
 
+function renderTournamentChart(chartData) {
+  const canvas = document.getElementById('tournament-chart');
+  if (!canvas || !chartData?.players?.length) return;
+  _tournamentChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: chartData.players.map((p, i) => ({
+        label: p.name,
+        data: p.cumulative,
+        borderColor: CHART_PALETTE[i % CHART_PALETTE.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+      })),
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#b0b8c8', font: { size: 11 }, boxWidth: 12, padding: 8 },
+        },
+        tooltip: {
+          backgroundColor: '#1a2035',
+          titleColor: '#e0e6f0',
+          bodyColor: '#b0b8c8',
+          callbacks: {
+            title: items => 'Після ' + items[0].label,
+            label: item => ` ${item.dataset.label}: ${item.raw} очок`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: '#7a8499' }, grid: { color: '#1e2840' } },
+        y: { ticks: { color: '#7a8499' }, grid: { color: '#1e2840' }, beginAtZero: true },
+      },
+    },
+  });
+}
+
 function renderPlayerAnalysis(container, data) {
+  const radarId = 'player-radar-' + Date.now();
   container.innerHTML = `
     <div class="analysis-player-title">Аналіз мого гейму</div>
     <div class="analysis-text">${escapeHtml(data.analysis)}</div>
+    ${data.radarData ? `<canvas id="${radarId}" style="margin-top:20px;max-height:300px"></canvas>` : ''}
     ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
   `;
+  if (data.radarData) renderRadarChart(radarId, data.radarData);
+}
+
+function renderRadarChart(canvasId, radarData) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || !radarData?.labels?.length) return;
+  const color = '#4fc3f7';
+  _radarChart = new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: radarData.labels,
+      datasets: [{
+        data: radarData.values,
+        borderColor: color,
+        backgroundColor: color + '33',
+        borderWidth: 2,
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2035',
+          titleColor: '#e0e6f0',
+          bodyColor: '#b0b8c8',
+          callbacks: { label: item => ` ${item.raw} очок` },
+        },
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          ticks: { color: '#7a8499', backdropColor: 'transparent', font: { size: 9 } },
+          grid: { color: '#1e2840' },
+          angleLines: { color: '#1e2840' },
+          pointLabels: { color: '#b0b8c8', font: { size: 11 } },
+        },
+      },
+    },
+  });
 }
 
 function analysisLoadingHtml(msg) {
@@ -2082,6 +2189,7 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  if (id === 'modal-analysis') destroyCharts();
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
