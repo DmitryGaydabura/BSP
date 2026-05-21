@@ -1579,11 +1579,9 @@ function renderAdminPanel() {
 ════════════════════════════════════════════════════════════════ */
 
 let _tournamentChart = null;
-let _radarChart = null;
 
 function destroyCharts() {
   if (_tournamentChart) { _tournamentChart.destroy(); _tournamentChart = null; }
-  if (_radarChart)      { _radarChart.destroy();      _radarChart = null; }
 }
 
 const CHART_PALETTE = [
@@ -1640,18 +1638,29 @@ async function openAnalysisModal(tournamentId) {
 function renderTournamentChart(chartData) {
   const canvas = document.getElementById('tournament-chart');
   if (!canvas || !chartData?.players?.length) return;
+
+  const players = chartData.players;
+  const gridHtml = `<div class="chart-player-grid" id="chart-player-grid">${
+    players.map((p, i) => `
+      <div class="chart-player-item active" data-index="${i}">
+        <span class="chart-player-dot" style="background:${CHART_PALETTE[i % CHART_PALETTE.length]}"></span>
+        <span class="chart-player-name">${p.name}</span>
+      </div>`).join('')
+  }</div>`;
+  canvas.insertAdjacentHTML('beforebegin', gridHtml);
+
   _tournamentChart = new Chart(canvas, {
     type: 'line',
     data: {
       labels: chartData.labels,
-      datasets: chartData.players.map((p, i) => ({
+      datasets: players.map((p, i) => ({
         label: p.name,
         data: p.cumulative,
         borderColor: CHART_PALETTE[i % CHART_PALETTE.length],
         backgroundColor: 'transparent',
         borderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
+        pointRadius: 3,
+        pointHoverRadius: 5,
         tension: 0.3,
       })),
     },
@@ -1659,79 +1668,119 @@ function renderTournamentChart(chartData) {
       responsive: true,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#b0b8c8', font: { size: 11 }, boxWidth: 12, padding: 8 },
-        },
+        legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a2035',
-          titleColor: '#e0e6f0',
-          bodyColor: '#b0b8c8',
+          backgroundColor: '#0D1B2E',
+          titleColor: '#B8C8D8',
+          bodyColor: '#8FA3B8',
+          borderColor: 'rgba(201,168,76,0.25)',
+          borderWidth: 1,
           callbacks: {
             title: items => 'Після ' + items[0].label,
-            label: item => ` ${item.dataset.label}: ${item.raw} очок`,
+            label: item => ` ${item.dataset.label}: ${item.raw}п`,
           },
         },
       },
       scales: {
-        x: { ticks: { color: '#7a8499' }, grid: { color: '#1e2840' } },
-        y: { ticks: { color: '#7a8499' }, grid: { color: '#1e2840' }, beginAtZero: true },
+        x: {
+          ticks: { color: '#8FA3B8', font: { size: 10 } },
+          grid: { color: 'rgba(201,168,76,0.08)' },
+          border: { color: 'rgba(201,168,76,0.15)' },
+        },
+        y: {
+          ticks: { color: '#8FA3B8', font: { size: 10 } },
+          grid: { color: 'rgba(201,168,76,0.08)' },
+          border: { color: 'rgba(201,168,76,0.15)' },
+          beginAtZero: true,
+        },
       },
     },
+  });
+
+  document.getElementById('chart-player-grid')?.querySelectorAll('.chart-player-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.index);
+      const on = item.classList.toggle('active');
+      _tournamentChart.setDatasetVisibility(idx, on);
+      _tournamentChart.update();
+    });
   });
 }
 
 function renderPlayerAnalysis(container, data) {
-  const radarId = 'player-radar-' + Date.now();
   container.innerHTML = `
     <div class="analysis-player-title">Аналіз мого гейму</div>
     <div class="analysis-text">${escapeHtml(data.analysis)}</div>
-    ${data.radarData ? `<canvas id="${radarId}" style="margin-top:20px;max-height:300px"></canvas>` : ''}
+    ${data.radarData ? buildSpiderSvg(data.radarData) : ''}
     ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
   `;
-  if (data.radarData) renderRadarChart(radarId, data.radarData);
 }
 
-function renderRadarChart(canvasId, radarData) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas || !radarData?.labels?.length) return;
-  const color = '#4fc3f7';
-  _radarChart = new Chart(canvas, {
-    type: 'radar',
-    data: {
-      labels: radarData.labels,
-      datasets: [{
-        data: radarData.values,
-        borderColor: color,
-        backgroundColor: color + '33',
-        borderWidth: 2,
-        pointBackgroundColor: color,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a2035',
-          titleColor: '#e0e6f0',
-          bodyColor: '#b0b8c8',
-          callbacks: { label: item => ` ${item.raw} очок` },
-        },
-      },
-      scales: {
-        r: {
-          beginAtZero: true,
-          ticks: { color: '#7a8499', backdropColor: 'transparent', font: { size: 9 } },
-          grid: { color: '#1e2840' },
-          angleLines: { color: '#1e2840' },
-          pointLabels: { color: '#b0b8c8', font: { size: 11 } },
-        },
-      },
-    },
-  });
+function buildSpiderSvg(radarData) {
+  const labels = radarData.labels || [];
+  const values = (radarData.values || []).map(Number);
+  const n = labels.length;
+  if (n < 2) return '';
+
+  const maxPts = Number(radarData.maxPts) || Math.max(21, ...values);
+  const avg = values.reduce((a, b) => a + b, 0) / n;
+
+  const size = 280;
+  const cx = size / 2, cy = size / 2;
+  const R = 94;
+
+  const ang = i => (2 * Math.PI * i / n) - Math.PI / 2;
+  const px = (r, i) => (cx + r * Math.cos(ang(i))).toFixed(1);
+  const py = (r, i) => (cy + r * Math.sin(ang(i))).toFixed(1);
+
+  const axes = Array.from({length: n}, (_, i) =>
+    `<line x1="${cx}" y1="${cy}" x2="${px(R, i)}" y2="${py(R, i)}" stroke="rgba(201,168,76,0.15)" stroke-width="1"/>`
+  ).join('');
+
+  const dataPath = values.map((v, i) => {
+    const r = (Math.min(v, maxPts) / maxPts) * R;
+    return `${i === 0 ? 'M' : 'L'}${px(r, i)},${py(r, i)}`;
+  }).join(' ') + ' Z';
+
+  const avgCircleR = ((avg / maxPts) * R).toFixed(1);
+
+  const dots = values.map((v, i) => {
+    const r = (Math.min(v, maxPts) / maxPts) * R;
+    return `<circle cx="${px(r, i)}" cy="${py(r, i)}" r="3.5" fill="#C9A84C" stroke="#0D1B2E" stroke-width="1.5"/>`;
+  }).join('');
+
+  const labelPad = 24;
+  const labelEls = labels.map((label, i) => {
+    const a = ang(i);
+    const cosA = Math.cos(a);
+    const lx = (cx + (R + labelPad) * cosA).toFixed(1);
+    const ly = (cy + (R + labelPad) * Math.sin(a)).toFixed(1);
+    const anchor = cosA > 0.3 ? 'start' : cosA < -0.3 ? 'end' : 'middle';
+    const short = label.length > 9 ? label.slice(0, 8) + '…' : label;
+    return `
+      <text x="${lx}" y="${(parseFloat(ly) - 4).toFixed(1)}" text-anchor="${anchor}" fill="#B8C8D8" font-size="10" font-family="system-ui,sans-serif">${short}</text>
+      <text x="${lx}" y="${(parseFloat(ly) + 9).toFixed(1)}" text-anchor="${anchor}" fill="#C9A84C" font-size="9" font-weight="600" font-family="system-ui,sans-serif">${values[i]}п</text>`;
+  }).join('');
+
+  return `
+    <svg viewBox="0 0 ${size} ${size}" style="width:100%;max-height:280px;overflow:visible;display:block;margin-top:18px">
+      ${axes}
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(201,168,76,0.28)" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${avgCircleR}" fill="none" stroke="rgba(201,168,76,0.55)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <path d="${dataPath}" fill="rgba(201,168,76,0.13)" stroke="#C9A84C" stroke-width="2" stroke-linejoin="round"/>
+      ${dots}
+      ${labelEls}
+    </svg>
+    <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-muted);justify-content:center;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:5px">
+        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(201,168,76,0.55)" stroke-width="1.5" stroke-dasharray="5,3"/></svg>
+        середнє (${avg.toFixed(1)}п)
+      </span>
+      <span style="display:flex;align-items:center;gap:5px">
+        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(201,168,76,0.28)" stroke-width="1.5"/></svg>
+        макс (${maxPts}п)
+      </span>
+    </div>`;
 }
 
 function analysisLoadingHtml(msg) {

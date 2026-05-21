@@ -2143,6 +2143,27 @@
     .analysis-error {
       color: var(--error); font-size: 13px; padding: 12px 0;
     }
+    .chart-player-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px; margin-bottom: 12px;
+    }
+    .chart-player-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 10px;
+      background: var(--navy-mid); border: 1px solid var(--border-sub);
+      border-radius: 8px; cursor: pointer; touch-action: manipulation;
+      opacity: 0.38; transition: opacity 0.15s, border-color 0.15s;
+    }
+    .chart-player-item.active {
+      opacity: 1; border-color: var(--border-def);
+    }
+    .chart-player-dot {
+      width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    }
+    .chart-player-name {
+      font-size: 11px; color: var(--white-warm);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
     /* ── Admin Analysis Modal ──────────────────────────────────────── */
     .aa-item {
