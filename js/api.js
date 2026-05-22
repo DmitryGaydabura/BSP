@@ -48,6 +48,7 @@ const API = (() => {
       delete:              (id)             => request('DELETE', `/users/${id}`),
       setRaketoDocId:        (id, docId)     => request('PUT',  `/users/${id}/raketo-doc-id`, { raketoDocId: docId }),
       adminImportFromRaketo: (data)         => request('POST', '/users/import-from-raketo', data),
+      mergeUsers:            (keepId, deleteId) => request('POST', `/users/${keepId}/merge/${deleteId}`),
     },
 
     tournaments: {
