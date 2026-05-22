@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0D1B2E">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=5"></script>
+  <script src="js/api.js?v=6"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -338,6 +338,10 @@
           <select class="form-select" id="sr-tournament-select"></select>
         </div>
         <div id="sr-info" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
+        <button id="sr-raketo-import" class="btn-secondary" style="display:none;width:100%;margin-bottom:6px;font-size:13px">
+          Імпортувати результати з Raketo
+        </button>
+        <div id="sr-import-info" style="display:none;font-size:11px;color:var(--text-muted);margin-bottom:8px;padding:8px;background:var(--card-bg);border-radius:8px;line-height:1.5"></div>
         <div id="sr-pairs-container">
           <!-- position rows injected by JS -->
         </div>
@@ -595,6 +599,6 @@
   </div>
 </div>
 
-<script src="js/main.js?v=23" defer></script>
+<script src="js/main.js?v=24" defer></script>
 </body>
 </html>

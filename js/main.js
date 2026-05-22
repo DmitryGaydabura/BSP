@@ -2408,6 +2408,13 @@ async function loadSrParticipants(tournamentId) {
   if (!tournamentId) { srParticipants = []; renderPositionRows(); return; }
   const t = srTournamentsAll.find(t => String(t.id) === String(tournamentId));
   srTournamentType = t?.type || 'PAIR';
+
+  const importBtn = document.getElementById('sr-raketo-import');
+  const importInfo = document.getElementById('sr-import-info');
+  importBtn.style.display = t?.raketoId ? 'block' : 'none';
+  importInfo.style.display = 'none';
+  importInfo.textContent = '';
+
   try {
     srParticipants = await API.tournaments.getParticipants(tournamentId);
   } catch {
@@ -2429,6 +2436,50 @@ async function loadSrParticipants(tournamentId) {
 
 document.getElementById('sr-tournament-select').addEventListener('change', async e => {
   await loadSrParticipants(e.target.value);
+});
+
+document.getElementById('sr-raketo-import').addEventListener('click', async () => {
+  const tournamentId = document.getElementById('sr-tournament-select').value;
+  if (!tournamentId) return;
+  const btn = document.getElementById('sr-raketo-import');
+  const importInfo = document.getElementById('sr-import-info');
+  btn.disabled = true; btn.textContent = 'Імпортую...';
+  importInfo.style.display = 'none';
+  try {
+    const result = await API.tournaments.importFromRaketo(tournamentId);
+    const { tournament, createdUsers, matchedCount } = result;
+
+    // Merge all players from the imported pairs into srParticipants so selects work
+    const knownIds = new Set(srParticipants.map(u => u.id));
+    for (const pair of tournament.pairs) {
+      for (const player of [pair.player1, pair.player2].filter(Boolean)) {
+        if (!knownIds.has(player.id)) { srParticipants.push(player); knownIds.add(player.id); }
+      }
+    }
+
+    srPairCount = tournament.pairs.length;
+    renderPositionRows();
+
+    // Pre-select each imported pair
+    for (const pair of tournament.pairs) {
+      const p1 = document.getElementById(`p${pair.position}-p1`);
+      const p2 = document.getElementById(`p${pair.position}-p2`);
+      if (p1) p1.value = String(pair.player1.id);
+      if (p2 && pair.player2) p2.value = String(pair.player2.id);
+    }
+
+    let summary = `Знайдено у системі: ${matchedCount}.`;
+    if (createdUsers.length) {
+      summary += ` Додано нових гравців: ${createdUsers.map(u => u.displayName).join(', ')}.`;
+    }
+    importInfo.textContent = summary;
+    importInfo.style.display = 'block';
+    showToast('Результати з Raketo імпортовано', 'success');
+  } catch (e) {
+    alert('Помилка імпорту: ' + (e.message || 'unknown'));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Імпортувати результати з Raketo';
+  }
 });
 
 function participantOptions() {
