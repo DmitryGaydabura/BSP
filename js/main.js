@@ -2022,6 +2022,81 @@ async function fetchRaketoForDate(date, bspRaketoIds) {
   });
 }
 
+async function fetchAllRaketoForDate(date) {
+  const from = new Date(date + 'T00:00:00Z');
+  const to   = new Date(date + 'T23:59:59Z');
+
+  const res = await fetch(`${RAKETO_FS}:runQuery`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: 'americano' }],
+        where: {
+          compositeFilter: {
+            op: 'AND',
+            filters: [
+              { fieldFilter: { field: { fieldPath: 'time_from' }, op: 'GREATER_THAN_OR_EQUAL', value: { timestampValue: from.toISOString() } } },
+              { fieldFilter: { field: { fieldPath: 'time_from' }, op: 'LESS_THAN_OR_EQUAL',    value: { timestampValue: to.toISOString()   } } },
+            ],
+          },
+        },
+        orderBy: [{ field: { fieldPath: 'time_from' }, direction: 'ASCENDING' }],
+        limit: 100,
+      },
+    }),
+  });
+
+  const body = await res.json();
+  const docs = (Array.isArray(body) ? body : [])
+    .filter(i => i.document)
+    .map(i => i.document)
+    .filter(d => !fsBool(d.fields, 'deleted'));
+
+  if (!docs.length) return [];
+
+  const courtIds = [...new Set(docs.map(d => fsRefId(d.fields, 'courts')).filter(Boolean))];
+  const allUids  = new Set(docs.flatMap(d => raketoPlayerUids(d.fields).slice(0, 4)));
+
+  const [courtMap, userMap] = await Promise.all([
+    Promise.all(courtIds.map(async cid => {
+      try {
+        const r = await fetch(`${RAKETO_FS}/courts/${cid}`);
+        const f = (await r.json()).fields || {};
+        const name = f.name?.stringValue || '';
+        const city = f.city?.stringValue || '';
+        return [cid, city ? `${name}, ${city}` : name || '?'];
+      } catch { return [cid, '?']; }
+    })).then(Object.fromEntries),
+    Promise.all([...allUids].map(async uid => {
+      try {
+        const r = await fetch(`${RAKETO_FS}/users/${uid}`);
+        const f = (await r.json()).fields || {};
+        return [uid, f.display_name?.stringValue || uid.slice(0, 6)];
+      } catch { return [uid, uid.slice(0, 6)]; }
+    })).then(Object.fromEntries),
+  ]);
+
+  return docs.map(d => {
+    const f   = d.fields || {};
+    const ts  = f.time_from?.timestampValue;
+    const dt  = ts ? new Date(ts) : null;
+    const cid = fsRefId(f, 'courts');
+    const type = f.type?.stringValue || '';
+    const finalized = fsBool(f, 'finalized');
+    const playerNames = raketoPlayerUids(d.fields).slice(0, 4).map(uid => userMap[uid] || uid.slice(0, 6));
+    return {
+      id: d.name.split('/').pop(),
+      dateStr:    dt ? dt.toLocaleDateString('uk-UA', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      timeStr:    dt ? dt.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }) : '',
+      courtName:  cid ? (courtMap[cid] || '?') : 'Без корту',
+      players:    playerNames,
+      type,
+      finalized,
+    };
+  });
+}
+
 function raketoPlayerUids(fields) {
   const standings = fields?.standings?.arrayValue?.values || [];
   const players   = fields?.players?.arrayValue?.values  || [];
@@ -2471,21 +2546,20 @@ async function showSrRaketoFinder(t) {
     btn.disabled = true; btn.textContent = '...';
     results.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Шукаю в Raketo...</div>';
     try {
-      let allUsers = [];
-      try { allUsers = await API.users.list(); } catch {}
-      const bspRaketoIds = new Set(allUsers.map(u => u.raketoDocId).filter(Boolean));
-      const raketo = await fetchRaketoForDate(date, bspRaketoIds);
+      const raketo = await fetchAllRaketoForDate(date);
       if (!raketo.length) {
         results.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Турнірів не знайдено за цю дату</div>';
         return;
       }
-      results.innerHTML = raketo.map(r =>
-        `<div class="sr-rl-pick" data-raketo-id="${r.id}"
+      results.innerHTML = raketo.map(r => {
+        const meta = [r.courtName, r.type, r.finalized ? '✓ фінал' : 'не фінал'].filter(Boolean).join(' · ');
+        return `<div class="sr-rl-pick" data-raketo-id="${r.id}"
           style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
-          <div style="font-weight:600">${r.dateStr} · ${r.timeStr}</div>
-          <div style="color:var(--text-muted);font-size:11px">${r.courtName} · ${r.players.join(', ')}</div>
-        </div>`
-      ).join('');
+          <div style="font-weight:600">${r.timeStr || r.dateStr}</div>
+          <div style="color:var(--text-muted);font-size:11px">${meta}</div>
+          <div style="color:var(--text-dim);font-size:11px;margin-top:2px">${r.players.join(', ')}</div>
+        </div>`;
+      }).join('');
       results.querySelectorAll('.sr-rl-pick').forEach(pick => {
         pick.addEventListener('click', async () => {
           pick.style.opacity = '0.5';
