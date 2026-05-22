@@ -1722,7 +1722,7 @@ function buildSpiderSvg(radarData) {
   const n = labels.length;
   if (n < 2) return '';
 
-  const maxPts = Number(radarData.maxPts) || Math.max(21, ...values);
+  const maxPts = Number(radarData.maxPts) || Math.max(...values, 1);
   const avg = values.reduce((a, b) => a + b, 0) / n;
 
   const size = 280;
@@ -1756,6 +1756,17 @@ function buildSpiderSvg(radarData) {
     const lx = (cx + (R + labelPad) * cosA).toFixed(1);
     const ly = (cy + (R + labelPad) * Math.sin(a)).toFixed(1);
     const anchor = cosA > 0.3 ? 'start' : cosA < -0.3 ? 'end' : 'middle';
+    const parts = label.split(' + ');
+    if (parts.length === 2) {
+      // Pair label: two name lines + points line
+      const l1 = parts[0].length > 10 ? parts[0].slice(0, 9) + '…' : parts[0];
+      const l2 = parts[1].length > 10 ? parts[1].slice(0, 9) + '…' : parts[1];
+      const base = parseFloat(ly);
+      return `
+        <text x="${lx}" y="${(base - 11).toFixed(1)}" text-anchor="${anchor}" fill="#B8C8D8" font-size="9.5" font-family="system-ui,sans-serif">${l1}</text>
+        <text x="${lx}" y="${(base + 1).toFixed(1)}"  text-anchor="${anchor}" fill="#B8C8D8" font-size="9.5" font-family="system-ui,sans-serif">+ ${l2}</text>
+        <text x="${lx}" y="${(base + 14).toFixed(1)}" text-anchor="${anchor}" fill="#C9A84C" font-size="9" font-weight="600" font-family="system-ui,sans-serif">${values[i]}п</text>`;
+    }
     const short = label.length > 9 ? label.slice(0, 8) + '…' : label;
     return `
       <text x="${lx}" y="${(parseFloat(ly) - 4).toFixed(1)}" text-anchor="${anchor}" fill="#B8C8D8" font-size="10" font-family="system-ui,sans-serif">${short}</text>
