@@ -2409,11 +2409,10 @@ async function loadSrParticipants(tournamentId) {
   const t = srTournamentsAll.find(t => String(t.id) === String(tournamentId));
   srTournamentType = t?.type || 'PAIR';
 
-  const importBtn = document.getElementById('sr-raketo-import');
-  const importInfo = document.getElementById('sr-import-info');
-  importBtn.style.display = t?.raketoId ? 'block' : 'none';
-  importInfo.style.display = 'none';
-  importInfo.textContent = '';
+  document.getElementById('sr-import-info').style.display = 'none';
+  const section = document.getElementById('sr-raketo-section');
+  section.style.display = t ? 'block' : 'none';
+  if (t) renderSrRaketoSection(t);
 
   try {
     srParticipants = await API.tournaments.getParticipants(tournamentId);
@@ -2434,53 +2433,128 @@ async function loadSrParticipants(tournamentId) {
   renderPositionRows();
 }
 
-document.getElementById('sr-tournament-select').addEventListener('change', async e => {
-  await loadSrParticipants(e.target.value);
-});
+function renderSrRaketoSection(t) {
+  const section = document.getElementById('sr-raketo-section');
+  const tid = String(t.id);
+  if (t.raketoId) {
+    section.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px">
+        <button id="sr-do-import-btn" class="btn-secondary" style="flex:1;font-size:13px">Імпортувати результати з Raketo</button>
+        <button id="sr-relink-btn" style="font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;flex-shrink:0;padding:0 4px">Змінити</button>
+      </div>`;
+    document.getElementById('sr-do-import-btn').addEventListener('click', () => doSrImportFromRaketo(tid));
+    document.getElementById('sr-relink-btn').addEventListener('click', () => showSrRaketoFinder(t));
+  } else {
+    showSrRaketoFinder(t);
+  }
+}
 
-document.getElementById('sr-raketo-import').addEventListener('click', async () => {
-  const tournamentId = document.getElementById('sr-tournament-select').value;
-  if (!tournamentId) return;
-  const btn = document.getElementById('sr-raketo-import');
+async function showSrRaketoFinder(t) {
+  const section = document.getElementById('sr-raketo-section');
+  const tid = String(t.id);
+  const defaultDate = t.date || new Date().toISOString().slice(0, 10);
+  section.innerHTML = `
+    <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:6px">Прив'язати турнір Raketo</div>
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input type="date" id="sr-rl-date" class="form-input" value="${defaultDate}" style="flex:1;font-size:13px">
+        <button id="sr-rl-search" class="btn-secondary" style="font-size:12px;padding:0 12px">Шукати</button>
+      </div>
+      <div id="sr-rl-results"></div>
+    </div>`;
+
+  const doSearch = async () => {
+    const date = document.getElementById('sr-rl-date').value;
+    if (!date) return;
+    const btn = document.getElementById('sr-rl-search');
+    const results = document.getElementById('sr-rl-results');
+    btn.disabled = true; btn.textContent = '...';
+    results.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Шукаю в Raketo...</div>';
+    try {
+      let allUsers = [];
+      try { allUsers = await API.users.list(); } catch {}
+      const bspRaketoIds = new Set(allUsers.map(u => u.raketoDocId).filter(Boolean));
+      const raketo = await fetchRaketoForDate(date, bspRaketoIds);
+      if (!raketo.length) {
+        results.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Турнірів не знайдено за цю дату</div>';
+        return;
+      }
+      results.innerHTML = raketo.map(r =>
+        `<div class="sr-rl-pick" data-raketo-id="${r.id}"
+          style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
+          <div style="font-weight:600">${r.dateStr} · ${r.timeStr}</div>
+          <div style="color:var(--text-muted);font-size:11px">${r.courtName} · ${r.players.join(', ')}</div>
+        </div>`
+      ).join('');
+      results.querySelectorAll('.sr-rl-pick').forEach(pick => {
+        pick.addEventListener('click', async () => {
+          pick.style.opacity = '0.5';
+          try {
+            await API.tournaments.setRaketoId(tid, pick.dataset.raketoId);
+            const idx = srTournamentsAll.findIndex(x => String(x.id) === tid);
+            if (idx >= 0) srTournamentsAll[idx] = { ...srTournamentsAll[idx], raketoId: pick.dataset.raketoId };
+            renderSrRaketoSection({ ...t, raketoId: pick.dataset.raketoId });
+          } catch (e) {
+            alert('Помилка: ' + (e.message || 'unknown'));
+            pick.style.opacity = '1';
+          }
+        });
+      });
+    } catch (e) {
+      results.innerHTML = `<div style="font-size:11px;color:var(--error)">${e.message || 'Помилка'}</div>`;
+    } finally {
+      if (document.getElementById('sr-rl-search')) {
+        document.getElementById('sr-rl-search').disabled = false;
+        document.getElementById('sr-rl-search').textContent = 'Шукати';
+      }
+    }
+  };
+
+  document.getElementById('sr-rl-search').addEventListener('click', doSearch);
+  document.getElementById('sr-rl-date').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+}
+
+async function doSrImportFromRaketo(tournamentId) {
   const importInfo = document.getElementById('sr-import-info');
-  btn.disabled = true; btn.textContent = 'Імпортую...';
+  const btn = document.getElementById('sr-do-import-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Імпортую...'; }
   importInfo.style.display = 'none';
   try {
     const result = await API.tournaments.importFromRaketo(tournamentId);
     const { tournament, createdUsers, matchedCount } = result;
-
-    // Merge all players from the imported pairs into srParticipants so selects work
     const knownIds = new Set(srParticipants.map(u => u.id));
     for (const pair of tournament.pairs) {
       for (const player of [pair.player1, pair.player2].filter(Boolean)) {
         if (!knownIds.has(player.id)) { srParticipants.push(player); knownIds.add(player.id); }
       }
     }
-
     srPairCount = tournament.pairs.length;
     renderPositionRows();
-
-    // Pre-select each imported pair
     for (const pair of tournament.pairs) {
       const p1 = document.getElementById(`p${pair.position}-p1`);
       const p2 = document.getElementById(`p${pair.position}-p2`);
       if (p1) p1.value = String(pair.player1.id);
       if (p2 && pair.player2) p2.value = String(pair.player2.id);
     }
-
     let summary = `Знайдено у системі: ${matchedCount}.`;
-    if (createdUsers.length) {
-      summary += ` Додано нових гравців: ${createdUsers.map(u => u.displayName).join(', ')}.`;
-    }
+    if (createdUsers.length) summary += ` Додано нових: ${createdUsers.map(u => u.displayName).join(', ')}.`;
     importInfo.textContent = summary;
     importInfo.style.display = 'block';
     showToast('Результати з Raketo імпортовано', 'success');
   } catch (e) {
     alert('Помилка імпорту: ' + (e.message || 'unknown'));
   } finally {
-    btn.disabled = false; btn.textContent = 'Імпортувати результати з Raketo';
+    if (document.getElementById('sr-do-import-btn')) {
+      document.getElementById('sr-do-import-btn').disabled = false;
+      document.getElementById('sr-do-import-btn').textContent = 'Імпортувати результати з Raketo';
+    }
   }
+}
+
+document.getElementById('sr-tournament-select').addEventListener('change', async e => {
+  await loadSrParticipants(e.target.value);
 });
+
 
 function participantOptions() {
   return `<option value="">— гравець —</option>` +
