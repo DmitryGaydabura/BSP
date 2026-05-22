@@ -2099,9 +2099,28 @@ async function fetchAllRaketoForDate(date) {
 
 function raketoPlayerUids(fields) {
   const standings = fields?.standings?.arrayValue?.values || [];
-  const players   = fields?.players?.arrayValue?.values  || [];
+  const teams     = fields?.teams?.arrayValue?.values     || [];
+  const players   = fields?.players?.arrayValue?.values   || [];
   if (standings.length) {
-    return standings.map(v => v.mapValue?.fields?.playerRef?.referenceValue?.split('/').pop()).filter(Boolean);
+    const uids = [];
+    for (const v of standings) {
+      const f = v.mapValue?.fields;
+      const playerRef = f?.playerRef?.referenceValue;
+      if (playerRef) { uids.push(playerRef.split('/').pop()); continue; }
+      // TeamAmericano: teamRef.player1Ref / player2Ref
+      const p1 = f?.teamRef?.mapValue?.fields?.player1Ref?.referenceValue;
+      const p2 = f?.teamRef?.mapValue?.fields?.player2Ref?.referenceValue;
+      if (p1) uids.push(p1.split('/').pop());
+      if (p2) uids.push(p2.split('/').pop());
+    }
+    if (uids.length) return uids;
+  }
+  if (teams.length) {
+    return teams.flatMap(v => {
+      const f = v.mapValue?.fields;
+      return [f?.player1Ref?.referenceValue, f?.player2Ref?.referenceValue]
+        .filter(Boolean).map(r => r.split('/').pop());
+    });
   }
   return players.map(v => v.referenceValue?.split('/').pop()).filter(Boolean);
 }
@@ -2536,6 +2555,15 @@ async function showSrRaketoFinder(t) {
         <button id="sr-rl-search" class="btn-secondary" style="font-size:12px;padding:0 12px">Шукати</button>
       </div>
       <div id="sr-rl-results"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <div style="flex:1;height:1px;background:var(--border-subtle)"></div>
+        <span style="font-size:10px;color:var(--text-dim)">або вставити ID напряму</span>
+        <div style="flex:1;height:1px;background:var(--border-subtle)"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <input type="text" id="sr-rl-direct-id" class="form-input" placeholder="ID або посилання з Raketo…" style="flex:1;font-size:12px">
+        <button id="sr-rl-direct-btn" class="btn-primary" style="font-size:12px;padding:0 12px;flex-shrink:0">Прив'язати</button>
+      </div>
     </div>`;
 
   const doSearch = async () => {
@@ -2586,6 +2614,26 @@ async function showSrRaketoFinder(t) {
 
   document.getElementById('sr-rl-search').addEventListener('click', doSearch);
   document.getElementById('sr-rl-date').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+  const doDirectLink = async () => {
+    const raw = document.getElementById('sr-rl-direct-id').value.trim();
+    if (!raw) return;
+    // Accept a full URL like https://...americano/DOCID or just the bare doc ID
+    const docId = raw.split('/').filter(Boolean).pop();
+    const btn = document.getElementById('sr-rl-direct-btn');
+    btn.disabled = true; btn.textContent = '...';
+    try {
+      await API.tournaments.setRaketoId(tid, docId);
+      const idx = srTournamentsAll.findIndex(x => String(x.id) === tid);
+      if (idx >= 0) srTournamentsAll[idx] = { ...srTournamentsAll[idx], raketoId: docId };
+      renderSrRaketoSection({ ...t, raketoId: docId });
+    } catch (e) {
+      alert('Помилка: ' + (e.message || 'unknown'));
+      btn.disabled = false; btn.textContent = 'Прив\'язати';
+    }
+  };
+  document.getElementById('sr-rl-direct-btn').addEventListener('click', doDirectLink);
+  document.getElementById('sr-rl-direct-id').addEventListener('keydown', e => { if (e.key === 'Enter') doDirectLink(); });
 }
 
 async function doSrImportFromRaketo(tournamentId) {
