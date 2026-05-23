@@ -3442,6 +3442,47 @@ async function handleTournamentDeepLink(tournamentId) {
 ════════════════════════════════════════════════════════════════ */
 
 // Render default tab immediately with fallback data — page is usable before API responds
+/* ════════════════════════════════════════════════════════════════
+   HOME SCREEN BANNER
+════════════════════════════════════════════════════════════════ */
+
+function initHomescreenBanner() {
+  if (localStorage.getItem('bsp_hs_added')) return;
+
+  const tgWA = window.Telegram?.WebApp;
+  if (typeof tgWA?.checkHomeScreenStatus !== 'function') return;
+
+  tgWA.checkHomeScreenStatus(status => {
+    if (status === 'added') {
+      localStorage.setItem('bsp_hs_added', '1');
+      return;
+    }
+    if (status !== 'missed') return;
+
+    const dismissed = localStorage.getItem('bsp_hs_dismissed');
+    if (dismissed && Date.now() - parseInt(dismissed, 10) < 3 * 24 * 60 * 60 * 1000) return;
+
+    const banner = document.getElementById('homescreen-banner');
+    if (!banner) return;
+
+    setTimeout(() => {
+      banner.classList.add('hs-visible');
+      banner.removeAttribute('aria-hidden');
+    }, 1800);
+
+    document.getElementById('hs-add-btn').addEventListener('click', () => {
+      tgWA.addToHomeScreen();
+      banner.classList.remove('hs-visible');
+      localStorage.setItem('bsp_hs_added', '1');
+    });
+
+    document.getElementById('hs-dismiss-btn').addEventListener('click', () => {
+      banner.classList.remove('hs-visible');
+      localStorage.setItem('bsp_hs_dismissed', Date.now().toString());
+    });
+  });
+}
+
 renderRatings();
 
 apiBootstrap().then(async () => {
@@ -3461,4 +3502,6 @@ apiBootstrap().then(async () => {
   if (!localStorage.getItem('bsp_intro_seen')) {
     initOnboarding();
   }
+
+  initHomescreenBanner();
 });
