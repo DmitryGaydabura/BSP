@@ -3013,7 +3013,7 @@ async function openUsersModal() {
           const results = await searchRaketoByName(q);
           if (!results.length) { resultsBox.innerHTML = '<div style="font-size:11px;color:var(--text-muted)">Не знайдено</div>'; return; }
           resultsBox.innerHTML = results.map(r =>
-            `<div class="rl-pick" data-doc-id="${r.docId}" style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
+            `<div class="rl-pick" data-doc-id="${r.docId}" data-raketo-name="${(r.name || '').replace(/"/g, '&quot;')}" style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
                <div style="font-weight:600">${r.name}</div>
                <div style="color:var(--text-muted);font-size:11px">${r.padelRating > 0 ? r.padelRating.toFixed(3) : '—'} · ${r.padelMatches} матчів${r.telegramHandle ? ' · @' + r.telegramHandle : ''}</div>
              </div>`
@@ -3022,7 +3022,7 @@ async function openUsersModal() {
             pick.addEventListener('click', async () => {
               pick.style.opacity = '0.5';
               try {
-                await API.users.setRaketoDocId(userId, pick.dataset.docId);
+                await API.users.setRaketoDocId(userId, pick.dataset.docId, pick.dataset.raketoName);
                 linkArea.style.display = 'none';
                 const linkDiv = item.querySelector('.user-raketo-link');
                 linkDiv.innerHTML = `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
