@@ -438,6 +438,7 @@ function renderFinishedList(source, list) {
             return `<div class="fp-place ${cls}">
               ${avatarSection}
               <div class="fp-names">${names}</div>
+              ${r.score ? `<div class="fp-score">${r.score}</div>` : ''}
               ${r.pts ? `<div class="fp-pts">+${r.pts}</div>` : ''}
               <div class="fp-block ${blockCls}"><span class="fp-rank ${rankCls}">${pos}</span></div>
             </div>`;
@@ -445,8 +446,13 @@ function renderFinishedList(source, list) {
         </div>`
       : '';
 
+    const hasScore = results.some(r => r.score);
     const restHtml = rest.length > 0
       ? `<div class="results-table">
+          ${hasScore ? `<div class="results-col-labels">
+            <span class="results-col-label-score">Рах.</span>
+            <span class="results-col-label-pts">BSP</span>
+          </div>` : ''}
           ${rest.map(r => {
             const rPlayers = r.players || r.pair.map(n => ({ id: null, name: n }));
             const nameSpans = rPlayers.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${(p.name).replace(/'/g, "&#39;")}')">${p.name}</span>`).join('<span class="separator"> / </span>');
@@ -454,7 +460,7 @@ function renderFinishedList(source, list) {
             <div class="results-row">
               <span class="results-pos pos-${r.pos}">${r.pos}</span>
               <div class="results-pair"><div class="results-pair-names">${nameSpans}</div></div>
-              ${r.score ? `<span class="results-score">${r.score}</span>` : ''}
+              ${r.score ? `<span class="results-score">${r.score}</span>` : (hasScore ? `<span class="results-score-empty"></span>` : '')}
               <span class="results-pts">+${r.pts}</span>
             </div>`;
           }).join('')}
