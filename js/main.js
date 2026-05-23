@@ -3450,17 +3450,17 @@ function initHomescreenBanner() {
   if (localStorage.getItem('bsp_hs_added')) return;
 
   const tgWA = window.Telegram?.WebApp;
-  if (typeof tgWA?.checkHomeScreenStatus !== 'function') return;
+  // Need at least addToHomeScreen for the button to do anything
+  if (typeof tgWA?.addToHomeScreen !== 'function') return;
 
-  tgWA.checkHomeScreenStatus(status => {
-    if (status === 'added') {
-      localStorage.setItem('bsp_hs_added', '1');
-      return;
-    }
-    if (status !== 'missed') return;
+  const dismissed = localStorage.getItem('bsp_hs_dismissed');
+  if (dismissed && Date.now() - parseInt(dismissed, 10) < 3 * 24 * 60 * 60 * 1000) return;
 
-    const dismissed = localStorage.getItem('bsp_hs_dismissed');
-    if (dismissed && Date.now() - parseInt(dismissed, 10) < 3 * 24 * 60 * 60 * 1000) return;
+  function maybeShow(status) {
+    // Don't show if already added or device doesn't support shortcuts at all
+    if (status === 'added')       { localStorage.setItem('bsp_hs_added', '1'); return; }
+    if (status === 'unsupported') return;
+    // 'missed', 'unknown', or no status API — show the banner
 
     const banner = document.getElementById('homescreen-banner');
     if (!banner) return;
@@ -3480,7 +3480,13 @@ function initHomescreenBanner() {
       banner.classList.remove('hs-visible');
       localStorage.setItem('bsp_hs_dismissed', Date.now().toString());
     });
-  });
+  }
+
+  if (typeof tgWA.checkHomeScreenStatus === 'function') {
+    tgWA.checkHomeScreenStatus(maybeShow);
+  } else {
+    maybeShow('unknown');
+  }
 }
 
 renderRatings();
