@@ -1442,7 +1442,7 @@ async function lookupRaketoByTelegram(username) {
 
 function openClaimPointsModal() {
   openModal('modal-claim-points');
-  let gender = null, selectedRating = null, selectedColor = null, selectedDocId = null;
+  let gender = null, selectedRating = null, selectedColor = null, selectedDocId = null, selectedRaketoName = null;
 
   const lookupBox    = document.getElementById('cp-lookup');
   const genderGroup  = document.getElementById('cp-gender-group');
@@ -1470,9 +1470,10 @@ function openClaimPointsModal() {
   }
 
   function applyRaketoUser(u) {
-    selectedRating = u.padelRating;
-    selectedColor  = u.color;
-    selectedDocId  = u.docId || null;
+    selectedRating    = u.padelRating;
+    selectedColor     = u.color;
+    selectedDocId     = u.docId || null;
+    selectedRaketoName = u.name || null;
     genderGroup.style.display = '';
     if (u.gender) {
       gender = u.gender;
@@ -1520,6 +1521,7 @@ function openClaimPointsModal() {
         raketoRating: selectedRating,
         raketoColor: selectedColor,
         ...(selectedDocId ? { raketoDocId: selectedDocId } : {}),
+        ...(selectedRaketoName ? { raketoName: selectedRaketoName } : {}),
       });
       closeModal('modal-claim-points');
       renderProfile();
