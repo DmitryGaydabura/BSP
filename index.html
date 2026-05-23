@@ -491,6 +491,24 @@
   </nav>
 
   <!-- Initial Points Claim Modal -->
+  <div class="modal-overlay" id="modal-support">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Написати підтримці</span>
+        <button class="modal-close" data-close="modal-support">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin:0 0 12px">Ваше повідомлення отримають адміністратори через Telegram.</p>
+        <textarea id="support-textarea" class="form-input" rows="5"
+          placeholder="Напишіть ваше повідомлення..."
+          style="width:100%;resize:vertical;font-size:14px;line-height:1.5"></textarea>
+        <div id="support-status" style="font-size:13px;margin-top:6px;min-height:18px"></div>
+        <button id="support-send-btn" class="btn-primary" style="width:100%;margin-top:8px">Надіслати</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-claim-points">
     <div class="modal-sheet">
       <div class="modal-handle"></div>

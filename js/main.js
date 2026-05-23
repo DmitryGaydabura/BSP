@@ -1080,6 +1080,7 @@ function renderProfile() {
       <div id="history-list"><div class="history-loading">Завантаження...</div></div>
     </div>
 
+    <button class="btn-secondary" id="btn-support" style="width:100%;margin-top:8px">Написати підтримці</button>
     <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
   `;
 
@@ -1088,6 +1089,8 @@ function renderProfile() {
     currentUser = null;
     renderProfile();
   });
+
+  document.getElementById('btn-support').addEventListener('click', openSupportModal);
 
   if (!u.initialPointsClaimed) {
     document.getElementById('btn-claim-points').addEventListener('click', openClaimPointsModal);
@@ -1444,6 +1447,36 @@ async function lookupRaketoByTelegram(username) {
   }
 
   return null;
+}
+
+function openSupportModal() {
+  openModal('modal-support');
+  const textarea = document.getElementById('support-textarea');
+  const sendBtn  = document.getElementById('support-send-btn');
+  const status   = document.getElementById('support-status');
+  textarea.value = '';
+  status.textContent = '';
+  status.style.color = '';
+  sendBtn.disabled = false;
+  sendBtn.textContent = 'Надіслати';
+
+  sendBtn.onclick = async () => {
+    const msg = textarea.value.trim();
+    if (!msg) return;
+    sendBtn.disabled = true;
+    sendBtn.textContent = '...';
+    try {
+      await API.users.support(msg);
+      status.textContent = 'Повідомлення надіслано!';
+      status.style.color = 'var(--success)';
+      setTimeout(() => closeModal('modal-support'), 1500);
+    } catch (e) {
+      status.textContent = 'Помилка: ' + (e.message || 'спробуйте ще раз');
+      status.style.color = 'var(--error)';
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Надіслати';
+    }
+  };
 }
 
 function openClaimPointsModal() {
@@ -2681,6 +2714,7 @@ async function doSrImportFromRaketo(tournamentId) {
     if (createdUsers.length) summary += ` Додано нових: ${createdUsers.map(u => u.displayName).join(', ')}.`;
     importInfo.textContent = summary;
     importInfo.style.display = 'block';
+    tournamentsData = null;
     showToast('Результати з Raketo імпортовано', 'success');
   } catch (e) {
     alert('Помилка імпорту: ' + (e.message || 'unknown'));
