@@ -3447,21 +3447,14 @@ async function handleTournamentDeepLink(tournamentId) {
 ════════════════════════════════════════════════════════════════ */
 
 function initHomescreenBanner() {
+  // Only inside Telegram Mini App
+  if (!tg) return;
   if (localStorage.getItem('bsp_hs_added')) return;
-
-  const tgWA = window.Telegram?.WebApp;
-  // Need at least addToHomeScreen for the button to do anything
-  if (typeof tgWA?.addToHomeScreen !== 'function') return;
 
   const dismissed = localStorage.getItem('bsp_hs_dismissed');
   if (dismissed && Date.now() - parseInt(dismissed, 10) < 3 * 24 * 60 * 60 * 1000) return;
 
-  function maybeShow(status) {
-    // Don't show if already added or device doesn't support shortcuts at all
-    if (status === 'added')       { localStorage.setItem('bsp_hs_added', '1'); return; }
-    if (status === 'unsupported') return;
-    // 'missed', 'unknown', or no status API — show the banner
-
+  function showBanner() {
     const banner = document.getElementById('homescreen-banner');
     if (!banner) return;
 
@@ -3471,7 +3464,7 @@ function initHomescreenBanner() {
     }, 1800);
 
     document.getElementById('hs-add-btn').addEventListener('click', () => {
-      tgWA.addToHomeScreen();
+      if (typeof tg.addToHomeScreen === 'function') tg.addToHomeScreen();
       banner.classList.remove('hs-visible');
       localStorage.setItem('bsp_hs_added', '1');
     });
@@ -3482,10 +3475,14 @@ function initHomescreenBanner() {
     });
   }
 
-  if (typeof tgWA.checkHomeScreenStatus === 'function') {
-    tgWA.checkHomeScreenStatus(maybeShow);
+  if (typeof tg.checkHomeScreenStatus === 'function') {
+    tg.checkHomeScreenStatus(status => {
+      if (status === 'added') { localStorage.setItem('bsp_hs_added', '1'); return; }
+      if (status === 'unsupported') return;
+      showBanner();
+    });
   } else {
-    maybeShow('unknown');
+    showBanner();
   }
 }
 
