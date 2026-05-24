@@ -791,6 +791,7 @@ async function openPlayerProfile(player, rank) {
   `;
 
   openModal('modal-player-profile');
+  achParallax.start();
 
   if (player.id && apiAvailable) {
     const chartBody = document.getElementById('pp-chart-body');
@@ -1247,6 +1248,56 @@ function openAchievementTournament(tid) {
 
   openModal('modal-achievement');
 }
+
+const achParallax = (() => {
+  let running = false;
+  let baseB = null, baseG = null;
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function applyTilt(beta, gamma) {
+    if (baseB === null) { baseB = beta; baseG = gamma; }
+    const dx = clamp((gamma - baseG) * 0.4, -18, 18);
+    const dy = clamp((beta  - baseB) * 0.3, -12, 12);
+    document.querySelectorAll('.ach-cup').forEach(el => {
+      el.style.transform = `translate(${dx}px,${dy}px)`;
+    });
+  }
+
+  function reset() {
+    document.querySelectorAll('.ach-cup').forEach(el => { el.style.transform = ''; });
+    baseB = null; baseG = null;
+  }
+
+  const tgHandler = () => {
+    const o = tg?.DeviceOrientation;
+    if (o) applyTilt(o.beta, o.gamma);
+  };
+  const winHandler = (e) => applyTilt(e.beta ?? 0, e.gamma ?? 0);
+
+  return {
+    start() {
+      if (running) return;
+      running = true; baseB = null; baseG = null;
+      if (tg?.DeviceOrientation) {
+        tg.DeviceOrientation.start({ refresh_rate: 25 });
+        tg.onEvent('deviceOrientationChanged', tgHandler);
+      } else {
+        window.addEventListener('deviceorientation', winHandler, { passive: true });
+      }
+    },
+    stop() {
+      if (!running) return;
+      running = false; reset();
+      if (tg?.DeviceOrientation) {
+        tg.offEvent('deviceOrientationChanged', tgHandler);
+        tg.DeviceOrientation.stop();
+      } else {
+        window.removeEventListener('deviceorientation', winHandler);
+      }
+    },
+  };
+})();
 
 function wireAchievements(container) {
   container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
@@ -2455,6 +2506,7 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
+  if (id === 'modal-player-profile') achParallax.stop();
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
@@ -3334,6 +3386,7 @@ function switchTab(tab) {
 
   currentTab = tab;
   updateNavIcons();
+  if (tab === 'profile') achParallax.start(); else achParallax.stop();
 }
 
 function updateNavIcons() {

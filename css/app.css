@@ -2319,9 +2319,10 @@
 .ach-cup {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s;
+  transition: transform 0.12s ease-out;
+  will-change: transform;
 }
-.ach-cup:active { transform: scale(0.93); }
+.ach-cup:active { opacity: 0.85; }
 @keyframes ach-burst {
   0%   { transform: scale(1); }
   28%  { transform: scale(1.18); }
@@ -2329,7 +2330,10 @@
   75%  { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
-.ach-cup.ach-tapped { animation: ach-burst 0.42s var(--ease) both; }
+.ach-cup.ach-tapped {
+  animation: ach-burst 0.42s var(--ease) both;
+  transition: none;
+}
 
 /* ── Achievement particles ── */
 .ach-particle {
