@@ -1214,7 +1214,6 @@ function openAchievementTournament(tid) {
   const t = source.find(x => String(x.id) === String(tid));
   if (!t) return;
 
-  const modal   = document.getElementById('modal-achievement');
   const content = document.getElementById('ach-modal-content');
   const MONTHS_FULL = ['січня','лютого','березня','квітня','травня','червня',
                        'липня','серпня','вересня','жовтня','листопада','грудня'];
@@ -1222,6 +1221,14 @@ function openAchievementTournament(tid) {
   const dateStr = `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
   const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
   const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+
+  const SPARKLE_CHARS = ['✦','★','·','◆','✦','★','·','◆'];
+  const sparkles = Array.from({ length: 8 }, (_, i) => {
+    const ang   = (360 / 8) * i;
+    const dur   = (1.6 + Math.random() * 0.8).toFixed(2);
+    const delay = (-(i / 8) * parseFloat(dur)).toFixed(2);
+    return `<span class="ach-sparkle" style="--ang:${ang}deg;--dur:${dur}s;--delay:${delay}s">${SPARKLE_CHARS[i]}</span>`;
+  }).join('');
 
   const rowsHtml = results.map(r => {
     const rPlayers = r.players || r.pair.map(n => ({ name: n }));
@@ -1236,7 +1243,12 @@ function openAchievementTournament(tid) {
   }).join('');
 
   content.innerHTML = `
-    <div class="ach-modal-trophy">${trophySvg('cup-gold')}</div>
+    <div class="ach-modal-hero">
+      <div class="ach-trophy-wrap">
+        <div class="ach-sparkle-ring">${sparkles}</div>
+        <div class="ach-trophy-inner">${trophySvg('cup-gold')}</div>
+      </div>
+    </div>
     <div class="ach-modal-title">${t.name}</div>
     <div class="ach-modal-meta">
       <span>${dateStr}</span>
@@ -1247,6 +1259,7 @@ function openAchievementTournament(tid) {
   `;
 
   openModal('modal-achievement');
+  achParallax.start();
 }
 
 const achParallax = (() => {
@@ -1259,13 +1272,13 @@ const achParallax = (() => {
     if (baseB === null) { baseB = beta; baseG = gamma; }
     const dx = clamp((gamma - baseG) * 0.4, -18, 18);
     const dy = clamp((beta  - baseB) * 0.3, -12, 12);
-    document.querySelectorAll('.ach-cup').forEach(el => {
+    document.querySelectorAll('.ach-cup, .ach-trophy-wrap').forEach(el => {
       el.style.transform = `translate(${dx}px,${dy}px)`;
     });
   }
 
   function reset() {
-    document.querySelectorAll('.ach-cup').forEach(el => { el.style.transform = ''; });
+    document.querySelectorAll('.ach-cup, .ach-trophy-wrap').forEach(el => { el.style.transform = ''; });
     baseB = null; baseG = null;
   }
 
@@ -1274,8 +1287,8 @@ const achParallax = (() => {
     if (o) applyTilt(o.beta, o.gamma);
   };
   const winHandler = (e) => {
-    if (e.beta == null && e.gamma == null) return;
-    applyTilt(e.beta ?? 0, e.gamma ?? 0);
+    if (e.gamma == null) return;
+    applyTilt(e.beta ?? 0, e.gamma);
   };
 
   return {
