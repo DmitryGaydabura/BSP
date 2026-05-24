@@ -1237,33 +1237,11 @@ function openAchievementTournament(tid) {
 
   content.innerHTML = `
     <div class="ach-hero">
-      <img src="assets/logo.jpg" class="ach-hero-logo-bg" aria-hidden="true">
       <div class="ach-stage">
         <div class="ach-loader" id="ach-loader"><div class="ach-loader-ring"></div></div>
         <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
       </div>
-      <svg class="ach-wreath" viewBox="0 0 260 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M130 66 C92 57 52 40 18 14" stroke="#9B7A2E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-        <path d="M130 66 C168 57 208 40 242 14" stroke="#9B7A2E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(118,62) rotate(-100)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(104,57) rotate(-113)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(89,52) rotate(-126)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(74,45) rotate(-140)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(59,37) rotate(-153)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(44,28) rotate(-164)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(30,19) rotate(-172)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(18,10) rotate(-178)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(142,62) rotate(100)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(156,57) rotate(113)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(171,52) rotate(126)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(186,45) rotate(140)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(201,37) rotate(153)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(216,28) rotate(164)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(230,19) rotate(172)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
-        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(242,10) rotate(178)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
-        <circle cx="130" cy="63" r="5" fill="#C9A84C" stroke="#F0D060" stroke-width="1"/>
-        <path d="M127,60 L130,53 L133,60 Z" fill="#F5E070"/>
-      </svg>
+      <img src="assets/laurel_wreath.svg" class="ach-wreath" aria-hidden="true">
       <div class="ach-hero-brand">★ BLACKSEA PADEL · ODESA ★</div>
     </div>
 
@@ -1312,7 +1290,7 @@ function initAchTrophy3D() {
   renderer.setPixelRatio(DPR);
   renderer.outputEncoding    = THREE.sRGBEncoding;
   renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.4;
+  renderer.toneMappingExposure = 1.0;
 
   // ── Scene & Camera ───────────────────────────────────────────────
   const scene  = new THREE.Scene();
@@ -1330,17 +1308,17 @@ function initAchTrophy3D() {
         const i = (y * W + x) * 3;
         const t = y / (H - 1);
         if (t < 0.35) {
-          // top — warm white sky
-          data[i]=255; data[i+1]=248; data[i+2]=215;
+          // top — soft warm sky (dimmed)
+          data[i]=140; data[i+1]=130; data[i+2]=100;
         } else if (t < 0.65) {
-          // mid — gold horizon
+          // mid — muted gold horizon
           const s = (t - 0.35) / 0.30;
-          data[i]   = Math.round(255 - s * 30);
-          data[i+1] = Math.round(248 - s * 68);
-          data[i+2] = Math.round(215 - s * 150);
+          data[i]   = Math.round(140 - s * 30);
+          data[i+1] = Math.round(130 - s * 65);
+          data[i+2] = Math.round(100 - s * 70);
         } else {
           // bottom — dark navy ground
-          data[i]=25; data[i+1]=45; data[i+2]=85;
+          data[i]=20; data[i+1]=35; data[i+2]=65;
         }
       }
     }
@@ -1352,14 +1330,14 @@ function initAchTrophy3D() {
     pmrem.dispose();
   })();
 
-  // ── Lights ───────────────────────────────────────────────────────
-  scene.add(new THREE.AmbientLight(0xfff8dc, 1.8));
+  // ── Lights — balanced for gold metallic materials ────────────────
+  scene.add(new THREE.AmbientLight(0xfff8dc, 0.5));
 
   const lightDefs = [
-    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 5.0 },  // key (front-top-right)
-    { pos: [-3,  3,  2], col: 0xffd040, int: 3.0 },  // fill (left gold)
-    { pos: [ 0, -2,  3], col: 0xffe080, int: 2.0 },  // bounce (below)
-    { pos: [ 1,  2, -4], col: 0x99aacc, int: 1.5 },  // back-rim (cool blue)
+    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 2.0 },  // key  (front-top-right)
+    { pos: [-3,  3,  2], col: 0xffd040, int: 1.0 },  // fill (left warm gold)
+    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.7 },  // bounce (below front)
+    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.5 },  // rim (cool blue back)
   ];
   lightDefs.forEach(({ pos, col, int }) => {
     const l = new THREE.DirectionalLight(col, int);
@@ -1390,7 +1368,7 @@ function initAchTrophy3D() {
       model.traverse(child => {
         if (!child.isMesh) return;
         [].concat(child.material).forEach(mat => {
-          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 3.5;
+          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 1.2;
           mat.needsUpdate = true;
         });
       });

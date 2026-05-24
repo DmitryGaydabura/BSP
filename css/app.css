@@ -2359,19 +2359,6 @@
   align-items: center;
   padding: 22px 0 0;
 }
-.ach-hero-logo-bg {
-  position: absolute;
-  width: 210px;
-  height: 210px;
-  bottom: -25px;
-  right: -25px;
-  opacity: 0.5;
-  border-radius: 50%;
-  object-fit: cover;
-  pointer-events: none;
-  mix-blend-mode: luminosity;
-}
-
 /* ── Canvas stage + loader ── */
 .ach-stage {
   position: relative;
@@ -2412,9 +2399,10 @@
 /* ── Laurel wreath ── */
 .ach-wreath {
   display: block;
-  width: 260px;
-  margin-top: -6px;
+  width: 300px;
+  margin-top: -60px;   /* pull up so wreath overlaps bottom of canvas */
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* ── Hero footer brand ── */
