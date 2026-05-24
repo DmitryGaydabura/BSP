@@ -1265,125 +1265,178 @@ function initAchTrophy3D() {
   canvas.style.height = SZ + 'px';
   const ctx = canvas.getContext('2d');
   ctx.scale(DPR, DPR);
-  const cx = SZ / 2, cy = SZ / 2;
+  const cx = SZ / 2;
 
-  // ── Star geometry (5-pointed, extruded) ─────────────────────────
-  const N = 5, RO = 76, RI = 30, DEPTH = 22;
+  // Trophy dimensions (Y relative to trophy centre)
+  const T_CY     = SZ / 2 - 4;
+  const CUP_TW   = 74;   // cup rim half-width
+  const CUP_BW   = 19;   // cup base half-width
+  const CUP_TY   = -57;  // cup rim Y
+  const CUP_BY   = 22;   // cup bottom Y
+  const STEM_W   = 11;
+  const STEM_TY  = 22;
+  const STEM_BY  = 44;
+  const BASE_W   = 46;
+  const BASE_TY  = 44;
+  const BASE_BY  = 55;
+  const RIM_RY   = 7;    // rim ellipse half-height
 
-  function starRing(z) {
-    const pts = [];
-    for (let i = 0; i < N * 2; i++) {
-      const a = (Math.PI * i / N) - Math.PI / 2;
-      pts.push([Math.cos(a) * (i % 2 === 0 ? RO : RI), Math.sin(a) * (i % 2 === 0 ? RO : RI), z]);
-    }
-    return pts;
-  }
-  const FRONT = starRing(DEPTH);
-  const BACK  = starRing(-DEPTH);
-
-  const FACES = [
-    { verts: FRONT, type: 'front' },
-    { verts: [...BACK].reverse(), type: 'back' },
-  ];
-  for (let i = 0; i < N * 2; i++) {
-    const j = (i + 1) % (N * 2);
-    FACES.push({ verts: [FRONT[i], FRONT[j], BACK[j], BACK[i]], type: 'side' });
-  }
-
-  // ── State ────────────────────────────────────────────────────────
-  let rotX = 0.18, rotY = 0.0;
+  // Start turned ~45° so handles are visible on open, spring back to front
+  let rotX = 0.12, rotY = 0.82;
   let velX = 0,    velY = 0;
   let dragging = false, px = 0, py = 0;
   const PARTS = [];
-  let raf, currentXform;
+  let raf;
 
-  // ── Math ─────────────────────────────────────────────────────────
-  function makeXform(rx, ry) {
-    const cxr = Math.cos(rx), sxr = Math.sin(rx);
-    const cyr = Math.cos(ry), syr = Math.sin(ry);
-    return ([x, y, z]) => {
-      const x1 =  x * cyr + z * syr;
-      const z1 = -x * syr + z * cyr;
-      return [x1, y * cxr - z1 * sxr, y * sxr + z1 * cxr];
-    };
-  }
-  function proj([x, y, z]) {
-    const s = 380 / (380 + z);
-    return { x: cx + x * s, y: cy + y * s, z };
-  }
-  function sub3([ax,ay,az],[bx,by,bz]) { return [ax-bx, ay-by, az-bz]; }
-  function cross([ax,ay,az],[bx,by,bz]) {
-    return [ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx];
-  }
-  function dot3(a, b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
-  function norm3(v) { const l = Math.sqrt(dot3(v,v)); return l ? v.map(c=>c/l) : [0,0,1]; }
+  const PCOLS = ['#FFFAE0','#F7DC80','#C9A84C','#FFE87A','#FFF3B0'];
 
-  const LIGHT = norm3([0.35, -0.55, 1.0]);
+  // ── Helpers ──────────────────────────────────────────────────────
+  function cupPath(pX) {
+    const tW = CUP_TW * pX, bW = CUP_BW * pX;
+    ctx.beginPath();
+    ctx.moveTo(-tW, CUP_TY);
+    ctx.lineTo( tW, CUP_TY);
+    ctx.bezierCurveTo( tW, CUP_TY + 56,  bW, CUP_BY - 18,  bW, CUP_BY);
+    ctx.lineTo(-bW, CUP_BY);
+    ctx.bezierCurveTo(-bW, CUP_BY - 18, -tW, CUP_TY + 56, -tW, CUP_TY);
+    ctx.closePath();
+  }
 
   // ── Draw ─────────────────────────────────────────────────────────
   function drawFrame() {
     ctx.clearRect(0, 0, SZ, SZ);
-    currentXform = makeXform(rotX, rotY);
 
-    const rendered = FACES.map(face => {
-      const pts3 = face.verts.map(currentXform);
-      const pts2 = pts3.map(proj);
-      const avgZ = pts3.reduce((s, p) => s + p[2], 0) / pts3.length;
-      const n    = norm3(cross(sub3(pts3[1], pts3[0]), sub3(pts3[2], pts3[0])));
-      const lit  = Math.max(0, dot3(n, LIGHT));
-      return { pts2, avgZ, lit, type: face.type, nz: n[2] };
-    }).filter(f => f.nz >= 0)          // back-face cull
-      .sort((a, b) => a.avgZ - b.avgZ); // painter's algorithm
+    const pX    = Math.cos(rotY);          // perspective X scale
+    const apX   = Math.abs(pX);            // always positive for sizes
+    const tiltY = Math.sin(rotX) * 8;
+    const light = (Math.cos(rotY * 0.7 + 0.4) + 1) / 2; // 0–1, shifts with view
 
-    // Gradient direction shifts with rotation
-    const ga  = rotY * 0.7 + rotX * 0.4;
-    const gdx = Math.cos(ga) * (RO * 0.9);
-    const gdy = Math.sin(ga) * (RO * 0.9);
+    ctx.save();
+    ctx.translate(cx, T_CY + tiltY);
 
-    rendered.forEach(({ pts2, lit, type }) => {
+    // ── Base ─────────────────────────────────────────────────────
+    {
+      const bW = BASE_W * apX;
+      const g  = ctx.createLinearGradient(-bW, BASE_TY, bW, BASE_TY);
+      g.addColorStop(0,                        '#6B420C');
+      g.addColorStop(Math.max(0, light - 0.1), '#C9A84C');
+      g.addColorStop(Math.min(1, light + 0.1), '#FFFAE8');
+      g.addColorStop(1,                        '#6B420C');
+      ctx.fillStyle = g;
+      const r = 3, x = -bW, y = BASE_TY, w = bW * 2, h = BASE_BY - BASE_TY;
       ctx.beginPath();
-      pts2.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
       ctx.closePath();
+      ctx.fill();
+    }
 
-      if (type === 'front') {
-        const g = ctx.createLinearGradient(cx - gdx, cy - gdy, cx + gdx, cy + gdy);
-        g.addColorStop(0,    '#FFFAE8');
-        g.addColorStop(0.22, '#F7DC80');
-        g.addColorStop(0.58, '#C9A84C');
-        g.addColorStop(1,    '#7A4E10');
-        ctx.fillStyle = g;
-        ctx.fill();
-        // Moving specular highlight
-        const sx = cx - Math.cos(rotY) * 22, sy = cy - Math.sin(rotX) * 22;
-        const sp = ctx.createRadialGradient(sx, sy, 0, sx, sy, 48);
-        sp.addColorStop(0, 'rgba(255,255,255,0.45)');
-        sp.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.save(); ctx.clip();
-        ctx.fillStyle = sp; ctx.fillRect(0, 0, SZ, SZ);
-        ctx.restore();
-      } else {
-        const t = 0.12 + lit * (type === 'back' ? 0.38 : 0.78);
-        const r = Math.round(60  + t * 185);
-        const gv = Math.round(35  + t * 165);
-        const b  = Math.round(5   + t * 70);
-        ctx.fillStyle = `rgb(${r},${gv},${b})`;
-        ctx.fill();
-        if (type === 'side') {
-          ctx.strokeStyle = 'rgba(201,168,76,0.25)';
-          ctx.lineWidth = 0.7;
-          ctx.stroke();
-        }
+    // ── Stem ─────────────────────────────────────────────────────
+    {
+      const sW = STEM_W * apX;
+      const g  = ctx.createLinearGradient(-sW, STEM_TY, sW, STEM_TY);
+      g.addColorStop(0,                        '#6B420C');
+      g.addColorStop(Math.min(1, light + 0.05),'#C9A84C');
+      g.addColorStop(1,                        '#6B420C');
+      ctx.fillStyle = g;
+      ctx.fillRect(-sW, STEM_TY, sW * 2, STEM_BY - STEM_TY);
+    }
+
+    // ── Cup body ─────────────────────────────────────────────────
+    {
+      const ga = rotY * 0.8;
+      const g  = ctx.createLinearGradient(-CUP_TW * apX, CUP_TY, CUP_TW * apX, CUP_BY);
+      g.addColorStop(0,                              '#6B420C');
+      g.addColorStop(Math.max(0,   light * 0.5),     '#C9A84C');
+      g.addColorStop(Math.min(1,   light * 0.5 + 0.25), '#F7DC80');
+      g.addColorStop(Math.min(1,   light * 0.4 + 0.45), '#FFFAE8');
+      g.addColorStop(1,                              '#C9A84C');
+      cupPath(pX);
+      ctx.fillStyle = g;
+      ctx.fill();
+
+      // Specular highlight
+      const sx = -Math.cos(rotY) * 24, sy = CUP_TY + 24;
+      const sp = ctx.createRadialGradient(sx, sy, 0, sx, sy, 58);
+      sp.addColorStop(0, 'rgba(255,255,255,0.40)');
+      sp.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.save();
+      cupPath(pX);
+      ctx.clip();
+      ctx.fillStyle = sp;
+      ctx.fillRect(-CUP_TW, CUP_TY, CUP_TW * 2, CUP_BY - CUP_TY);
+      ctx.restore();
+    }
+
+    // ── Rim (ellipse at cup top) ──────────────────────────────────
+    {
+      const rW = CUP_TW * apX;
+      const g  = ctx.createLinearGradient(-rW, CUP_TY - RIM_RY, rW, CUP_TY + RIM_RY);
+      g.addColorStop(0,                        '#6B420C');
+      g.addColorStop(Math.min(1, light + 0.1), '#FFFAE8');
+      g.addColorStop(1,                        '#6B420C');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(0, CUP_TY, rW, RIM_RY, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // ── Handles (appear as rotY grows from 0) ─────────────────────
+    {
+      const hVis = Math.abs(Math.sin(rotY));
+      if (hVis > 0.04) {
+        const hAttach = CUP_TW * apX * 0.87;
+        const hTop    = CUP_TY + 13;
+        const hBot    = CUP_TY + 58;
+        const hExt    = 30 * hVis;
+        const alpha   = Math.min(1, hVis * 2.0);
+        const lum     = 0.35 + light * 0.5;
+        ctx.strokeStyle = `rgba(${Math.round(60 + lum*175)},${Math.round(32 + lum*145)},${Math.round(4 + lum*60)},${alpha.toFixed(2)})`;
+        ctx.lineWidth = 6.5;
+        ctx.lineCap   = 'round';
+
+        // Right handle
+        ctx.beginPath();
+        ctx.moveTo( hAttach, hTop);
+        ctx.bezierCurveTo( hAttach + hExt * 2.1, hTop + 6,  hAttach + hExt * 2.1, hBot - 6,  hAttach, hBot);
+        ctx.stroke();
+
+        // Left handle
+        ctx.beginPath();
+        ctx.moveTo(-hAttach, hTop);
+        ctx.bezierCurveTo(-hAttach - hExt * 2.1, hTop + 6, -hAttach - hExt * 2.1, hBot - 6, -hAttach, hBot);
+        ctx.stroke();
+
+        // Handle shine stripe
+        ctx.strokeStyle = `rgba(255,245,180,${(alpha * 0.35).toFixed(2)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo( hAttach, hTop + 6);
+        ctx.bezierCurveTo( hAttach + hExt * 1.8, hTop + 10,  hAttach + hExt * 1.8, hBot - 14,  hAttach, hBot - 8);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-hAttach, hTop + 6);
+        ctx.bezierCurveTo(-hAttach - hExt * 1.8, hTop + 10, -hAttach - hExt * 1.8, hBot - 14, -hAttach, hBot - 8);
+        ctx.stroke();
       }
-    });
+    }
 
-    // Soft outer glow
-    const glow = ctx.createRadialGradient(cx, cy, RO * 0.65, cx, cy, RO * 1.45);
+    ctx.restore();
+
+    // ── Ambient glow ─────────────────────────────────────────────
+    const glow = ctx.createRadialGradient(cx, T_CY, 52, cx, T_CY, 112);
     glow.addColorStop(0, 'rgba(201,168,76,0)');
-    glow.addColorStop(1, 'rgba(201,168,76,0.13)');
+    glow.addColorStop(1, 'rgba(201,168,76,0.14)');
     ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, cy, RO * 1.45, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, T_CY, 112, 0, Math.PI * 2); ctx.fill();
 
-    // Particles
+    // ── Particles ────────────────────────────────────────────────
     for (let i = PARTS.length - 1; i >= 0; i--) {
       const p = PARTS[i];
       p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
@@ -1398,15 +1451,12 @@ function initAchTrophy3D() {
     ctx.globalAlpha = 1;
   }
 
-  const PCOLS = ['#FFFAE0','#F7DC80','#C9A84C','#FFE87A','#FFF3B0'];
   function spawnParticles(count, speed) {
     for (let i = 0; i < count; i++) {
-      const tip = FRONT[Math.floor(Math.random() * N) * 2];
-      const [tx, ty, tz] = currentXform(tip);
-      const p2 = proj([tx, ty, tz]);
+      const ang = (Math.random() - 0.5) * Math.PI;
       PARTS.push({
-        x: p2.x + (Math.random() - 0.5) * 10,
-        y: p2.y + (Math.random() - 0.5) * 10,
+        x:  cx + Math.cos(ang) * CUP_TW * Math.abs(Math.cos(rotY)) * Math.random(),
+        y:  T_CY + CUP_TY + (Math.random() - 0.5) * 16,
         vx: (Math.random() - 0.5) * speed * 2.5,
         vy: -(speed + Math.random() * speed * 0.8),
         r:   1.5 + Math.random() * 2.5,
