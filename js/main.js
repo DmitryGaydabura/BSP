@@ -1208,6 +1208,8 @@ function spawnAchParticles(el) {
   });
 }
 
+let achTrophyCleanup = null;
+
 function openAchievementTournament(tid) {
   const source = tournamentsData || TOURNAMENTS;
   const t = source.find(x => String(x.id) === String(tid));
@@ -1235,9 +1237,7 @@ function openAchievementTournament(tid) {
 
   content.innerHTML = `
     <div class="ach-modal-hero">
-      <div class="ach-sketchfab-wrap">
-        <iframe title="Gold Cup" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/0e872136505f4d23a551e57adfabae45/embed?autostart=1&ui_hint=0&ui_infos=0&ui_watermark_link=0&ui_watermark=0&camera=0"></iframe>
-      </div>
+      <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
     </div>
     <div class="ach-modal-title">${t.name}</div>
     <div class="ach-modal-meta">
@@ -1248,7 +1248,113 @@ function openAchievementTournament(tid) {
     <div class="ach-modal-results">${rowsHtml}</div>
   `;
 
+  if (achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
   openModal('modal-achievement');
+  requestAnimationFrame(() => { achTrophyCleanup = initAchTrophy3D(); });
+}
+
+function initAchTrophy3D() {
+  const canvas = document.getElementById('ach-trophy-canvas');
+  if (!canvas || typeof THREE === 'undefined') return null;
+
+  const SZ  = 220;
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  // ── Renderer ────────────────────────────────────────────────────
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(SZ, SZ);
+  renderer.setPixelRatio(DPR);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping   = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.6;
+  renderer.shadowMap.enabled = false;
+
+  // ── Scene & Camera ───────────────────────────────────────────────
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
+  camera.position.set(0, 0.2, 3.8);
+
+  // ── Lights ───────────────────────────────────────────────────────
+  scene.add(new THREE.AmbientLight(0xfff8dc, 0.6));
+
+  const key = new THREE.DirectionalLight(0xfffbe0, 3.0);
+  key.position.set(2, 5, 4);
+  scene.add(key);
+
+  const fill = new THREE.DirectionalLight(0xffd700, 1.2);
+  fill.position.set(-3, 1, -2);
+  scene.add(fill);
+
+  const rim = new THREE.PointLight(0xffe066, 1.0, 12);
+  rim.position.set(0, -1.5, 2.5);
+  scene.add(rim);
+
+  // ── Model loading ────────────────────────────────────────────────
+  let model = null;
+  let raf;
+  let rotY = 0.5;   // start slightly turned
+  let velY = 0;
+  let dragging = false, lastX = 0;
+
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    'Golden%20Trophy%203D%20Model/scene.gltf',
+    (gltf) => {
+      model = gltf.scene;
+
+      // Auto-centre & scale to fit ~2 units tall
+      const box    = new THREE.Box3().setFromObject(model);
+      const centre = box.getCenter(new THREE.Vector3());
+      const size   = box.getSize(new THREE.Vector3());
+      const scale  = 2.0 / Math.max(size.x, size.y, size.z);
+      model.scale.setScalar(scale);
+      model.position.sub(centre.multiplyScalar(scale));
+
+      scene.add(model);
+    },
+    undefined,
+    (err) => console.warn('Trophy load error:', err)
+  );
+
+  // ── Render loop ──────────────────────────────────────────────────
+  function loop() {
+    if (!dragging) {
+      velY  *= 0.90;
+      rotY  += velY + 0.012;   // gentle auto-spin
+    }
+    if (model) model.rotation.y = rotY;
+    renderer.render(scene, camera);
+    raf = requestAnimationFrame(loop);
+  }
+
+  // ── Pointer drag ─────────────────────────────────────────────────
+  function onDown(e) {
+    dragging = true; velY = 0;
+    lastX = (e.touches?.[0] ?? e).clientX;
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const x = (e.touches?.[0] ?? e).clientX;
+    velY  = (x - lastX) * 0.012;
+    rotY += velY;
+    lastX = x;
+  }
+  function onUp() { dragging = false; }
+
+  canvas.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove, { passive: false });
+  window.addEventListener('pointerup',   onUp);
+
+  loop();
+
+  return () => {
+    cancelAnimationFrame(raf);
+    canvas.removeEventListener('pointerdown', onDown);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup',   onUp);
+    renderer.dispose();
+  };
 }
 
 
@@ -2459,6 +2565,7 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
+  if (id === 'modal-achievement' && achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
