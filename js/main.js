@@ -1292,7 +1292,7 @@ function initAchTrophy3D() {
   renderer.setPixelRatio(DPR);
   renderer.outputEncoding    = THREE.sRGBEncoding;
   renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.65;
+  renderer.toneMappingExposure = 0.45;
 
   // ── Scene & Camera ───────────────────────────────────────────────
   const scene  = new THREE.Scene();
@@ -1332,14 +1332,14 @@ function initAchTrophy3D() {
     pmrem.dispose();
   })();
 
-  // ── Lights — kept deliberately dim for dramatic gold look ────────
-  scene.add(new THREE.AmbientLight(0xfff8dc, 0.25));
+  // ── Lights — low ambient + sharp key = real gold look ────────────
+  scene.add(new THREE.AmbientLight(0xfff0cc, 0.10));
 
   const lightDefs = [
-    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 1.2 },  // key  (front-top-right)
-    { pos: [-3,  3,  2], col: 0xffd040, int: 0.6 },  // fill (left warm gold)
-    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.4 },  // bounce (below front)
-    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.3 },  // rim (cool blue back)
+    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 1.8 },  // key  (sharp highlight)
+    { pos: [-3,  3,  2], col: 0xffd040, int: 0.35 }, // fill (left warm gold)
+    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.20 }, // bounce (below)
+    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.15 }, // rim (cool blue back)
   ];
   lightDefs.forEach(({ pos, col, int }) => {
     const l = new THREE.DirectionalLight(col, int);
@@ -1364,13 +1364,13 @@ function initAchTrophy3D() {
       const scale  = 2.0 / Math.max(size.x, size.y, size.z);
       model.scale.setScalar(scale);
       model.position.sub(centre.multiplyScalar(scale));
-      model.position.y += 0.1; // nudge up slightly for better framing
+      model.position.y -= 0.18; // push down so cup sits inside wreath centre
 
       // Crank up environment reflections on all PBR materials
       model.traverse(child => {
         if (!child.isMesh) return;
         [].concat(child.material).forEach(mat => {
-          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 1.2;
+          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 0.5;
           mat.needsUpdate = true;
         });
       });
