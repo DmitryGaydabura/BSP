@@ -791,7 +791,6 @@ async function openPlayerProfile(player, rank) {
   `;
 
   openModal('modal-player-profile');
-  achParallax.start();
 
   if (player.id && apiAvailable) {
     const chartBody = document.getElementById('pp-chart-body');
@@ -1209,6 +1208,8 @@ function spawnAchParticles(el) {
   });
 }
 
+let achTrophyCleanup = null;
+
 function openAchievementTournament(tid) {
   const source = tournamentsData || TOURNAMENTS;
   const t = source.find(x => String(x.id) === String(tid));
@@ -1221,14 +1222,6 @@ function openAchievementTournament(tid) {
   const dateStr = `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
   const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
   const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
-
-  const SPARKLE_CHARS = ['✦','★','·','◆','✦','★','·','◆'];
-  const sparkles = Array.from({ length: 8 }, (_, i) => {
-    const ang   = (360 / 8) * i;
-    const dur   = (1.6 + Math.random() * 0.8).toFixed(2);
-    const delay = (-(i / 8) * parseFloat(dur)).toFixed(2);
-    return `<span class="ach-sparkle" style="--ang:${ang}deg;--dur:${dur}s;--delay:${delay}s">${SPARKLE_CHARS[i]}</span>`;
-  }).join('');
 
   const rowsHtml = results.map(r => {
     const rPlayers = r.players || r.pair.map(n => ({ name: n }));
@@ -1244,10 +1237,7 @@ function openAchievementTournament(tid) {
 
   content.innerHTML = `
     <div class="ach-modal-hero">
-      <div class="ach-trophy-wrap">
-        <div class="ach-sparkle-ring">${sparkles}</div>
-        <div class="ach-trophy-inner">${trophySvg('cup-gold')}</div>
-      </div>
+      <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
     </div>
     <div class="ach-modal-title">${t.name}</div>
     <div class="ach-modal-meta">
@@ -1258,62 +1248,219 @@ function openAchievementTournament(tid) {
     <div class="ach-modal-results">${rowsHtml}</div>
   `;
 
+  if (achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
   openModal('modal-achievement');
-  achParallax.start();
+  requestAnimationFrame(() => { achTrophyCleanup = initAchTrophy3D(); });
 }
 
-const achParallax = (() => {
-  let running = false;
-  let baseB = null, baseG = null;
+function initAchTrophy3D() {
+  const canvas = document.getElementById('ach-trophy-canvas');
+  if (!canvas) return null;
 
-  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const SZ  = 220;
+  canvas.width  = SZ * DPR;
+  canvas.height = SZ * DPR;
+  canvas.style.width  = SZ + 'px';
+  canvas.style.height = SZ + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  const cx = SZ / 2, cy = SZ / 2;
 
-  function applyTilt(beta, gamma) {
-    if (baseB === null) { baseB = beta; baseG = gamma; }
-    const dx = clamp((gamma - baseG) * 0.4, -18, 18);
-    const dy = clamp((beta  - baseB) * 0.3, -12, 12);
-    document.querySelectorAll('.ach-cup, .ach-trophy-wrap').forEach(el => {
-      el.style.transform = `translate(${dx}px,${dy}px)`;
+  // ── Star geometry (5-pointed, extruded) ─────────────────────────
+  const N = 5, RO = 76, RI = 30, DEPTH = 22;
+
+  function starRing(z) {
+    const pts = [];
+    for (let i = 0; i < N * 2; i++) {
+      const a = (Math.PI * i / N) - Math.PI / 2;
+      pts.push([Math.cos(a) * (i % 2 === 0 ? RO : RI), Math.sin(a) * (i % 2 === 0 ? RO : RI), z]);
+    }
+    return pts;
+  }
+  const FRONT = starRing(DEPTH);
+  const BACK  = starRing(-DEPTH);
+
+  const FACES = [
+    { verts: FRONT, type: 'front' },
+    { verts: [...BACK].reverse(), type: 'back' },
+  ];
+  for (let i = 0; i < N * 2; i++) {
+    const j = (i + 1) % (N * 2);
+    FACES.push({ verts: [FRONT[i], FRONT[j], BACK[j], BACK[i]], type: 'side' });
+  }
+
+  // ── State ────────────────────────────────────────────────────────
+  let rotX = 0.18, rotY = 0.0;
+  let velX = 0,    velY = 0;
+  let dragging = false, px = 0, py = 0;
+  const PARTS = [];
+  let raf, currentXform;
+
+  // ── Math ─────────────────────────────────────────────────────────
+  function makeXform(rx, ry) {
+    const cxr = Math.cos(rx), sxr = Math.sin(rx);
+    const cyr = Math.cos(ry), syr = Math.sin(ry);
+    return ([x, y, z]) => {
+      const x1 =  x * cyr + z * syr;
+      const z1 = -x * syr + z * cyr;
+      return [x1, y * cxr - z1 * sxr, y * sxr + z1 * cxr];
+    };
+  }
+  function proj([x, y, z]) {
+    const s = 380 / (380 + z);
+    return { x: cx + x * s, y: cy + y * s, z };
+  }
+  function sub3([ax,ay,az],[bx,by,bz]) { return [ax-bx, ay-by, az-bz]; }
+  function cross([ax,ay,az],[bx,by,bz]) {
+    return [ay*bz-az*by, az*bx-ax*bz, ax*by-ay*bx];
+  }
+  function dot3(a, b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+  function norm3(v) { const l = Math.sqrt(dot3(v,v)); return l ? v.map(c=>c/l) : [0,0,1]; }
+
+  const LIGHT = norm3([0.35, -0.55, 1.0]);
+
+  // ── Draw ─────────────────────────────────────────────────────────
+  function drawFrame() {
+    ctx.clearRect(0, 0, SZ, SZ);
+    currentXform = makeXform(rotX, rotY);
+
+    const rendered = FACES.map(face => {
+      const pts3 = face.verts.map(currentXform);
+      const pts2 = pts3.map(proj);
+      const avgZ = pts3.reduce((s, p) => s + p[2], 0) / pts3.length;
+      const n    = norm3(cross(sub3(pts3[1], pts3[0]), sub3(pts3[2], pts3[0])));
+      const lit  = Math.max(0, dot3(n, LIGHT));
+      return { pts2, avgZ, lit, type: face.type, nz: n[2] };
+    }).filter(f => f.nz >= 0)          // back-face cull
+      .sort((a, b) => a.avgZ - b.avgZ); // painter's algorithm
+
+    // Gradient direction shifts with rotation
+    const ga  = rotY * 0.7 + rotX * 0.4;
+    const gdx = Math.cos(ga) * (RO * 0.9);
+    const gdy = Math.sin(ga) * (RO * 0.9);
+
+    rendered.forEach(({ pts2, lit, type }) => {
+      ctx.beginPath();
+      pts2.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+
+      if (type === 'front') {
+        const g = ctx.createLinearGradient(cx - gdx, cy - gdy, cx + gdx, cy + gdy);
+        g.addColorStop(0,    '#FFFAE8');
+        g.addColorStop(0.22, '#F7DC80');
+        g.addColorStop(0.58, '#C9A84C');
+        g.addColorStop(1,    '#7A4E10');
+        ctx.fillStyle = g;
+        ctx.fill();
+        // Moving specular highlight
+        const sx = cx - Math.cos(rotY) * 22, sy = cy - Math.sin(rotX) * 22;
+        const sp = ctx.createRadialGradient(sx, sy, 0, sx, sy, 48);
+        sp.addColorStop(0, 'rgba(255,255,255,0.45)');
+        sp.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.save(); ctx.clip();
+        ctx.fillStyle = sp; ctx.fillRect(0, 0, SZ, SZ);
+        ctx.restore();
+      } else {
+        const t = 0.12 + lit * (type === 'back' ? 0.38 : 0.78);
+        const r = Math.round(60  + t * 185);
+        const gv = Math.round(35  + t * 165);
+        const b  = Math.round(5   + t * 70);
+        ctx.fillStyle = `rgb(${r},${gv},${b})`;
+        ctx.fill();
+        if (type === 'side') {
+          ctx.strokeStyle = 'rgba(201,168,76,0.25)';
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+        }
+      }
     });
+
+    // Soft outer glow
+    const glow = ctx.createRadialGradient(cx, cy, RO * 0.65, cx, cy, RO * 1.45);
+    glow.addColorStop(0, 'rgba(201,168,76,0)');
+    glow.addColorStop(1, 'rgba(201,168,76,0.13)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(cx, cy, RO * 1.45, 0, Math.PI * 2); ctx.fill();
+
+    // Particles
+    for (let i = PARTS.length - 1; i >= 0; i--) {
+      const p = PARTS[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
+      if (p.life <= 0) { PARTS.splice(i, 1); continue; }
+      const alpha = p.life / p.maxLife;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.col;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
-  function reset() {
-    document.querySelectorAll('.ach-cup, .ach-trophy-wrap').forEach(el => { el.style.transform = ''; });
-    baseB = null; baseG = null;
+  const PCOLS = ['#FFFAE0','#F7DC80','#C9A84C','#FFE87A','#FFF3B0'];
+  function spawnParticles(count, speed) {
+    for (let i = 0; i < count; i++) {
+      const tip = FRONT[Math.floor(Math.random() * N) * 2];
+      const [tx, ty, tz] = currentXform(tip);
+      const p2 = proj([tx, ty, tz]);
+      PARTS.push({
+        x: p2.x + (Math.random() - 0.5) * 10,
+        y: p2.y + (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * speed * 2.5,
+        vy: -(speed + Math.random() * speed * 0.8),
+        r:   1.5 + Math.random() * 2.5,
+        life: 18 + Math.random() * 20,
+        maxLife: 38,
+        col: PCOLS[Math.floor(Math.random() * PCOLS.length)],
+      });
+    }
   }
 
-  const tgHandler = () => {
-    const o = tg?.DeviceOrientation;
-    if (o) applyTilt(o.beta, o.gamma);
-  };
-  const winHandler = (e) => {
-    if (e.gamma == null) return;
-    applyTilt(e.beta ?? 0, e.gamma);
-  };
+  // ── Loop ─────────────────────────────────────────────────────────
+  function loop() {
+    if (!dragging) {
+      rotX += (-rotX * 0.07) + velX;
+      rotY += (-rotY * 0.07) + velY;
+      velX *= 0.82; velY *= 0.82;
+      const speed = Math.abs(velX) + Math.abs(velY);
+      if (speed > 0.006) spawnParticles(Math.ceil(speed * 6), speed * 38);
+    }
+    drawFrame();
+    raf = requestAnimationFrame(loop);
+  }
 
-  return {
-    start() {
-      if (running) return;
-      running = true; baseB = null; baseG = null;
-      // Try TG DeviceOrientation API (Bot API 8.0+)
-      if (typeof tg?.DeviceOrientation?.start === 'function') {
-        tg.DeviceOrientation.start({ refresh_rate: 25, need_absolute: false });
-        tg.onEvent('deviceOrientationChanged', tgHandler);
-      }
-      // Always also listen to window events — works on older TG and browser fallback
-      window.addEventListener('deviceorientation', winHandler, { passive: true });
-    },
-    stop() {
-      if (!running) return;
-      running = false; reset();
-      if (typeof tg?.DeviceOrientation?.stop === 'function') {
-        tg.offEvent('deviceOrientationChanged', tgHandler);
-        tg.DeviceOrientation.stop();
-      }
-      window.removeEventListener('deviceorientation', winHandler);
-    },
+  // ── Pointer ──────────────────────────────────────────────────────
+  function onDown(e) {
+    dragging = true; velX = 0; velY = 0;
+    const t = e.touches?.[0] ?? e; px = t.clientX; py = t.clientY;
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    const t = e.touches?.[0] ?? e;
+    const dx = t.clientX - px, dy = t.clientY - py;
+    velX = dy * 0.007; velY = dx * 0.007;
+    rotX += velX; rotY += velY;
+    px = t.clientX; py = t.clientY;
+    const speed = Math.abs(velX) + Math.abs(velY);
+    if (speed > 0.008) spawnParticles(Math.ceil(speed * 5), speed * 30);
+  }
+  function onUp() { dragging = false; }
+
+  canvas.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove, { passive: false });
+  window.addEventListener('pointerup', onUp);
+
+  loop();
+
+  return () => {
+    cancelAnimationFrame(raf);
+    canvas.removeEventListener('pointerdown', onDown);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
   };
-})();
+}
 
 function wireAchievements(container) {
   container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
@@ -2522,7 +2669,7 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
-  if (id === 'modal-player-profile') achParallax.stop();
+  if (id === 'modal-achievement' && achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
@@ -3402,7 +3549,6 @@ function switchTab(tab) {
 
   currentTab = tab;
   updateNavIcons();
-  if (tab === 'profile') achParallax.start(); else achParallax.stop();
 }
 
 function updateNavIcons() {

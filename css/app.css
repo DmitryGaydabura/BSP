@@ -2316,8 +2316,6 @@
 .ach-cup {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.12s ease-out;
-  will-change: transform;
 }
 .ach-cup:active { opacity: 0.85; }
 @keyframes ach-burst {
@@ -2352,54 +2350,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 24px 0 16px;
+  padding: 20px 0 8px;
 }
-.ach-trophy-wrap {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.12s ease-out;
-  will-change: transform;
+.ach-trophy-canvas {
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
-.ach-sparkle-ring {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.ach-sparkle {
-  position: absolute;
-  top: 50%; left: 50%;
-  margin: -6px 0 0 -6px;
-  width: 12px; height: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px;
-  color: var(--gold);
-  pointer-events: none;
-  opacity: 0;
-  text-shadow: 0 0 6px rgba(201,168,76,0.8);
-  animation: ach-sparkle-fly var(--dur, 2s) var(--delay, 0s) ease-out infinite;
-}
-@keyframes ach-sparkle-fly {
-  0%   { transform: rotate(var(--ang)) translateX(22px) scale(0.2); opacity: 0; }
-  20%  { opacity: 1; transform: rotate(var(--ang)) translateX(38px) scale(1.1); }
-  60%  { opacity: 0.7; transform: rotate(var(--ang)) translateX(58px) scale(0.8); }
-  100% { opacity: 0; transform: rotate(var(--ang)) translateX(76px) scale(0.2); }
-}
-.ach-trophy-inner {
-  animation: ach-trophy-float 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 18px rgba(201,168,76,0.55));
-}
-.ach-trophy-inner svg { width: 86px; height: 86px; }
-@keyframes ach-trophy-float {
-  0%   { transform: translateY(0px)   rotate(-1.5deg); }
-  25%  { transform: translateY(-7px)  rotate(0deg); }
-  50%  { transform: translateY(-11px) rotate(1.5deg); }
-  75%  { transform: translateY(-7px)  rotate(0deg); }
-  100% { transform: translateY(0px)   rotate(-1.5deg); }
-}
+.ach-trophy-canvas:active { cursor: grabbing; }
 .ach-modal-title {
   font-size: 17px;
   font-weight: 700;
