@@ -2312,3 +2312,99 @@
     }
     .hs-dismiss:active { color: var(--text-muted); background: rgba(255,255,255,0.07); }
 
+/* ── Achievement cups ── */
+.ach-cup {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+}
+.ach-cup:active { transform: scale(0.93); }
+@keyframes ach-burst {
+  0%   { transform: scale(1); }
+  28%  { transform: scale(1.18); }
+  55%  { transform: scale(0.95); }
+  75%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.ach-cup.ach-tapped { animation: ach-burst 0.42s var(--ease) both; }
+
+/* ── Achievement particles ── */
+.ach-particle {
+  position: fixed;
+  font-size: 11px;
+  color: var(--gold);
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  animation: ach-particle-fly 0.65s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+@keyframes ach-particle-fly {
+  0%   { transform: translate(-50%, -50%) translate(0, 0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+
+/* ── Achievement modal content ── */
+.ach-modal-trophy { display: flex; justify-content: center; margin-bottom: 10px; }
+.ach-modal-trophy svg { width: 54px; height: 54px; }
+.ach-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.ach-modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+.ach-modal-sep { margin: 0 5px; }
+.ach-modal-results { display: flex; flex-direction: column; gap: 8px; }
+
+.ach-result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--card-bg);
+}
+.ach-result-winner {
+  background: linear-gradient(135deg, rgba(201,168,76,0.15) 0%, rgba(201,168,76,0.06) 100%);
+  border: 1px solid rgba(201,168,76,0.25);
+}
+.ach-result-medal { font-size: 18px; line-height: 1; flex-shrink: 0; min-width: 26px; text-align: center; }
+.ach-pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.ach-result-names {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+}
+.ach-result-names .separator { color: var(--text-dim); font-weight: 400; }
+.ach-result-pts {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+

@@ -803,7 +803,7 @@ async function openPlayerProfile(player, rank) {
       } catch { /* achievements stay empty */ }
     }
     const achEl = document.getElementById('pp-achievements');
-    if (achEl) achEl.innerHTML = renderAchievements(player.id, player.name);
+    if (achEl) { achEl.innerHTML = renderAchievements(player.id, player.name); wireAchievements(achEl); }
 
     const [historyResult, activityResult] = await Promise.allSettled([
       API.users.userHistory(player.id),
@@ -1178,16 +1178,86 @@ function renderAchievements(playerId, playerName) {
   if (!wins.length) return '';
   const cups = wins.map(t => {
     const d = new Date(t.date);
-    return `<div class="ach-cup cup-gold">
+    const dateStr = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    return `<div class="ach-cup cup-gold" data-tid="${t.id}" role="button" tabindex="0">
       ${trophySvg('cup-gold')}
       <div class="ach-name">${t.name}</div>
-      <div class="ach-date">${MONTHS[d.getMonth()]} ${d.getFullYear()}</div>
+      <div class="ach-date">${dateStr}</div>
     </div>`;
   }).join('');
   return `<div class="achievements-section">
     <div class="achievements-title">Перемоги</div>
     <div class="achievements-list">${cups}</div>
   </div>`;
+}
+
+function spawnAchParticles(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const shapes = ['★', '✦', '·', '◆', '✦', '★', '·', '◆', '✦', '★', '·', '◆'];
+  shapes.forEach((char, i) => {
+    const angle = (360 / shapes.length) * i + Math.random() * 20 - 10;
+    const dist  = 38 + Math.random() * 28;
+    const p = document.createElement('div');
+    p.className = 'ach-particle';
+    p.textContent = char;
+    p.style.cssText = `left:${cx}px;top:${cy}px;--dx:${Math.cos(angle * Math.PI / 180) * dist}px;--dy:${Math.sin(angle * Math.PI / 180) * dist}px;--rot:${Math.random() * 360}deg`;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 700);
+  });
+}
+
+function openAchievementTournament(tid) {
+  const source = tournamentsData || TOURNAMENTS;
+  const t = source.find(x => String(x.id) === String(tid));
+  if (!t) return;
+
+  const modal   = document.getElementById('modal-achievement');
+  const content = document.getElementById('ach-modal-content');
+  const MONTHS_FULL = ['січня','лютого','березня','квітня','травня','червня',
+                       'липня','серпня','вересня','жовтня','листопада','грудня'];
+  const d = new Date(t.date);
+  const dateStr = `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
+  const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
+  const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+
+  const rowsHtml = results.map(r => {
+    const rPlayers = r.players || r.pair.map(n => ({ name: n }));
+    const medal = r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : `<span class="ach-pos">${r.pos}</span>`;
+    const names = rPlayers.map(p => `<span>${p.name}</span>`).join('<span class="separator"> / </span>');
+    const isWinner = r.pos === 1;
+    return `<div class="ach-result-row${isWinner ? ' ach-result-winner' : ''}">
+      <span class="ach-result-medal">${medal}</span>
+      <div class="ach-result-names">${names}</div>
+      ${r.pts ? `<span class="ach-result-pts">+${r.pts}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div class="ach-modal-trophy">${trophySvg('cup-gold')}</div>
+    <div class="ach-modal-title">${t.name}</div>
+    <div class="ach-modal-meta">
+      <span>${dateStr}</span>
+      ${t.levelLabel ? `<span class="ach-modal-sep">·</span><span>${t.levelLabel}</span>` : ''}
+      <span class="ach-modal-sep">·</span><span>${typeLabel}</span>
+    </div>
+    <div class="ach-modal-results">${rowsHtml}</div>
+  `;
+
+  openModal('modal-achievement');
+}
+
+function wireAchievements(container) {
+  container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
+    cup.addEventListener('click', () => {
+      cup.classList.remove('ach-tapped');
+      void cup.offsetWidth; // reflow to restart animation
+      cup.classList.add('ach-tapped');
+      spawnAchParticles(cup);
+      setTimeout(() => openAchievementTournament(cup.dataset.tid), 220);
+    });
+  });
 }
 
 function buildRatingChart(history, startingPoints) {
@@ -1269,7 +1339,7 @@ async function loadHistory() {
     } catch { /* ignore — achievements will be empty */ }
   }
   const achEl = document.getElementById('profile-achievements');
-  if (achEl && currentUser) achEl.innerHTML = renderAchievements(currentUser.id, currentUser.displayName);
+  if (achEl && currentUser) { achEl.innerHTML = renderAchievements(currentUser.id, currentUser.displayName); wireAchievements(achEl); }
 
   try {
     const history = await API.users.history();
