@@ -1237,11 +1237,13 @@ function openAchievementTournament(tid) {
 
   content.innerHTML = `
     <div class="ach-hero">
-      <div class="ach-stage">
-        <div class="ach-loader" id="ach-loader"><div class="ach-loader-ring"></div></div>
-        <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
+      <div class="ach-wreath-stage">
+        <img src="assets/laurel_wreath.svg" class="ach-wreath" aria-hidden="true">
+        <div class="ach-stage">
+          <div class="ach-loader" id="ach-loader"><div class="ach-loader-ring"></div></div>
+          <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
+        </div>
       </div>
-      <img src="assets/laurel_wreath.svg" class="ach-wreath" aria-hidden="true">
       <div class="ach-hero-brand">★ BLACKSEA PADEL · ODESA ★</div>
     </div>
 
@@ -1281,7 +1283,7 @@ function initAchTrophy3D() {
   const loaderEl = document.getElementById('ach-loader');
   if (!canvas || typeof THREE === 'undefined') return null;
 
-  const SZ  = 240;
+  const SZ  = 180;
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
   // ── Renderer ────────────────────────────────────────────────────
@@ -1290,7 +1292,7 @@ function initAchTrophy3D() {
   renderer.setPixelRatio(DPR);
   renderer.outputEncoding    = THREE.sRGBEncoding;
   renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 0.65;
 
   // ── Scene & Camera ───────────────────────────────────────────────
   const scene  = new THREE.Scene();
@@ -1308,17 +1310,17 @@ function initAchTrophy3D() {
         const i = (y * W + x) * 3;
         const t = y / (H - 1);
         if (t < 0.35) {
-          // top — soft warm sky (dimmed)
-          data[i]=140; data[i+1]=130; data[i+2]=100;
+          // top — dim warm sky
+          data[i]=90; data[i+1]=80; data[i+2]=60;
         } else if (t < 0.65) {
-          // mid — muted gold horizon
+          // mid — dark gold horizon
           const s = (t - 0.35) / 0.30;
-          data[i]   = Math.round(140 - s * 30);
-          data[i+1] = Math.round(130 - s * 65);
-          data[i+2] = Math.round(100 - s * 70);
+          data[i]   = Math.round(90 - s * 20);
+          data[i+1] = Math.round(80 - s * 45);
+          data[i+2] = Math.round(60 - s * 45);
         } else {
           // bottom — dark navy ground
-          data[i]=20; data[i+1]=35; data[i+2]=65;
+          data[i]=15; data[i+1]=25; data[i+2]=50;
         }
       }
     }
@@ -1330,14 +1332,14 @@ function initAchTrophy3D() {
     pmrem.dispose();
   })();
 
-  // ── Lights — balanced for gold metallic materials ────────────────
-  scene.add(new THREE.AmbientLight(0xfff8dc, 0.5));
+  // ── Lights — kept deliberately dim for dramatic gold look ────────
+  scene.add(new THREE.AmbientLight(0xfff8dc, 0.25));
 
   const lightDefs = [
-    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 2.0 },  // key  (front-top-right)
-    { pos: [-3,  3,  2], col: 0xffd040, int: 1.0 },  // fill (left warm gold)
-    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.7 },  // bounce (below front)
-    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.5 },  // rim (cool blue back)
+    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 1.2 },  // key  (front-top-right)
+    { pos: [-3,  3,  2], col: 0xffd040, int: 0.6 },  // fill (left warm gold)
+    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.4 },  // bounce (below front)
+    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.3 },  // rim (cool blue back)
   ];
   lightDefs.forEach(({ pos, col, int }) => {
     const l = new THREE.DirectionalLight(col, int);
