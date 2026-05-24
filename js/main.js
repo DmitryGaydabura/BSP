@@ -1208,8 +1208,6 @@ function spawnAchParticles(el) {
   });
 }
 
-let achTrophyCleanup = null;
-
 function openAchievementTournament(tid) {
   const source = tournamentsData || TOURNAMENTS;
   const t = source.find(x => String(x.id) === String(tid));
@@ -1237,7 +1235,9 @@ function openAchievementTournament(tid) {
 
   content.innerHTML = `
     <div class="ach-modal-hero">
-      <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
+      <div class="ach-sketchfab-wrap">
+        <iframe title="Gold Cup" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" allow="autoplay; fullscreen; xr-spatial-tracking" xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share src="https://sketchfab.com/models/0e872136505f4d23a551e57adfabae45/embed?autostart=1&ui_hint=0&ui_infos=0&ui_watermark_link=0&ui_watermark=0&camera=0"></iframe>
+      </div>
     </div>
     <div class="ach-modal-title">${t.name}</div>
     <div class="ach-modal-meta">
@@ -1248,269 +1248,9 @@ function openAchievementTournament(tid) {
     <div class="ach-modal-results">${rowsHtml}</div>
   `;
 
-  if (achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
   openModal('modal-achievement');
-  requestAnimationFrame(() => { achTrophyCleanup = initAchTrophy3D(); });
 }
 
-function initAchTrophy3D() {
-  const canvas = document.getElementById('ach-trophy-canvas');
-  if (!canvas) return null;
-
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  const SZ  = 220;
-  canvas.width  = SZ * DPR;
-  canvas.height = SZ * DPR;
-  canvas.style.width  = SZ + 'px';
-  canvas.style.height = SZ + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(DPR, DPR);
-  const cx = SZ / 2;
-
-  // Trophy dimensions (Y relative to trophy centre)
-  const T_CY     = SZ / 2 - 4;
-  const CUP_TW   = 74;   // cup rim half-width
-  const CUP_BW   = 19;   // cup base half-width
-  const CUP_TY   = -57;  // cup rim Y
-  const CUP_BY   = 22;   // cup bottom Y
-  const STEM_W   = 11;
-  const STEM_TY  = 22;
-  const STEM_BY  = 44;
-  const BASE_W   = 46;
-  const BASE_TY  = 44;
-  const BASE_BY  = 55;
-  const RIM_RY   = 7;    // rim ellipse half-height
-
-  // Start turned ~45° so handles are visible on open, spring back to front
-  let rotX = 0.12, rotY = 0.82;
-  let velX = 0,    velY = 0;
-  let dragging = false, px = 0, py = 0;
-  const PARTS = [];
-  let raf;
-
-  const PCOLS = ['#FFFAE0','#F7DC80','#C9A84C','#FFE87A','#FFF3B0'];
-
-  // ── Helpers ──────────────────────────────────────────────────────
-  function cupPath(pX) {
-    const tW = CUP_TW * pX, bW = CUP_BW * pX;
-    ctx.beginPath();
-    ctx.moveTo(-tW, CUP_TY);
-    ctx.lineTo( tW, CUP_TY);
-    ctx.bezierCurveTo( tW, CUP_TY + 56,  bW, CUP_BY - 18,  bW, CUP_BY);
-    ctx.lineTo(-bW, CUP_BY);
-    ctx.bezierCurveTo(-bW, CUP_BY - 18, -tW, CUP_TY + 56, -tW, CUP_TY);
-    ctx.closePath();
-  }
-
-  // ── Draw ─────────────────────────────────────────────────────────
-  function drawFrame() {
-    ctx.clearRect(0, 0, SZ, SZ);
-
-    const pX    = Math.cos(rotY);          // perspective X scale
-    const apX   = Math.abs(pX);            // always positive for sizes
-    const tiltY = Math.sin(rotX) * 8;
-    const light = (Math.cos(rotY * 0.7 + 0.4) + 1) / 2; // 0–1, shifts with view
-
-    ctx.save();
-    ctx.translate(cx, T_CY + tiltY);
-
-    // ── Base ─────────────────────────────────────────────────────
-    {
-      const bW = BASE_W * apX;
-      const g  = ctx.createLinearGradient(-bW, BASE_TY, bW, BASE_TY);
-      g.addColorStop(0,                        '#6B420C');
-      g.addColorStop(Math.max(0, light - 0.1), '#C9A84C');
-      g.addColorStop(Math.min(1, light + 0.1), '#FFFAE8');
-      g.addColorStop(1,                        '#6B420C');
-      ctx.fillStyle = g;
-      const r = 3, x = -bW, y = BASE_TY, w = bW * 2, h = BASE_BY - BASE_TY;
-      ctx.beginPath();
-      ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // ── Stem ─────────────────────────────────────────────────────
-    {
-      const sW = STEM_W * apX;
-      const g  = ctx.createLinearGradient(-sW, STEM_TY, sW, STEM_TY);
-      g.addColorStop(0,                        '#6B420C');
-      g.addColorStop(Math.min(1, light + 0.05),'#C9A84C');
-      g.addColorStop(1,                        '#6B420C');
-      ctx.fillStyle = g;
-      ctx.fillRect(-sW, STEM_TY, sW * 2, STEM_BY - STEM_TY);
-    }
-
-    // ── Cup body ─────────────────────────────────────────────────
-    {
-      const ga = rotY * 0.8;
-      const g  = ctx.createLinearGradient(-CUP_TW * apX, CUP_TY, CUP_TW * apX, CUP_BY);
-      g.addColorStop(0,                              '#6B420C');
-      g.addColorStop(Math.max(0,   light * 0.5),     '#C9A84C');
-      g.addColorStop(Math.min(1,   light * 0.5 + 0.25), '#F7DC80');
-      g.addColorStop(Math.min(1,   light * 0.4 + 0.45), '#FFFAE8');
-      g.addColorStop(1,                              '#C9A84C');
-      cupPath(pX);
-      ctx.fillStyle = g;
-      ctx.fill();
-
-      // Specular highlight
-      const sx = -Math.cos(rotY) * 24, sy = CUP_TY + 24;
-      const sp = ctx.createRadialGradient(sx, sy, 0, sx, sy, 58);
-      sp.addColorStop(0, 'rgba(255,255,255,0.40)');
-      sp.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.save();
-      cupPath(pX);
-      ctx.clip();
-      ctx.fillStyle = sp;
-      ctx.fillRect(-CUP_TW, CUP_TY, CUP_TW * 2, CUP_BY - CUP_TY);
-      ctx.restore();
-    }
-
-    // ── Rim (ellipse at cup top) ──────────────────────────────────
-    {
-      const rW = CUP_TW * apX;
-      const g  = ctx.createLinearGradient(-rW, CUP_TY - RIM_RY, rW, CUP_TY + RIM_RY);
-      g.addColorStop(0,                        '#6B420C');
-      g.addColorStop(Math.min(1, light + 0.1), '#FFFAE8');
-      g.addColorStop(1,                        '#6B420C');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.ellipse(0, CUP_TY, rW, RIM_RY, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // ── Handles (appear as rotY grows from 0) ─────────────────────
-    {
-      const hVis = Math.abs(Math.sin(rotY));
-      if (hVis > 0.04) {
-        const hAttach = CUP_TW * apX * 0.87;
-        const hTop    = CUP_TY + 13;
-        const hBot    = CUP_TY + 58;
-        const hExt    = 30 * hVis;
-        const alpha   = Math.min(1, hVis * 2.0);
-        const lum     = 0.35 + light * 0.5;
-        ctx.strokeStyle = `rgba(${Math.round(60 + lum*175)},${Math.round(32 + lum*145)},${Math.round(4 + lum*60)},${alpha.toFixed(2)})`;
-        ctx.lineWidth = 6.5;
-        ctx.lineCap   = 'round';
-
-        // Right handle
-        ctx.beginPath();
-        ctx.moveTo( hAttach, hTop);
-        ctx.bezierCurveTo( hAttach + hExt * 2.1, hTop + 6,  hAttach + hExt * 2.1, hBot - 6,  hAttach, hBot);
-        ctx.stroke();
-
-        // Left handle
-        ctx.beginPath();
-        ctx.moveTo(-hAttach, hTop);
-        ctx.bezierCurveTo(-hAttach - hExt * 2.1, hTop + 6, -hAttach - hExt * 2.1, hBot - 6, -hAttach, hBot);
-        ctx.stroke();
-
-        // Handle shine stripe
-        ctx.strokeStyle = `rgba(255,245,180,${(alpha * 0.35).toFixed(2)})`;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo( hAttach, hTop + 6);
-        ctx.bezierCurveTo( hAttach + hExt * 1.8, hTop + 10,  hAttach + hExt * 1.8, hBot - 14,  hAttach, hBot - 8);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(-hAttach, hTop + 6);
-        ctx.bezierCurveTo(-hAttach - hExt * 1.8, hTop + 10, -hAttach - hExt * 1.8, hBot - 14, -hAttach, hBot - 8);
-        ctx.stroke();
-      }
-    }
-
-    ctx.restore();
-
-    // ── Ambient glow ─────────────────────────────────────────────
-    const glow = ctx.createRadialGradient(cx, T_CY, 52, cx, T_CY, 112);
-    glow.addColorStop(0, 'rgba(201,168,76,0)');
-    glow.addColorStop(1, 'rgba(201,168,76,0.14)');
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, T_CY, 112, 0, Math.PI * 2); ctx.fill();
-
-    // ── Particles ────────────────────────────────────────────────
-    for (let i = PARTS.length - 1; i >= 0; i--) {
-      const p = PARTS[i];
-      p.x += p.vx; p.y += p.vy; p.vy += 0.13; p.life--;
-      if (p.life <= 0) { PARTS.splice(i, 1); continue; }
-      const alpha = p.life / p.maxLife;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.col;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * alpha, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function spawnParticles(count, speed) {
-    for (let i = 0; i < count; i++) {
-      const ang = (Math.random() - 0.5) * Math.PI;
-      PARTS.push({
-        x:  cx + Math.cos(ang) * CUP_TW * Math.abs(Math.cos(rotY)) * Math.random(),
-        y:  T_CY + CUP_TY + (Math.random() - 0.5) * 16,
-        vx: (Math.random() - 0.5) * speed * 2.5,
-        vy: -(speed + Math.random() * speed * 0.8),
-        r:   1.5 + Math.random() * 2.5,
-        life: 18 + Math.random() * 20,
-        maxLife: 38,
-        col: PCOLS[Math.floor(Math.random() * PCOLS.length)],
-      });
-    }
-  }
-
-  // ── Loop ─────────────────────────────────────────────────────────
-  function loop() {
-    if (!dragging) {
-      rotX += (-rotX * 0.07) + velX;
-      rotY += (-rotY * 0.07) + velY;
-      velX *= 0.82; velY *= 0.82;
-      const speed = Math.abs(velX) + Math.abs(velY);
-      if (speed > 0.006) spawnParticles(Math.ceil(speed * 6), speed * 38);
-    }
-    drawFrame();
-    raf = requestAnimationFrame(loop);
-  }
-
-  // ── Pointer ──────────────────────────────────────────────────────
-  function onDown(e) {
-    dragging = true; velX = 0; velY = 0;
-    const t = e.touches?.[0] ?? e; px = t.clientX; py = t.clientY;
-  }
-  function onMove(e) {
-    if (!dragging) return;
-    e.preventDefault();
-    const t = e.touches?.[0] ?? e;
-    const dx = t.clientX - px, dy = t.clientY - py;
-    velX = dy * 0.007; velY = dx * 0.007;
-    rotX += velX; rotY += velY;
-    px = t.clientX; py = t.clientY;
-    const speed = Math.abs(velX) + Math.abs(velY);
-    if (speed > 0.008) spawnParticles(Math.ceil(speed * 5), speed * 30);
-  }
-  function onUp() { dragging = false; }
-
-  canvas.addEventListener('pointerdown', onDown);
-  window.addEventListener('pointermove', onMove, { passive: false });
-  window.addEventListener('pointerup', onUp);
-
-  loop();
-
-  return () => {
-    cancelAnimationFrame(raf);
-    canvas.removeEventListener('pointerdown', onDown);
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-  };
-}
 
 function wireAchievements(container) {
   container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
@@ -2719,7 +2459,6 @@ function openModal(id) {
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
-  if (id === 'modal-achievement' && achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
