@@ -1236,16 +1236,61 @@ function openAchievementTournament(tid) {
   }).join('');
 
   content.innerHTML = `
-    <div class="ach-modal-hero">
-      <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
+    <div class="ach-hero">
+      <img src="assets/logo.jpg" class="ach-hero-logo-bg" aria-hidden="true">
+      <div class="ach-stage">
+        <div class="ach-loader" id="ach-loader"><div class="ach-loader-ring"></div></div>
+        <canvas id="ach-trophy-canvas" class="ach-trophy-canvas"></canvas>
+      </div>
+      <svg class="ach-wreath" viewBox="0 0 260 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M130 66 C92 57 52 40 18 14" stroke="#9B7A2E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M130 66 C168 57 208 40 242 14" stroke="#9B7A2E" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(118,62) rotate(-100)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(104,57) rotate(-113)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(89,52) rotate(-126)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(74,45) rotate(-140)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(59,37) rotate(-153)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(44,28) rotate(-164)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(30,19) rotate(-172)" fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(18,10) rotate(-178)" fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(142,62) rotate(100)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(156,57) rotate(113)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(171,52) rotate(126)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(186,45) rotate(140)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(201,37) rotate(153)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(216,28) rotate(164)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C4.5,-5 4.5,-14 0,-18 C-4.5,-14 -4.5,-5 0,0Z" transform="translate(230,19) rotate(172)"  fill="#C9A84C" stroke="#7A5A1A" stroke-width="0.4"/>
+        <path d="M0 0 C3.5,-4 3.5,-11 0,-14 C-3.5,-11 -3.5,-4 0,0Z"  transform="translate(242,10) rotate(178)"  fill="#DDB95E" stroke="#7A5A1A" stroke-width="0.4"/>
+        <circle cx="130" cy="63" r="5" fill="#C9A84C" stroke="#F0D060" stroke-width="1"/>
+        <path d="M127,60 L130,53 L133,60 Z" fill="#F5E070"/>
+      </svg>
+      <div class="ach-hero-brand">★ BLACKSEA PADEL · ODESA ★</div>
     </div>
-    <div class="ach-modal-title">${t.name}</div>
-    <div class="ach-modal-meta">
-      <span>${dateStr}</span>
-      ${t.levelLabel ? `<span class="ach-modal-sep">·</span><span>${t.levelLabel}</span>` : ''}
-      <span class="ach-modal-sep">·</span><span>${typeLabel}</span>
+
+    <div class="ach-info-block">
+      <div class="ach-info-name">${t.name}</div>
+      <div class="ach-info-divider"></div>
+      <div class="ach-info-table">
+        <div class="ach-info-row">
+          <span class="ach-info-lbl">Дата</span>
+          <span class="ach-dots"></span>
+          <span class="ach-info-val">${dateStr}</span>
+        </div>
+        ${t.levelLabel ? `<div class="ach-info-row">
+          <span class="ach-info-lbl">Рівень</span>
+          <span class="ach-dots"></span>
+          <span class="ach-info-val">${t.levelLabel}</span>
+        </div>` : ''}
+        <div class="ach-info-row">
+          <span class="ach-info-lbl">Формат</span>
+          <span class="ach-dots"></span>
+          <span class="ach-info-val">${typeLabel}</span>
+        </div>
+      </div>
+      <div class="ach-info-divider"></div>
+      <div class="ach-results-hdr">Підсумки турніру</div>
+      <div class="ach-modal-results">${rowsHtml}</div>
     </div>
-    <div class="ach-modal-results">${rowsHtml}</div>
   `;
 
   if (achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
@@ -1254,91 +1299,134 @@ function openAchievementTournament(tid) {
 }
 
 function initAchTrophy3D() {
-  const canvas = document.getElementById('ach-trophy-canvas');
+  const canvas   = document.getElementById('ach-trophy-canvas');
+  const loaderEl = document.getElementById('ach-loader');
   if (!canvas || typeof THREE === 'undefined') return null;
 
-  const SZ  = 220;
+  const SZ  = 240;
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
   // ── Renderer ────────────────────────────────────────────────────
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setSize(SZ, SZ);
   renderer.setPixelRatio(DPR);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.toneMapping   = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.6;
-  renderer.shadowMap.enabled = false;
+  renderer.outputEncoding    = THREE.sRGBEncoding;
+  renderer.toneMapping       = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 2.4;
 
   // ── Scene & Camera ───────────────────────────────────────────────
   const scene  = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
-  camera.position.set(0, 0.2, 3.8);
+  const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 100);
+  camera.position.set(0, 0.15, 4.0);
+
+  // ── Warm golden environment map (gives metals proper reflections) ─
+  (function () {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const W = 16, H = 8;
+    const data = new Uint8Array(W * H * 3);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 3;
+        const t = y / (H - 1);
+        if (t < 0.35) {
+          // top — warm white sky
+          data[i]=255; data[i+1]=248; data[i+2]=215;
+        } else if (t < 0.65) {
+          // mid — gold horizon
+          const s = (t - 0.35) / 0.30;
+          data[i]   = Math.round(255 - s * 30);
+          data[i+1] = Math.round(248 - s * 68);
+          data[i+2] = Math.round(215 - s * 150);
+        } else {
+          // bottom — dark navy ground
+          data[i]=25; data[i+1]=45; data[i+2]=85;
+        }
+      }
+    }
+    const tex = new THREE.DataTexture(data, W, H, THREE.RGBFormat);
+    tex.needsUpdate = true;
+    const rt = pmrem.fromEquirectangular(tex);
+    scene.environment = rt.texture;
+    tex.dispose();
+    pmrem.dispose();
+  })();
 
   // ── Lights ───────────────────────────────────────────────────────
-  scene.add(new THREE.AmbientLight(0xfff8dc, 0.6));
+  scene.add(new THREE.AmbientLight(0xfff8dc, 1.8));
 
-  const key = new THREE.DirectionalLight(0xfffbe0, 3.0);
-  key.position.set(2, 5, 4);
-  scene.add(key);
+  const lightDefs = [
+    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 5.0 },  // key (front-top-right)
+    { pos: [-3,  3,  2], col: 0xffd040, int: 3.0 },  // fill (left gold)
+    { pos: [ 0, -2,  3], col: 0xffe080, int: 2.0 },  // bounce (below)
+    { pos: [ 1,  2, -4], col: 0x99aacc, int: 1.5 },  // back-rim (cool blue)
+  ];
+  lightDefs.forEach(({ pos, col, int }) => {
+    const l = new THREE.DirectionalLight(col, int);
+    l.position.set(...pos);
+    scene.add(l);
+  });
 
-  const fill = new THREE.DirectionalLight(0xffd700, 1.2);
-  fill.position.set(-3, 1, -2);
-  scene.add(fill);
-
-  const rim = new THREE.PointLight(0xffe066, 1.0, 12);
-  rim.position.set(0, -1.5, 2.5);
-  scene.add(rim);
-
-  // ── Model loading ────────────────────────────────────────────────
-  let model = null;
-  let raf;
-  let rotY = 0.5;   // start slightly turned
-  let velY = 0;
+  // ── Model ────────────────────────────────────────────────────────
+  let model = null, raf;
+  let rotY = 0.5, velY = 0;
   let dragging = false, lastX = 0;
 
-  const loader = new THREE.GLTFLoader();
-  loader.load(
+  new THREE.GLTFLoader().load(
     'Golden%20Trophy%203D%20Model/scene.gltf',
     (gltf) => {
       model = gltf.scene;
 
-      // Auto-centre & scale to fit ~2 units tall
+      // Auto-centre & scale to fit 2 units tall
       const box    = new THREE.Box3().setFromObject(model);
       const centre = box.getCenter(new THREE.Vector3());
       const size   = box.getSize(new THREE.Vector3());
       const scale  = 2.0 / Math.max(size.x, size.y, size.z);
       model.scale.setScalar(scale);
       model.position.sub(centre.multiplyScalar(scale));
+      model.position.y += 0.1; // nudge up slightly for better framing
+
+      // Crank up environment reflections on all PBR materials
+      model.traverse(child => {
+        if (!child.isMesh) return;
+        [].concat(child.material).forEach(mat => {
+          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 3.5;
+          mat.needsUpdate = true;
+        });
+      });
 
       scene.add(model);
+
+      // Reveal canvas, hide loader
+      canvas.style.opacity = '1';
+      if (loaderEl) {
+        loaderEl.style.opacity = '0';
+        setTimeout(() => { loaderEl.style.display = 'none'; }, 350);
+      }
     },
     undefined,
-    (err) => console.warn('Trophy load error:', err)
+    (err) => {
+      console.warn('Trophy load error:', err);
+      canvas.style.opacity = '1';
+      if (loaderEl) loaderEl.style.display = 'none';
+    }
   );
 
   // ── Render loop ──────────────────────────────────────────────────
   function loop() {
-    if (!dragging) {
-      velY  *= 0.90;
-      rotY  += velY + 0.012;   // gentle auto-spin
-    }
+    if (!dragging) { velY *= 0.90; rotY += velY + 0.012; }
     if (model) model.rotation.y = rotY;
     renderer.render(scene, camera);
     raf = requestAnimationFrame(loop);
   }
 
-  // ── Pointer drag ─────────────────────────────────────────────────
-  function onDown(e) {
-    dragging = true; velY = 0;
-    lastX = (e.touches?.[0] ?? e).clientX;
-  }
+  // ── Drag to spin ─────────────────────────────────────────────────
+  function onDown(e) { dragging = true; velY = 0; lastX = (e.touches?.[0] ?? e).clientX; }
   function onMove(e) {
     if (!dragging) return;
     e.preventDefault();
     const x = (e.touches?.[0] ?? e).clientX;
-    velY  = (x - lastX) * 0.012;
-    rotY += velY;
-    lastX = x;
+    velY = (x - lastX) * 0.012; rotY += velY; lastX = x;
   }
   function onUp() { dragging = false; }
 
