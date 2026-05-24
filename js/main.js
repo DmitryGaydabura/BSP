@@ -1292,7 +1292,7 @@ function initAchTrophy3D() {
   renderer.setPixelRatio(DPR);
   renderer.outputEncoding    = THREE.sRGBEncoding;
   renderer.toneMapping       = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.45;
+  renderer.toneMappingExposure = 0.80;
 
   // ── Scene & Camera ───────────────────────────────────────────────
   const scene  = new THREE.Scene();
@@ -1310,17 +1310,17 @@ function initAchTrophy3D() {
         const i = (y * W + x) * 3;
         const t = y / (H - 1);
         if (t < 0.35) {
-          // top — dim warm sky
-          data[i]=90; data[i+1]=80; data[i+2]=60;
+          // top — warm white sky
+          data[i]=180; data[i+1]=165; data[i+2]=120;
         } else if (t < 0.65) {
-          // mid — dark gold horizon
+          // mid — gold horizon
           const s = (t - 0.35) / 0.30;
-          data[i]   = Math.round(90 - s * 20);
-          data[i+1] = Math.round(80 - s * 45);
-          data[i+2] = Math.round(60 - s * 45);
+          data[i]   = Math.round(180 - s * 50);
+          data[i+1] = Math.round(165 - s * 90);
+          data[i+2] = Math.round(120 - s * 85);
         } else {
-          // bottom — dark navy ground
-          data[i]=15; data[i+1]=25; data[i+2]=50;
+          // bottom — dark navy
+          data[i]=20; data[i+1]=35; data[i+2]=65;
         }
       }
     }
@@ -1332,14 +1332,14 @@ function initAchTrophy3D() {
     pmrem.dispose();
   })();
 
-  // ── Lights — low ambient + sharp key = real gold look ────────────
-  scene.add(new THREE.AmbientLight(0xfff0cc, 0.10));
+  // ── Lights — warm gold balanced lighting ─────────────────────────
+  scene.add(new THREE.AmbientLight(0xfff8dc, 0.40));
 
   const lightDefs = [
-    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 1.8 },  // key  (sharp highlight)
-    { pos: [-3,  3,  2], col: 0xffd040, int: 0.35 }, // fill (left warm gold)
-    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.20 }, // bounce (below)
-    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.15 }, // rim (cool blue back)
+    { pos: [ 2,  6,  4], col: 0xfffbe0, int: 1.8 },  // key  (front-top-right)
+    { pos: [-3,  3,  2], col: 0xffd040, int: 0.80 }, // fill (left warm gold)
+    { pos: [ 0, -2,  3], col: 0xffe080, int: 0.50 }, // bounce (below front)
+    { pos: [ 1,  2, -4], col: 0x99aacc, int: 0.35 }, // rim (cool blue back)
   ];
   lightDefs.forEach(({ pos, col, int }) => {
     const l = new THREE.DirectionalLight(col, int);
@@ -1370,7 +1370,7 @@ function initAchTrophy3D() {
       model.traverse(child => {
         if (!child.isMesh) return;
         [].concat(child.material).forEach(mat => {
-          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 0.5;
+          if (mat.envMapIntensity !== undefined) mat.envMapIntensity = 1.2;
           mat.needsUpdate = true;
         });
       });

@@ -2382,7 +2382,7 @@
 /* ── Wreath + canvas composite ── */
 .ach-wreath-stage {
   position: relative;
-  width: 330px;
+  width: 270px;
   /* height comes from the img inside (block + auto height) */
   flex-shrink: 0;
 }
