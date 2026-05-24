@@ -2312,9 +2312,6 @@
     }
     .hs-dismiss:active { color: var(--text-muted); background: rgba(255,255,255,0.07); }
 
-/* ── Achievement modal sits above other modals (z-index: 100) ── */
-#modal-achievement { z-index: 200; }
-
 /* ── Achievement cups ── */
 .ach-cup {
   cursor: pointer;

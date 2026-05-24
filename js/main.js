@@ -1273,28 +1273,31 @@ const achParallax = (() => {
     const o = tg?.DeviceOrientation;
     if (o) applyTilt(o.beta, o.gamma);
   };
-  const winHandler = (e) => applyTilt(e.beta ?? 0, e.gamma ?? 0);
+  const winHandler = (e) => {
+    if (e.beta == null && e.gamma == null) return;
+    applyTilt(e.beta ?? 0, e.gamma ?? 0);
+  };
 
   return {
     start() {
       if (running) return;
       running = true; baseB = null; baseG = null;
-      if (tg?.DeviceOrientation) {
-        tg.DeviceOrientation.start({ refresh_rate: 25 });
+      // Try TG DeviceOrientation API (Bot API 8.0+)
+      if (typeof tg?.DeviceOrientation?.start === 'function') {
+        tg.DeviceOrientation.start({ refresh_rate: 25, need_absolute: false });
         tg.onEvent('deviceOrientationChanged', tgHandler);
-      } else {
-        window.addEventListener('deviceorientation', winHandler, { passive: true });
       }
+      // Always also listen to window events — works on older TG and browser fallback
+      window.addEventListener('deviceorientation', winHandler, { passive: true });
     },
     stop() {
       if (!running) return;
       running = false; reset();
-      if (tg?.DeviceOrientation) {
+      if (typeof tg?.DeviceOrientation?.stop === 'function') {
         tg.offEvent('deviceOrientationChanged', tgHandler);
         tg.DeviceOrientation.stop();
-      } else {
-        window.removeEventListener('deviceorientation', winHandler);
       }
+      window.removeEventListener('deviceorientation', winHandler);
     },
   };
 })();

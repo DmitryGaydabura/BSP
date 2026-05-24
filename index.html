@@ -509,18 +509,6 @@
     </div>
   </div>
 
-  <!-- Achievement Tournament Modal -->
-  <div class="modal-overlay" id="modal-achievement">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <div class="modal-header">
-        <span class="modal-title">Результати турніру</span>
-        <button class="modal-close" data-close="modal-achievement">✕</button>
-      </div>
-      <div class="modal-body" id="ach-modal-content"></div>
-    </div>
-  </div>
-
   <div class="modal-overlay" id="modal-claim-points">
     <div class="modal-sheet">
       <div class="modal-handle"></div>
@@ -627,7 +615,19 @@
   </div>
 </div>
 
-<script src="js/main.js?v=29" defer></script>
+<!-- Achievement Tournament Modal — must be after modal-player-profile in DOM -->
+<div class="modal-overlay" id="modal-achievement">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Результати турніру</span>
+      <button class="modal-close" data-close="modal-achievement">✕</button>
+    </div>
+    <div class="modal-body" id="ach-modal-content"></div>
+  </div>
+</div>
+
+<script src="js/main.js?v=30" defer></script>
   <!-- Home screen banner -->
   <div id="homescreen-banner" aria-hidden="true">
     <div class="hs-card">
