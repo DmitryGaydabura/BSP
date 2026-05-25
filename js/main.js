@@ -1070,11 +1070,11 @@ function renderProfile() {
         <div class="raketo-link-banner-body">
           <div class="raketo-link-banner-title">Підключіть профіль Raketo</div>
           <div class="raketo-link-banner-text">
-            Raketo — платформа для падел-рейтингу. Щоб отримати стартові бали та реєструватися на турніри, потрібно підключити ваш Raketo-профіль.<br><br>
+            Raketo — додаток для падел-рейтингу. Підключіть профіль, щоб отримати стартові бали та реєструватися на турніри.<br><br>
             <strong>Як підключити:</strong><br>
-            1. Відкрийте <a href="https://raketo.ua" target="_blank" style="color:var(--gold)">raketo.ua</a> та увійдіть у свій профіль<br>
-            2. В налаштуваннях вкажіть ваш Telegram: <strong>@${u.username || 'ваш_username'}</strong><br>
-            3. Поверніться сюди і натисніть кнопку нижче
+            1. Відкрийте додаток <strong>Raketo</strong><br>
+            2. Налаштування → вкажіть Telegram: <strong>@${u.username || 'ваш_username'}</strong><br>
+            3. Натисніть кнопку нижче
           </div>
         </div>
       </div>
@@ -3713,6 +3713,41 @@ async function handleTournamentDeepLink(tournamentId) {
    HOME SCREEN BANNER
 ════════════════════════════════════════════════════════════════ */
 
+function initRaketoLinkBanner() {
+  // Only show when the user is logged in but hasn't linked Raketo yet
+  if (!currentUser || currentUser.raketoDocId) return;
+  // Once per session — don't spam on every tab switch
+  if (sessionStorage.getItem('bsp_rlb_dismissed')) return;
+
+  const banner = document.getElementById('raketo-link-banner');
+  if (!banner) return;
+
+  // Fill in the user's Telegram handle
+  const usernameEl = document.getElementById('rlb-username');
+  if (usernameEl && currentUser.username) {
+    usernameEl.textContent = '@' + currentUser.username;
+  }
+
+  function show() {
+    banner.removeAttribute('aria-hidden');
+    requestAnimationFrame(() => banner.classList.add('rlb-visible'));
+  }
+  function hide() {
+    banner.classList.remove('rlb-visible');
+    banner.setAttribute('aria-hidden', 'true');
+    sessionStorage.setItem('bsp_rlb_dismissed', '1');
+  }
+
+  document.getElementById('rlb-connect-btn').addEventListener('click', () => {
+    hide();
+    switchTab('profile');
+  });
+  document.getElementById('rlb-later-btn').addEventListener('click', hide);
+  document.getElementById('rlb-backdrop').addEventListener('click', hide);
+
+  setTimeout(show, 800);
+}
+
 function initHomescreenBanner() {
   // Only inside Telegram Mini App
   if (!tg) return;
@@ -3771,6 +3806,9 @@ apiBootstrap().then(async () => {
 
   if (!localStorage.getItem('bsp_intro_seen')) {
     initOnboarding();
+  } else {
+    // Only show Raketo link banner if onboarding was already seen (not first ever launch)
+    initRaketoLinkBanner();
   }
 
   initHomescreenBanner();
