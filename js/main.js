@@ -3769,8 +3769,6 @@ async function handleTournamentDeepLink(tournamentId) {
 function initRaketoLinkBanner() {
   // Only show when the user is logged in but hasn't linked Raketo yet
   if (!currentUser || currentUser.raketoDocId) return;
-  // Once per session — don't nag every time
-  if (sessionStorage.getItem('bsp_rlb_dismissed')) return;
 
   const banner = document.getElementById('raketo-link-banner');
   if (!banner) return;
@@ -3788,14 +3786,18 @@ function initRaketoLinkBanner() {
   function hide() {
     banner.classList.remove('rlb-visible');
     banner.setAttribute('aria-hidden', 'true');
-    sessionStorage.setItem('bsp_rlb_dismissed', '1');
   }
 
-  document.getElementById('rlb-connect-btn').addEventListener('click', () => {
-    hide();
-    switchTab('profile');
-  });
-  document.getElementById('rlb-later-btn').addEventListener('click', hide);
+  // Use replaceEventListener pattern so reopening the app doesn't stack listeners
+  const connectBtn = document.getElementById('rlb-connect-btn');
+  const laterBtn   = document.getElementById('rlb-later-btn');
+  const newConnect = connectBtn.cloneNode(true);
+  const newLater   = laterBtn.cloneNode(true);
+  connectBtn.replaceWith(newConnect);
+  laterBtn.replaceWith(newLater);
+
+  newConnect.addEventListener('click', () => { hide(); switchTab('profile'); });
+  newLater.addEventListener('click', hide);
 
   setTimeout(show, 600);
 }
@@ -3858,10 +3860,9 @@ apiBootstrap().then(async () => {
 
   if (!localStorage.getItem('bsp_intro_seen')) {
     initOnboarding();
-  } else {
-    // Only show Raketo link banner if onboarding was already seen (not first ever launch)
-    initRaketoLinkBanner();
   }
+  // Show Raketo link banner on every app open until the user links their account
+  initRaketoLinkBanner();
 
   initHomescreenBanner();
 });
