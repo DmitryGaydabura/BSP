@@ -3146,7 +3146,8 @@ async function openUsersModal() {
         </div>
         <div class="user-merge-area" style="display:none;width:100%;padding-top:6px;border-top:1px solid var(--border-subtle);margin-top:2px">
           <div style="font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:6px">Об'єднати — оберіть другий акаунт (він буде видалений):</div>
-          <div class="user-merge-candidates" style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
+          <input class="form-input merge-search-input" placeholder="Пошук гравця..." style="width:100%;font-size:12px;padding:6px 10px;margin-bottom:6px">
+          <div class="user-merge-candidates" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
           <button class="merge-cancel-btn" style="width:100%;font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:6px 0;margin-top:2px">Скасувати</button>
         </div>
         <div class="user-raketo-link" style="width:100%;padding-top:4px;border-top:1px solid var(--border-subtle);margin-top:2px">
@@ -3248,42 +3249,69 @@ async function openUsersModal() {
         list.querySelectorAll('.user-merge-area').forEach(a => { a.style.display = 'none'; });
         if (isOpen) return;
 
-        const otherUsers = users.filter(u => String(u.id) !== userId);
-        candidatesEl.innerHTML = otherUsers.map(u => {
-          const typeLabel = u.adminImported && !u.telegramId ? 'Raketo-імпорт' : 'Telegram';
-          const typeColor = u.adminImported && !u.telegramId ? 'var(--gold)' : 'var(--success)';
-          return `<div class="merge-candidate" data-target-id="${u.id}"
-            style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--card-bg);cursor:pointer;font-size:12px;border:1px solid transparent">
-            <div style="flex:1;min-width:0">
-              <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.displayName}</div>
-              <div style="font-size:10px;color:var(--text-muted)">${u.ratingPoints} pts · <span style="color:${typeColor}">${typeLabel}</span></div>
-            </div>
-            <span style="font-size:11px;color:var(--text-muted);flex-shrink:0">Обрати →</span>
-          </div>`;
-        }).join('');
+        // Pre-sort candidates alphabetically; they stay sorted while search filters
+        const sortedCandidates = users
+          .filter(u => String(u.id) !== userId)
+          .sort((a, b) => a.displayName.localeCompare(b.displayName, 'uk'));
 
-        candidatesEl.querySelectorAll('.merge-candidate').forEach(cand => {
-          cand.addEventListener('mouseenter', () => { cand.style.borderColor = 'var(--border-strong)'; });
-          cand.addEventListener('mouseleave', () => { cand.style.borderColor = 'transparent'; });
-          cand.addEventListener('click', async () => {
-            const targetId = cand.dataset.targetId;
-            const keepUser = users.find(u => String(u.id) === userId);
-            const delUser  = users.find(u => String(u.id) === targetId);
-            if (!confirm(`Об'єднати акаунти?\n\n"${delUser.displayName}" буде видалено.\nВсі матчі та рейтинг перенесуться до "${keepUser.displayName}".`)) return;
+        const searchInput = item.querySelector('.merge-search-input');
 
-            cand.style.opacity = '0.5';
-            try {
-              await API.users.mergeUsers(userId, targetId);
-              showToast(`Акаунти об'єднано`, 'success');
-              openUsersModal(); // Reload the full list so deleted user disappears and kept user is up-to-date
-            } catch (e) {
-              alert('Помилка: ' + (e.message || 'unknown'));
-              cand.style.opacity = '1';
-            }
+        function renderCandidates(query) {
+          const q = query.toLowerCase();
+          const visible = q
+            ? sortedCandidates.filter(u =>
+                u.displayName.toLowerCase().includes(q) ||
+                (u.username || '').toLowerCase().includes(q))
+            : sortedCandidates;
+
+          if (!visible.length) {
+            candidatesEl.innerHTML = `<div style="font-size:11px;color:var(--text-muted);padding:6px 0">Не знайдено</div>`;
+            return;
+          }
+
+          candidatesEl.innerHTML = visible.map(u => {
+            const typeLabel = u.adminImported && !u.telegramId ? 'Raketo-імпорт' : 'Telegram';
+            const typeColor = u.adminImported && !u.telegramId ? 'var(--gold)' : 'var(--success)';
+            const handle   = u.username ? ` · @${u.username}` : '';
+            return `<div class="merge-candidate" data-target-id="${u.id}"
+              style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:var(--card-bg);cursor:pointer;font-size:12px;border:1px solid transparent">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.displayName}</div>
+                <div style="font-size:10px;color:var(--text-muted)">${u.ratingPoints} pts · <span style="color:${typeColor}">${typeLabel}</span>${handle}</div>
+              </div>
+              <span style="font-size:11px;color:var(--text-muted);flex-shrink:0">Обрати →</span>
+            </div>`;
+          }).join('');
+
+          // Wire candidate clicks via event delegation
+          candidatesEl.querySelectorAll('.merge-candidate').forEach(cand => {
+            cand.addEventListener('mouseenter', () => { cand.style.borderColor = 'var(--border-strong)'; });
+            cand.addEventListener('mouseleave', () => { cand.style.borderColor = 'transparent'; });
+            cand.addEventListener('click', async () => {
+              const targetId = cand.dataset.targetId;
+              const keepUser = users.find(u => String(u.id) === userId);
+              const delUser  = sortedCandidates.find(u => String(u.id) === targetId);
+              if (!confirm(`Об'єднати акаунти?\n\n"${delUser.displayName}" буде видалено.\nВсі матчі та рейтинг перенесуться до "${keepUser.displayName}".`)) return;
+
+              cand.style.opacity = '0.5';
+              try {
+                await API.users.mergeUsers(userId, targetId);
+                showToast(`Акаунти об'єднано`, 'success');
+                openUsersModal();
+              } catch (e) {
+                alert('Помилка: ' + (e.message || 'unknown'));
+                cand.style.opacity = '1';
+              }
+            });
           });
-        });
+        }
+
+        renderCandidates('');
+        searchInput.value = '';
+        searchInput.addEventListener('input', () => renderCandidates(searchInput.value.trim()));
 
         mergeArea.style.display = 'block';
+        searchInput.focus();
       });
 
       item.querySelector('.merge-cancel-btn').addEventListener('click', () => {
@@ -3716,13 +3744,13 @@ async function handleTournamentDeepLink(tournamentId) {
 function initRaketoLinkBanner() {
   // Only show when the user is logged in but hasn't linked Raketo yet
   if (!currentUser || currentUser.raketoDocId) return;
-  // Once per session — don't spam on every tab switch
+  // Once per session — don't nag every time
   if (sessionStorage.getItem('bsp_rlb_dismissed')) return;
 
   const banner = document.getElementById('raketo-link-banner');
   if (!banner) return;
 
-  // Fill in the user's Telegram handle
+  // Fill in the user's actual Telegram @handle
   const usernameEl = document.getElementById('rlb-username');
   if (usernameEl && currentUser.username) {
     usernameEl.textContent = '@' + currentUser.username;
@@ -3743,9 +3771,8 @@ function initRaketoLinkBanner() {
     switchTab('profile');
   });
   document.getElementById('rlb-later-btn').addEventListener('click', hide);
-  document.getElementById('rlb-backdrop').addEventListener('click', hide);
 
-  setTimeout(show, 800);
+  setTimeout(show, 600);
 }
 
 function initHomescreenBanner() {

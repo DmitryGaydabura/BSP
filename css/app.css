@@ -2233,88 +2233,71 @@
     .aa-pick-court { font-size: 12px; color: var(--white-warm); margin-bottom: 3px; }
     .aa-pick-players { font-size: 11px; color: var(--text-muted); }
 
-    /* ── Raketo Link Startup Banner (bottom sheet) ─────────────── */
+    /* ── Raketo Link Startup Screen (fullscreen, same pattern as onboarding) ── */
     #raketo-link-banner {
-      position: fixed; inset: 0; z-index: 90;
-      pointer-events: none;
-      display: flex; align-items: flex-end;
+      position: fixed; inset: 0; z-index: 9998;
+      background: var(--navy-deep);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 300ms var(--ease);
     }
-    #raketo-link-banner.rlb-visible { pointer-events: auto; }
-
-    .rlb-backdrop {
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,0);
-      transition: background 0.4s var(--ease);
+    #raketo-link-banner.rlb-visible { opacity: 1; pointer-events: auto; }
+    .rlb-content {
+      flex: 1; width: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 28px 0; overflow-y: auto;
     }
-    #raketo-link-banner.rlb-visible .rlb-backdrop {
-      background: rgba(0,0,0,0.60);
+    .rlb-icon {
+      font-size: 72px; line-height: 1; margin-bottom: 24px;
+      filter: drop-shadow(0 4px 24px rgba(201,168,76,0.35));
     }
-
-    .rlb-sheet {
-      position: relative; z-index: 1;
-      width: 100%;
-      background: linear-gradient(180deg, #1A2F4A 0%, #0D1B2E 100%);
-      border: 1px solid rgba(201,168,76,0.30);
-      border-bottom: none;
-      border-radius: 20px 20px 0 0;
-      padding: 12px 20px calc(env(safe-area-inset-bottom, 8px) + 20px);
-      display: flex; flex-direction: column; align-items: center; gap: 0;
-      transform: translateY(100%);
-      transition: transform 0.45s var(--ease);
-      box-shadow: 0 -8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,168,76,0.06) inset;
-    }
-    #raketo-link-banner.rlb-visible .rlb-sheet { transform: translateY(0); }
-
-    .rlb-handle {
-      width: 36px; height: 4px;
-      background: rgba(255,255,255,0.18); border-radius: 2px;
-      margin-bottom: 18px; flex-shrink: 0;
-    }
-    .rlb-icon { font-size: 36px; margin-bottom: 12px; }
     .rlb-title {
-      font-size: 18px; font-weight: 800; color: var(--white-warm);
-      letter-spacing: -0.01em; text-align: center; margin-bottom: 8px;
+      font-family: var(--font-brand); font-size: 24px; font-weight: 700;
+      color: var(--white-warm); text-align: center;
+      margin-bottom: 12px; line-height: 1.25;
     }
-    .rlb-sub {
-      font-size: 13px; color: var(--text-muted); text-align: center;
-      line-height: 1.5; margin-bottom: 22px; max-width: 300px;
+    .rlb-body {
+      font-size: 15px; color: var(--text-muted); text-align: center;
+      line-height: 1.6; margin-bottom: 28px; max-width: 300px;
     }
+    .rlb-body strong { color: var(--gold); font-weight: 600; }
     .rlb-steps {
-      width: 100%; display: flex; flex-direction: column; gap: 12px;
-      margin-bottom: 24px;
+      width: 100%; display: flex; flex-direction: column; gap: 14px;
     }
     .rlb-step {
       display: flex; align-items: flex-start; gap: 12px;
-      font-size: 13px; color: var(--text-dim); line-height: 1.45;
+      font-size: 14px; color: var(--text-dim); line-height: 1.5;
     }
     .rlb-step strong { color: var(--white-warm); }
     .rlb-num {
-      flex-shrink: 0;
-      width: 22px; height: 22px;
-      background: rgba(201,168,76,0.15);
+      flex-shrink: 0; width: 26px; height: 26px;
+      background: rgba(201,168,76,0.12);
       border: 1px solid rgba(201,168,76,0.30);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700; color: var(--gold);
-      margin-top: 1px;
+      font-size: 12px; font-weight: 700; color: var(--gold);
+    }
+    .rlb-bottom {
+      width: 100%; padding: 24px 20px 28px;
+      display: flex; flex-direction: column; gap: 10px; align-items: center;
     }
     .rlb-cta {
-      width: 100%;
-      padding: 14px;
+      width: 100%; height: 52px;
       background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
       color: var(--navy-deep);
-      font-family: var(--font-body); font-size: 15px; font-weight: 800;
+      font-family: var(--font-body); font-size: 16px; font-weight: 800;
       border-radius: 14px; letter-spacing: 0.01em;
-      box-shadow: 0 4px 16px rgba(201,168,76,0.40);
-      transition: opacity 0.15s, transform 0.15s;
-      touch-action: manipulation; margin-bottom: 10px;
+      box-shadow: 0 4px 20px rgba(201,168,76,0.40);
+      transition: opacity 0.15s, transform 0.15s; touch-action: manipulation;
     }
     .rlb-cta:active { opacity: 0.85; transform: scale(0.98); }
     .rlb-later {
       font-size: 13px; color: var(--text-muted);
-      background: none; padding: 6px 16px;
-      touch-action: manipulation;
-      transition: color 0.15s;
+      background: none; padding: 6px 12px;
+      touch-action: manipulation; transition: color 0.15s;
     }
     .rlb-later:active { color: var(--text-dim); }
 

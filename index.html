@@ -634,19 +634,23 @@
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">
-    <div class="rlb-backdrop" id="rlb-backdrop"></div>
-    <div class="rlb-sheet">
-      <div class="rlb-handle"></div>
+    <div class="rlb-content">
       <div class="rlb-icon">🎾</div>
       <div class="rlb-title">Підключіть Raketo профіль</div>
-      <div class="rlb-sub">Реєстрація на турніри доступна лише для гравців, підключених до Raketo</div>
+      <div class="rlb-body">
+        Raketo — офіційна платформа для падел в Україні.
+        Підключіть профіль, щоб отримати <strong>стартові бали</strong>
+        та реєструватися на турніри.
+      </div>
       <div class="rlb-steps">
         <div class="rlb-step"><span class="rlb-num">1</span><span>Відкрийте додаток <strong>Raketo</strong></span></div>
         <div class="rlb-step"><span class="rlb-num">2</span><span>Налаштування → вкажіть Telegram: <strong id="rlb-username">@ваш_username</strong></span></div>
         <div class="rlb-step"><span class="rlb-num">3</span><span>Поверніться та натисніть «Імпортувати рейтинг» у Профілі</span></div>
       </div>
-      <button class="rlb-cta" id="rlb-connect-btn">Перейти до профілю</button>
-      <button class="rlb-later" id="rlb-later-btn">Пізніше</button>
+    </div>
+    <div class="rlb-bottom">
+      <button class="rlb-cta" id="rlb-connect-btn">Підключити Raketo</button>
+      <button class="rlb-later" id="rlb-later-btn">Продовжити без синхронізації</button>
     </div>
   </div>
 
