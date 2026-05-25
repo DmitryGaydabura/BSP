@@ -388,6 +388,12 @@ function renderUpcomingList(source, list) {
 
   list.querySelectorAll('.sr-join-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      // Raketo-link is required for self-enrollment (admins bypass this)
+      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
+        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+        switchTab('profile');
+        return;
+      }
       const tid = parseInt(btn.dataset.id, 10);
       const tournament = (tournamentsData || []).find(t => t.id === tid);
       if (tournament) showRegistrationConfirm(tournament);
@@ -1059,10 +1065,23 @@ function renderProfile() {
         </div>
       </div>
     ` : `
+      <div class="raketo-link-banner">
+        <div class="raketo-link-banner-icon">🎾</div>
+        <div class="raketo-link-banner-body">
+          <div class="raketo-link-banner-title">Підключіть профіль Raketo</div>
+          <div class="raketo-link-banner-text">
+            Raketo — платформа для падел-рейтингу. Щоб отримати стартові бали та реєструватися на турніри, потрібно підключити ваш Raketo-профіль.<br><br>
+            <strong>Як підключити:</strong><br>
+            1. Відкрийте <a href="https://raketo.ua" target="_blank" style="color:var(--gold)">raketo.ua</a> та увійдіть у свій профіль<br>
+            2. В налаштуваннях вкажіть ваш Telegram: <strong>@${u.username || 'ваш_username'}</strong><br>
+            3. Поверніться сюди і натисніть кнопку нижче
+          </div>
+        </div>
+      </div>
       <button class="claim-points-btn" id="btn-claim-points">
         <div class="claim-points-btn-left">
           <div class="claim-points-btn-title">Імпортувати рейтинг з Raketo</div>
-          <div class="claim-points-btn-sub">Вкажіть @username в Raketo — один раз</div>
+          <div class="claim-points-btn-sub">Натисніть після того як вказали Telegram у Raketo</div>
         </div>
         <div class="claim-points-btn-arrow">›</div>
       </button>
@@ -3103,7 +3122,7 @@ async function openUsersModal() {
         </div>
         <div class="user-list-info">
           <div class="user-list-name">${u.displayName}${u.adminImported && !u.telegramId ? ' <span style="font-size:10px;color:var(--text-dim);font-weight:600">Raketo·не зареєстрований</span>' : ''}</div>
-          <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.raketoTelegramUsername ? ` · @${u.raketoTelegramUsername}` : ''}</div>
+          <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.username ? ` · <span style="color:var(--gold)">@${u.username}</span>` : ''}${u.raketoTelegramUsername && u.raketoTelegramUsername !== u.username ? ` · Raketo:@${u.raketoTelegramUsername}` : ''}</div>
         </div>
         <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end">
           <input class="form-input rating-edit-input" type="number" min="0"
@@ -3255,9 +3274,8 @@ async function openUsersModal() {
             cand.style.opacity = '0.5';
             try {
               await API.users.mergeUsers(userId, targetId);
-              list.querySelector(`.user-list-item[data-user-id="${targetId}"]`)?.remove();
-              mergeArea.style.display = 'none';
               showToast(`Акаунти об'єднано`, 'success');
+              openUsersModal(); // Reload the full list so deleted user disappears and kept user is up-to-date
             } catch (e) {
               alert('Помилка: ' + (e.message || 'unknown'));
               cand.style.opacity = '1';

@@ -1401,6 +1401,23 @@
     }
     .raketo-claimed-detail { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
+    /* Raketo not-linked info banner */
+    .raketo-link-banner {
+      background: linear-gradient(135deg, rgba(201,168,76,0.10), rgba(201,168,76,0.03));
+      border: 1px solid rgba(201,168,76,0.35);
+      border-radius: 12px; padding: 16px;
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .raketo-link-banner-icon { font-size: 28px; flex-shrink: 0; line-height: 1; margin-top: 2px; }
+    .raketo-link-banner-body { flex: 1; min-width: 0; }
+    .raketo-link-banner-title {
+      font-size: 14px; font-weight: 700; color: var(--gold); margin-bottom: 8px;
+    }
+    .raketo-link-banner-text {
+      font-size: 12px; color: var(--text-muted); line-height: 1.65;
+    }
+    .raketo-link-banner-text strong { color: var(--white-warm); }
+
     /* Modal overlay */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 100;
