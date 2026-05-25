@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=14">
+  <link rel="stylesheet" href="css/app.css?v=15">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -425,6 +425,10 @@
         <button class="modal-close" data-close="modal-users">✕</button>
       </div>
       <div class="modal-body">
+        <div class="users-search-bar">
+          <input class="form-input" id="users-search-input" type="search"
+                 placeholder="Пошук гравця…" autocomplete="off" autocorrect="off">
+        </div>
         <div id="users-list">
           <!-- rendered by JS -->
         </div>
@@ -630,7 +634,7 @@
   </div>
 </div>
 
-<script src="js/main.js?v=33" defer></script>
+<script src="js/main.js?v=34" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

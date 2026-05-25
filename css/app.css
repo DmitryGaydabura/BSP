@@ -1507,6 +1507,16 @@
     .pair-fields-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 
     /* User list in admin */
+    .users-search-bar {
+      position: sticky; top: 0; z-index: 2;
+      background: var(--navy-deep);
+      padding: 0 0 10px;
+      margin-bottom: 2px;
+    }
+    .users-search-bar .form-input {
+      width: 100%; box-sizing: border-box;
+    }
+
     .user-list-item {
       display: flex; align-items: center; gap: 12px;
       padding: 10px 0;

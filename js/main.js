@@ -3111,11 +3111,30 @@ function inferLevel(startingPoints) {
 async function openUsersModal() {
   openModal('modal-users');
   const list = document.getElementById('users-list');
+  const searchInput = document.getElementById('users-search-input');
+  if (searchInput) searchInput.value = '';
   list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Завантаження...</div>';
   try {
-    const users = await API.users.list();
+    const rawUsers = await API.users.list();
+    // Sort alphabetically (Ukrainian locale) once; search filters without re-sorting
+    const users = [...rawUsers].sort((a, b) =>
+      (a.displayName || '').localeCompare(b.displayName || '', 'uk'));
     const levelOptHtml = LEVEL_OPTIONS.map(l => `<option value="${l.value}">${l.label}</option>`).join('');
-    list.innerHTML = users.map(u => `
+
+    function renderUsers(query) {
+      const q = (query || '').toLowerCase().trim();
+      const visible = q
+        ? users.filter(u =>
+            (u.displayName || '').toLowerCase().includes(q) ||
+            (u.username || '').toLowerCase().includes(q))
+        : users;
+
+      if (!visible.length) {
+        list.innerHTML = `<div style="color:var(--text-muted);font-size:13px;padding:12px 0;text-align:center">Нічого не знайдено</div>`;
+        return;
+      }
+
+      list.innerHTML = visible.map(u => `
       <div class="user-list-item" data-user-id="${u.id}" style="flex-wrap:wrap;gap:6px${u.adminImported && !u.telegramId ? ';opacity:0.75' : ''}">
         <div class="user-list-avatar">
           ${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : initials(u.displayName)}
@@ -3374,6 +3393,12 @@ async function openUsersModal() {
       searchBtn.addEventListener('click', doRlSearch);
       searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doRlSearch(); });
     });
+    } // end renderUsers
+
+    renderUsers('');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => renderUsers(searchInput.value));
+    }
   } catch (e) {
     list.innerHTML = `<div style="color:var(--error);font-size:13px">${e.message}</div>`;
   }
