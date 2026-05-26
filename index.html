@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0D1B2E">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=6"></script>
+  <script src="js/api.js?v=7"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=15">
+  <link rel="stylesheet" href="css/app.css?v=16">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -298,6 +298,7 @@
           <select class="form-select" id="ct-type">
             <option value="PAIR">Парний</option>
             <option value="SINGLE">Одиночний</option>
+            <option value="CUP">🏆 Кубок</option>
           </select>
         </div>
         <div class="form-group">
@@ -634,7 +635,80 @@
   </div>
 </div>
 
-<script src="js/main.js?v=35" defer></script>
+<!-- Cup Detail Modal -->
+<div class="modal-overlay" id="modal-cup">
+  <div class="modal-sheet modal-sheet-tall">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="cup-modal-title">Кубок</span>
+      <button class="modal-close" data-close="modal-cup">✕</button>
+    </div>
+    <div class="modal-body" id="cup-modal-body">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Cup Start Config Modal (admin only) -->
+<div class="modal-overlay" id="modal-cup-start">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Запустити Кубок</span>
+      <button class="modal-close" data-close="modal-cup-start">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Кількість груп</label>
+        <input class="form-input" type="number" id="cup-group-count" min="2" max="8" value="2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Пар виходить з кожної групи</label>
+        <input class="form-input" type="number" id="cup-pairs-advancing" min="1" max="4" value="2">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="checkbox" id="cup-randomize" class="cup-checkbox" checked>
+        <label for="cup-randomize" style="font-size:14px;color:var(--text-primary);cursor:pointer">
+          Рандомізувати пари автоматично
+        </label>
+      </div>
+      <div id="cup-pairs-manual-section" style="display:none">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Вкажіть пари гравців:</div>
+        <div id="cup-manual-pairs-container"></div>
+        <button class="btn-secondary" id="cup-add-pair-btn" style="width:100%;margin-top:6px">+ Додати пару</button>
+      </div>
+      <button class="btn-primary" id="cup-start-btn" style="width:100%;margin-top:12px">🏆 Запустити Кубок</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cup Match Score Entry Modal -->
+<div class="modal-overlay" id="modal-cup-score">
+  <div class="modal-sheet" style="max-height:280px">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="cup-score-title">Результат матчу</span>
+      <button class="modal-close" data-close="modal-cup-score">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="cup-score-pair-names" style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+        <div style="text-align:center">
+          <div id="cup-score-p1-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="cup-score-1" min="0" max="7" placeholder="0" style="text-align:center;font-size:28px;font-weight:700;width:80px">
+        </div>
+        <div style="font-size:24px;font-weight:700;color:var(--text-muted)">:</div>
+        <div style="text-align:center">
+          <div id="cup-score-p2-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="cup-score-2" min="0" max="7" placeholder="0" style="text-align:center;font-size:28px;font-weight:700;width:80px">
+        </div>
+      </div>
+      <button class="btn-primary" id="cup-score-submit" style="width:100%;margin-top:14px">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js?v=36" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

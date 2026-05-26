@@ -302,8 +302,8 @@ function renderUpcomingList(source, list) {
     return;
   }
 
-  const statusLabel = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено' };
-  const statusCls   = { DRAFT: 't-status-draft', ACTIVE: 't-status-active', FINISHED: 't-status-done' };
+  const statusLabel = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено', GROUP_STAGE: 'Груповий етап', PLAYOFF: 'Плей-офф' };
+  const statusCls   = { DRAFT: 't-status-draft', ACTIVE: 't-status-active', FINISHED: 't-status-done', GROUP_STAGE: 't-status-live', PLAYOFF: 't-status-live' };
 
   list.innerHTML = filtered.map(t => {
     const confirmed   = t.participants || [];
@@ -322,7 +322,10 @@ function renderUpcomingList(source, list) {
     const participantsInfo = t.maxParticipants
       ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
       : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : '');
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
+    const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
+    const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
+    const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
 
     const enrolledBadge = isEnrolled
       ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
@@ -351,13 +354,23 @@ function renderUpcomingList(source, list) {
         </div>`
       : '';
 
+    const cupViewBtn = (t.type === 'CUP' && (isLive || t.status === 'FINISHED'))
+      ? `<button class="chip-btn chip-cup-view cup-view-btn" data-id="${t.id}">Переглянути Кубок</button>`
+      : '';
+    const adminCupBtn = (t.type === 'CUP' && t.status === 'DRAFT' && currentUser?.role === 'ADMIN')
+      ? `<button class="t-admin-btn t-admin-cup-start-btn" data-id="${t.id}">▶ Запустити кубок</button>`
+      : '';
+    const adminCupFinalize = (t.type === 'CUP' && t.status === 'PLAYOFF' && currentUser?.role === 'ADMIN')
+      ? `<button class="t-admin-btn t-admin-cup-finalize-btn" data-id="${t.id}">✓ Фіналізувати кубок</button>`
+      : '';
+
     return `
-      <div class="tournament-card" data-tournament-id="${t.id}">
+      <div class="tournament-card${t.type === 'CUP' ? ' tournament-card-cup' : ''}" data-tournament-id="${t.id}">
         <div class="tournament-card-header">
           <div class="tournament-meta">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-              <div class="tournament-name">${t.name}</div>
-              ${joinBtn}
+              <div class="tournament-name">${t.name}${liveBadge}</div>
+              ${t.type !== 'CUP' ? joinBtn : ''}
             </div>
             <div class="tournament-date-cat">
               <span class="tournament-date">${fmt(t.date)}${t.time ? ' · ' + t.time.slice(0,5) : ''}</span>
@@ -374,9 +387,13 @@ function renderUpcomingList(source, list) {
               ${t.location ? `<span class="t-location-tag">📍 ${t.location}</span>` : ''}
               <span class="t-location-tag">💳 ${priceLabel}</span>
             </div>` : ''}
+            ${t.type === 'CUP' && t.status === 'DRAFT' ? (joinBtn || '') : ''}
+            ${cupViewBtn}
             ${currentUser?.role === 'ADMIN' ? `
             <div class="t-admin-actions">
               <button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>
+              ${adminCupBtn}
+              ${adminCupFinalize}
               <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
             </div>` : ''}
           </div>
@@ -423,7 +440,7 @@ function renderFinishedList(source, list) {
     const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
     const top3    = results.filter(r => r.pos >= 1 && r.pos <= 3);
     const rest    = results.filter(r => r.pos > 3);
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
 
     const podiumConfig = [
       { pos: 2, cls: 'fp-2', blockCls: 'fp-b2', rankCls: 'fp-r2', crown: '' },
@@ -523,6 +540,27 @@ function wireAdminTournamentBtns(container) {
         btn.disabled = false;
       }
     });
+  });
+  container.querySelectorAll('.t-admin-cup-start-btn').forEach(btn => {
+    btn.addEventListener('click', () => openCupStartModal(btn.dataset.id));
+  });
+  container.querySelectorAll('.t-admin-cup-finalize-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Фіналізувати кубок та нарахувати рейтинг?')) return;
+      btn.disabled = true;
+      try {
+        await API.cup.finalize(btn.dataset.id);
+        tournamentsData = null;
+        renderResults();
+        showToast('Кубок завершено! Рейтинг нараховано 🏆');
+      } catch (e) {
+        alert('Помилка: ' + (e.data?.message || e.message || 'unknown'));
+        btn.disabled = false;
+      }
+    });
+  });
+  container.querySelectorAll('.cup-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => openCupModal(btn.dataset.id));
   });
 }
 
@@ -2808,7 +2846,7 @@ async function openSubmitResults() {
     srTournamentsAll = await API.tournaments.list();
     const active = srTournamentsAll.filter(t => t.status !== 'FINISHED');
     sel.innerHTML = active.map(t => {
-      const typeLabel = t.type === 'SINGLE' ? 'Один.' : 'Пар.';
+      const typeLabel = t.type === 'SINGLE' ? 'Один.' : t.type === 'CUP' ? 'Куб.' : 'Пар.';
       return `<option value="${t.id}">${t.name} [${t.levelLabel || t.level || ''} · ${typeLabel}]</option>`;
     }).join('');
     if (!active.length) { sel.innerHTML = '<option>Немає активних турнірів</option>'; return; }
@@ -3656,7 +3694,7 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
     tags.push(`<span class="rc-tag rc-tag-gold">⚡ ${lo} – ${hi}</span>`);
   }
   if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
-  tags.push(`<span class="rc-tag">${tournament.type === 'SINGLE' ? 'Одиночний' : 'Парний'}</span>`);
+  tags.push(`<span class="rc-tag">${tournament.type === 'SINGLE' ? 'Одиночний' : tournament.type === 'CUP' ? '🏆 Кубок' : 'Парний'}</span>`);
   html += `<div class="rc-tags">${tags.join('')}</div>`;
 
   document.getElementById('reg-confirm-card').innerHTML = html;
@@ -3731,6 +3769,410 @@ function showToast(message, type = 'info') {
     el.classList.remove('toast-visible');
     toastTimer = null;
   }, 4000);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CUP FEATURE
+════════════════════════════════════════════════════════════════ */
+
+let cupState       = null; // current cup data from API
+let cupTournamentId = null;
+let cupScoreCtx    = null; // { type: 'group'|'playoff', matchId, pair1Name, pair2Name }
+
+// ── Open Cup Detail Modal ────────────────────────────────────────
+
+async function openCupModal(tournamentId) {
+  cupTournamentId = tournamentId;
+  const modal = document.getElementById('modal-cup');
+  const body  = document.getElementById('cup-modal-body');
+  const title = document.getElementById('cup-modal-title');
+
+  const t = (tournamentsData || []).find(x => String(x.id) === String(tournamentId));
+  title.textContent = t ? t.name : 'Кубок';
+
+  body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">Завантаження...</div>';
+  openModal('modal-cup');
+
+  try {
+    cupState = await API.cup.get(tournamentId);
+    renderCupModal();
+  } catch (e) {
+    body.innerHTML = `<div style="color:#e05252;padding:20px;text-align:center">Помилка: ${e.data?.message || e.message}</div>`;
+  }
+}
+
+function renderCupModal() {
+  if (!cupState) return;
+  const body = document.getElementById('cup-modal-body');
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const status = cupState.status;
+
+  let html = '';
+
+  // ── Group Stage ──────────────────────────────────────────────
+
+  if (cupState.groups && cupState.groups.length > 0) {
+    html += `<div class="cup-section-title">Груповий етап</div>`;
+    cupState.groups.forEach(group => {
+      html += renderCupGroup(group, isAdmin && status === 'GROUP_STAGE');
+    });
+
+    if (isAdmin && status === 'GROUP_STAGE') {
+      const allPlayed = cupState.groups.every(g => g.matches.every(m => m.played));
+      html += `<button class="btn-primary cup-confirm-groups-btn" style="width:100%;margin-top:8px" ${allPlayed ? '' : 'disabled'}>
+        ✓ Підтвердити груповий етап${allPlayed ? '' : ' (не всі матчі зіграні)'}
+      </button>`;
+    }
+  }
+
+  // ── Playoff Bracket ──────────────────────────────────────────
+
+  if (status === 'PLAYOFF' || status === 'FINISHED') {
+    html += `<div class="cup-section-title" style="margin-top:18px">Плей-офф</div>`;
+
+    if (cupState.mainBracket && cupState.mainBracket.length > 0) {
+      html += renderPlayoffBracket(cupState.mainBracket, isAdmin && status === 'PLAYOFF', false);
+    }
+
+    if (cupState.consolationBracket && cupState.consolationBracket.length > 0) {
+      html += `<div class="cup-section-title" style="margin-top:14px;font-size:13px;opacity:0.8">Втішний кубок</div>`;
+      html += renderPlayoffBracket(cupState.consolationBracket, isAdmin && status === 'PLAYOFF', true);
+    }
+
+    if (isAdmin && status === 'PLAYOFF') {
+      html += `<button class="btn-primary" id="cup-modal-finalize-btn" style="width:100%;margin-top:12px;background:linear-gradient(135deg,var(--success),#2a8a55)">✓ Завершити кубок та нарахувати рейтинг</button>`;
+    }
+  }
+
+  body.innerHTML = html;
+
+  // Wire group match buttons
+  body.querySelectorAll('.cup-group-match-enter').forEach(btn => {
+    btn.addEventListener('click', () => openCupScoreModal('group', btn.dataset));
+  });
+
+  // Wire playoff match buttons
+  body.querySelectorAll('.cup-playoff-match-enter').forEach(btn => {
+    btn.addEventListener('click', () => openCupScoreModal('playoff', btn.dataset));
+  });
+
+  // Wire confirm groups
+  const confirmBtn = body.querySelector('.cup-confirm-groups-btn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', async () => {
+      if (!confirm('Підтвердити груповий етап і згенерувати плей-офф сітку?')) return;
+      confirmBtn.disabled = true;
+      try {
+        cupState = await API.cup.confirmGroups(cupTournamentId);
+        tournamentsData = null; // refresh card list
+        renderCupModal();
+        showToast('Плей-офф сітка створена! 🏆');
+      } catch (e) {
+        showToast(e.data?.message || e.message || 'Помилка', 'error');
+        confirmBtn.disabled = false;
+      }
+    });
+  }
+
+  // Wire finalize
+  const finalizeBtn = body.querySelector('#cup-modal-finalize-btn');
+  if (finalizeBtn) {
+    finalizeBtn.addEventListener('click', async () => {
+      if (!confirm('Завершити кубок та нарахувати рейтинг?')) return;
+      finalizeBtn.disabled = true;
+      try {
+        cupState = await API.cup.finalize(cupTournamentId);
+        tournamentsData = null;
+        renderCupModal();
+        showToast('Кубок завершено! Рейтинг нараховано 🏆');
+      } catch (e) {
+        showToast(e.data?.message || e.message || 'Помилка', 'error');
+        finalizeBtn.disabled = false;
+      }
+    });
+  }
+}
+
+// ── Render Group ─────────────────────────────────────────────────
+
+function renderCupGroup(group, allowEntry) {
+  const standings = group.standings || [];
+  const matches   = group.matches   || [];
+
+  const standingRows = standings.map((s, i) => `
+    <tr class="${i < 2 ? 'cup-standing-advance' : ''}">
+      <td class="cup-st-pos">${i + 1}</td>
+      <td class="cup-st-name">${s.pairName}</td>
+      <td class="cup-st-num">${s.played}</td>
+      <td class="cup-st-num">${s.won}</td>
+      <td class="cup-st-num">${s.lost}</td>
+      <td class="cup-st-num">${s.setDiff > 0 ? '+' + s.setDiff : s.setDiff}</td>
+      <td class="cup-st-pts"><strong>${s.points}</strong></td>
+    </tr>`).join('');
+
+  const matchRows = matches.map(m => {
+    const score = m.played ? `<span class="cup-match-score">${m.score1}:${m.score2}</span>` : '<span class="cup-match-score-pending">—</span>';
+    const enterBtn = allowEntry
+      ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(m.pair1Name)}" data-pair2-name="${escHtml(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
+      : '';
+    return `<div class="cup-match-row${m.played ? ' cup-match-played' : ''}">
+      <span class="cup-match-team">${m.pair1Name}</span>
+      ${score}
+      <span class="cup-match-team cup-match-team-right">${m.pair2Name}</span>
+      ${enterBtn}
+    </div>`;
+  }).join('');
+
+  return `
+    <div class="cup-group-block">
+      <div class="cup-group-header">Група ${group.name}</div>
+      <div class="cup-group-table-wrap">
+        <table class="cup-standings-table">
+          <thead>
+            <tr><th>№</th><th>Пара</th><th>І</th><th>В</th><th>П</th><th>±</th><th>О</th></tr>
+          </thead>
+          <tbody>${standingRows}</tbody>
+        </table>
+      </div>
+      <div class="cup-group-matches">${matchRows}</div>
+    </div>`;
+}
+
+// ── Render Playoff Bracket ────────────────────────────────────────
+
+function renderPlayoffBracket(matches, allowEntry, isConsolation) {
+  // Group by roundOrder
+  const rounds = {};
+  matches.forEach(m => {
+    if (!rounds[m.roundOrder]) rounds[m.roundOrder] = [];
+    rounds[m.roundOrder].push(m);
+  });
+
+  const sortedRounds = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+  const totalRounds = sortedRounds.length;
+  const maxRound = sortedRounds[totalRounds - 1];
+
+  let html = `<div class="cup-bracket">`;
+
+  sortedRounds.forEach(r => {
+    const roundMatches = rounds[r].sort((a, b) => a.matchOrder - b.matchOrder);
+    const isFinal = r === maxRound;
+    html += `<div class="cup-bracket-round">`;
+
+    roundMatches.forEach(m => {
+      const hasResult  = m.score1 != null;
+      const p1Win = hasResult && m.score1 > m.score2;
+      const p2Win = hasResult && m.score2 > m.score1;
+      const p1Name = m.pair1Name || (m.seed1 ? `Насіяний ${m.seed1}` : 'TBD');
+      const p2Name = m.pair2Name || (m.seed2 ? `Насіяний ${m.seed2}` : 'TBD');
+
+      const enterBtn = allowEntry && m.pair1Name && m.pair2Name && !hasResult
+        ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">+ Рахунок</button>`
+        : (allowEntry && hasResult
+            ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">✏️</button>`
+            : '');
+
+      html += `<div class="cup-bracket-match${isFinal ? ' cup-bracket-match-final' : ''}">
+        <div class="cup-bm-label">${m.roundLabel || ''}</div>
+        ${m.placeLabel ? `<div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>` : ''}
+        <div class="cup-bm-pair${p1Win ? ' cup-bm-winner' : p2Win ? ' cup-bm-loser' : ''}">
+          <span class="cup-bm-name">${p1Name}</span>
+          <span class="cup-bm-score">${m.score1 ?? ''}</span>
+        </div>
+        <div class="cup-bm-pair${p2Win ? ' cup-bm-winner' : p1Win ? ' cup-bm-loser' : ''}">
+          <span class="cup-bm-name">${p2Name}</span>
+          <span class="cup-bm-score">${m.score2 ?? ''}</span>
+        </div>
+        ${enterBtn}
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+function placeLabelUa(label) {
+  const map = { '1-2': '🥇 1-2 місце', '3-4': '🥉 3-4 місце', '5-6': '5-6 місце', '7-8': '7-8 місце' };
+  return map[label] || label + ' місце';
+}
+
+function escHtml(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// ── Cup Score Modal ───────────────────────────────────────────────
+
+function openCupScoreModal(type, data) {
+  const matchId = data.matchId;
+  const p1 = data.pair1Name || '';
+  const p2 = data.pair2Name || '';
+  const score1 = data.score1 || '';
+  const score2 = data.score2 || '';
+
+  cupScoreCtx = { type, matchId };
+
+  document.getElementById('cup-score-title').textContent =
+    type === 'group' ? 'Груповий матч' : 'Матч плей-офф';
+  document.getElementById('cup-score-p1-name').textContent = p1;
+  document.getElementById('cup-score-p2-name').textContent = p2;
+  document.getElementById('cup-score-1').value = score1;
+  document.getElementById('cup-score-2').value = score2;
+
+  openModal('modal-cup-score');
+  setTimeout(() => document.getElementById('cup-score-1').focus(), 150);
+}
+
+document.getElementById('cup-score-submit').addEventListener('click', async () => {
+  if (!cupScoreCtx) return;
+  const s1 = parseInt(document.getElementById('cup-score-1').value, 10);
+  const s2 = parseInt(document.getElementById('cup-score-2').value, 10);
+  if (isNaN(s1) || isNaN(s2)) { showToast('Введіть рахунок', 'error'); return; }
+
+  const btn = document.getElementById('cup-score-submit');
+  btn.disabled = true;
+  try {
+    const payload = { score1: s1, score2: s2 };
+    if (cupScoreCtx.type === 'group') {
+      cupState = await API.cup.submitGroupMatch(cupTournamentId, cupScoreCtx.matchId, payload);
+    } else {
+      cupState = await API.cup.submitPlayoff(cupTournamentId, cupScoreCtx.matchId, payload);
+    }
+    closeModal('modal-cup-score');
+    renderCupModal();
+    showToast('Рахунок збережено ✓');
+  } catch (e) {
+    showToast(e.data?.message || e.message || 'Помилка', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ── Cup Start Modal (Admin) ───────────────────────────────────────
+
+let cupStartTournamentId = null;
+let cupManualPairs = [];
+
+function openCupStartModal(tournamentId) {
+  cupStartTournamentId = tournamentId;
+  const t = (tournamentsData || []).find(x => String(x.id) === String(tournamentId));
+
+  document.getElementById('cup-group-count').value = '2';
+  document.getElementById('cup-pairs-advancing').value = '2';
+  document.getElementById('cup-randomize').checked = true;
+  document.getElementById('cup-pairs-manual-section').style.display = 'none';
+  cupManualPairs = [];
+  renderManualPairs(t);
+
+  openModal('modal-cup-start');
+}
+
+document.getElementById('cup-randomize').addEventListener('change', function() {
+  document.getElementById('cup-pairs-manual-section').style.display = this.checked ? 'none' : '';
+  if (!this.checked) {
+    const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
+    if (t && (t.participants || []).length > 0) buildManualPairsFromParticipants(t);
+  }
+});
+
+function buildManualPairsFromParticipants(t) {
+  const participants = t.participants || [];
+  cupManualPairs = [];
+  for (let i = 0; i < participants.length - 1; i += 2) {
+    cupManualPairs.push({ p1: participants[i].id, p2: participants[i+1].id,
+      p1Name: nameOf(participants[i]), p2Name: nameOf(participants[i+1]) });
+  }
+  if (participants.length % 2 === 1) {
+    const last = participants[participants.length - 1];
+    cupManualPairs.push({ p1: last.id, p2: null, p1Name: nameOf(last), p2Name: '' });
+  }
+  renderManualPairs(t);
+}
+
+function renderManualPairs(t) {
+  const container = document.getElementById('cup-manual-pairs-container');
+  const participants = t ? (t.participants || []) : [];
+  container.innerHTML = cupManualPairs.map((pair, i) => `
+    <div class="cup-manual-pair" data-index="${i}">
+      <select class="form-select cup-manual-p1" data-index="${i}" style="flex:1">
+        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p1) ? 'selected' : ''}>${nameOf(p)}</option>`).join('')}
+      </select>
+      <span style="color:var(--text-muted)"> / </span>
+      <select class="form-select cup-manual-p2" data-index="${i}" style="flex:1">
+        <option value="">—</option>
+        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p2) ? 'selected' : ''}>${nameOf(p)}</option>`).join('')}
+      </select>
+      <button class="cup-remove-pair-btn" data-index="${i}" style="flex:0 0 30px;background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer">✕</button>
+    </div>`).join('');
+
+  container.querySelectorAll('.cup-remove-pair-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      cupManualPairs.splice(parseInt(btn.dataset.index, 10), 1);
+      renderManualPairs(t);
+    });
+  });
+}
+
+document.getElementById('cup-add-pair-btn').addEventListener('click', () => {
+  const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
+  const participants = t ? (t.participants || []) : [];
+  if (participants.length > 0) {
+    cupManualPairs.push({ p1: participants[0].id, p2: null, p1Name: nameOf(participants[0]), p2Name: '' });
+    renderManualPairs(t);
+  }
+});
+
+document.getElementById('cup-start-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('cup-start-btn');
+  const groupCount = parseInt(document.getElementById('cup-group-count').value, 10);
+  const pairsAdvancing = parseInt(document.getElementById('cup-pairs-advancing').value, 10);
+  const randomize = document.getElementById('cup-randomize').checked;
+
+  if (isNaN(groupCount) || groupCount < 2) { showToast('Мінімум 2 групи', 'error'); return; }
+  if (isNaN(pairsAdvancing) || pairsAdvancing < 1) { showToast('Мінімум 1 пара виходить', 'error'); return; }
+
+  let payload = { groupCount, pairsAdvancing, randomizePairs: randomize };
+
+  if (!randomize) {
+    // Read current manual pair values from selects
+    const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
+    const container = document.getElementById('cup-manual-pairs-container');
+    const pairDivs = container.querySelectorAll('.cup-manual-pair');
+    payload.pairAssignments = Array.from(pairDivs).map(div => {
+      const p1 = div.querySelector('.cup-manual-p1')?.value;
+      const p2 = div.querySelector('.cup-manual-p2')?.value;
+      return { player1Id: parseInt(p1, 10), player2Id: p2 ? parseInt(p2, 10) : null };
+    }).filter(a => a.player1Id);
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Запуск...';
+  try {
+    cupState = await API.cup.start(cupStartTournamentId, payload);
+    cupTournamentId = cupStartTournamentId;
+    closeModal('modal-cup-start');
+    tournamentsData = null;
+    await renderResults(); // refresh card list to show GROUP_STAGE status
+
+    // Open the cup detail modal
+    const title = document.getElementById('cup-modal-title');
+    const allT = tournamentsData || [];
+    const t = allT.find(x => String(x.id) === String(cupTournamentId));
+    if (title && t) title.textContent = t.name;
+    openModal('modal-cup');
+    renderCupModal();
+
+    showToast('Кубок розпочато! 🏆');
+  } catch (e) {
+    showToast(e.data?.message || e.message || 'Помилка запуску', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🏆 Запустити Кубок';
+  }
+});
+
+function nameOf(p) {
+  return [p.firstName, p.lastName].filter(Boolean).join(' ') || p.displayName || p.username || 'Гравець';
 }
 
 /* ════════════════════════════════════════════════════════════════

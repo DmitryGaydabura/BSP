@@ -2649,3 +2649,285 @@
   flex-shrink: 0;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════
+   CUP FEATURE STYLES
+══════════════════════════════════════════════════════════════════ */
+
+/* Live badge on tournament cards */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e0242422;
+  border: 1px solid #e02424;
+  color: #e02424;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 20px;
+  margin-left: 6px;
+  animation: live-pulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.t-status-live {
+  background: #e02424;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Cup variant of tournament card */
+.tournament-card-cup {
+  border: 1px solid var(--gold-dim, rgba(201,168,76,0.35));
+  background: linear-gradient(160deg, var(--card-bg) 60%, rgba(201,168,76,0.05) 100%);
+}
+
+/* Cup view button */
+.chip-cup-view {
+  background: linear-gradient(135deg, rgba(201,168,76,0.18), rgba(201,168,76,0.08));
+  border: 1px solid rgba(201,168,76,0.5);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 6px;
+}
+.chip-cup-view:active { opacity: 0.7; transform: scale(0.97); }
+
+/* ── Cup Modal — tall sheet ───────────────────────────────────── */
+.modal-sheet-tall {
+  max-height: 92vh;
+}
+
+/* Section titles */
+.cup-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin: 10px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(201,168,76,0.25);
+}
+
+/* ── Group Block ─────────────────────────────────────────────── */
+.cup-group-block {
+  background: var(--card-bg);
+  border: 1px solid var(--border-def);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.cup-group-header {
+  background: linear-gradient(90deg, rgba(201,168,76,0.2), transparent);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  border-bottom: 1px solid var(--border-def);
+}
+
+/* Standings table */
+.cup-group-table-wrap {
+  overflow-x: auto;
+  padding: 0 4px;
+}
+.cup-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.cup-standings-table thead th {
+  padding: 6px 6px 4px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-def);
+  white-space: nowrap;
+}
+.cup-standings-table thead th:nth-child(2) { text-align: left; }
+.cup-standings-table tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+.cup-standings-table tbody tr:last-child { border-bottom: none; }
+.cup-standings-table td { padding: 7px 6px; text-align: center; }
+.cup-st-name { text-align: left !important; font-weight: 500; color: var(--text-primary); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cup-st-pos { color: var(--text-muted); font-weight: 700; }
+.cup-st-num { color: var(--text-secondary); }
+.cup-st-pts strong { color: var(--gold); font-size: 13px; }
+
+/* Advancing rows */
+.cup-standing-advance .cup-st-pos::before { content: '↑'; color: var(--success); margin-right: 2px; }
+.cup-standing-advance { background: rgba(40,167,69,0.04); }
+
+/* Group matches */
+.cup-group-matches {
+  border-top: 1px solid var(--border-def);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cup-match-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border-def);
+  transition: border-color 0.15s;
+}
+.cup-match-played { border-color: rgba(40,167,69,0.3); }
+.cup-match-team { flex: 1; color: var(--text-primary); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cup-match-team-right { text-align: right; }
+.cup-match-score {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold);
+  min-width: 32px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.cup-match-score-pending { color: var(--text-muted); min-width: 32px; text-align: center; font-size: 14px; }
+.cup-group-match-enter,
+.cup-playoff-match-enter {
+  flex: 0 0 auto;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(201,168,76,0.4);
+  background: rgba(201,168,76,0.08);
+  color: var(--gold);
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.cup-group-match-enter:active,
+.cup-playoff-match-enter:active { opacity: 0.7; transform: scale(0.95); }
+
+/* ── Playoff Bracket ─────────────────────────────────────────── */
+.cup-bracket {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  align-items: flex-start;
+}
+.cup-bracket-round {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.cup-bracket-match {
+  background: var(--card-bg);
+  border: 1px solid var(--border-def);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.cup-bracket-match-final {
+  border-color: rgba(201,168,76,0.5);
+  background: linear-gradient(135deg, var(--card-bg), rgba(201,168,76,0.06));
+}
+.cup-bm-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 4px 8px 2px;
+  text-transform: uppercase;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-def);
+}
+.cup-bm-place {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  padding: 2px 8px;
+  background: rgba(201,168,76,0.08);
+  border-bottom: 1px solid var(--border-def);
+  text-align: center;
+}
+.cup-bm-pair {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-def);
+  transition: background 0.15s;
+}
+.cup-bm-pair:last-of-type { border-bottom: none; }
+.cup-bm-winner { background: rgba(40,167,69,0.08); }
+.cup-bm-loser  { opacity: 0.5; }
+.cup-bm-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cup-bm-score {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+  min-width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.cup-playoff-match-enter {
+  display: block;
+  margin: 4px 8px 6px;
+  width: calc(100% - 16px);
+  text-align: center;
+}
+
+/* Score entry inputs */
+.cup-score-input {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  text-align: center;
+  width: 80px;
+  padding: 10px 8px !important;
+}
+
+/* Checkbox styling */
+.cup-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Manual pair rows */
+.cup-manual-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.cup-manual-pair .form-select {
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
