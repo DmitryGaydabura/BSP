@@ -2847,6 +2847,21 @@
   border-color: rgba(201,168,76,0.5);
   background: linear-gradient(135deg, var(--card-bg), rgba(201,168,76,0.06));
 }
+.cup-bracket-match-lower {
+  border-color: rgba(120,120,180,0.35);
+  background: linear-gradient(135deg, var(--card-bg), rgba(100,100,200,0.04));
+  opacity: 0.9;
+}
+.cup-bracket-divider {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 2px 2px;
+  border-top: 1px solid var(--border-def);
+  margin-top: 2px;
+}
 .cup-bm-label {
   font-size: 9px;
   font-weight: 700;

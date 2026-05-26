@@ -3899,8 +3899,9 @@ function renderCupGroup(group, allowEntry) {
   const standings = group.standings || [];
   const matches   = group.matches   || [];
 
+  const advanceCount = cupState?.pairsAdvancing ?? 2;
   const standingRows = standings.map((s, i) => `
-    <tr class="${i < 2 ? 'cup-standing-advance' : ''}">
+    <tr class="${i < advanceCount ? 'cup-standing-advance' : ''}">
       <td class="cup-st-pos">${i + 1}</td>
       <td class="cup-st-name">${s.pairName}</td>
       <td class="cup-st-num">${s.played}</td>
@@ -3949,30 +3950,38 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
   });
 
   const sortedRounds = Object.keys(rounds).map(Number).sort((a, b) => a - b);
-  const totalRounds = sortedRounds.length;
-  const maxRound = sortedRounds[totalRounds - 1];
+  const maxRound = sortedRounds[sortedRounds.length - 1];
 
   let html = `<div class="cup-bracket">`;
 
   sortedRounds.forEach(r => {
     const roundMatches = rounds[r].sort((a, b) => a.matchOrder - b.matchOrder);
-    const isFinal = r === maxRound;
+    const isFinalRound = r === maxRound;
+
     html += `<div class="cup-bracket-round">`;
 
-    roundMatches.forEach(m => {
-      const hasResult  = m.score1 != null;
+    roundMatches.forEach((m, idx) => {
+      const hasResult = m.score1 != null;
       const p1Win = hasResult && m.score1 > m.score2;
       const p2Win = hasResult && m.score2 > m.score1;
-      const p1Name = m.pair1Name || (m.seed1 ? `Насіяний ${m.seed1}` : 'TBD');
-      const p2Name = m.pair2Name || (m.seed2 ? `Насіяний ${m.seed2}` : 'TBD');
+      const p1Name = m.pair1Name || (m.seed1 ? `Нас. ${m.seed1}` : 'TBD');
+      const p2Name = m.pair2Name || (m.seed2 ? `Нас. ${m.seed2}` : 'TBD');
+      // Lower-track: non-terminal matches whose roundLabel starts with "За"
+      const isLower = !isFinalRound && (m.roundLabel || '').startsWith('За');
+      const isFinalMatch = isFinalRound && m.placeLabel === '1-2';
+
+      // Insert separator at transition from upper to lower track
+      if (idx > 0 && !isFinalRound && isLower && !(roundMatches[idx-1].roundLabel || '').startsWith('За')) {
+        html += `<div class="cup-bracket-divider">↓ Матчі за місця</div>`;
+      }
 
       const enterBtn = allowEntry && m.pair1Name && m.pair2Name && !hasResult
         ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">+ Рахунок</button>`
-        : (allowEntry && hasResult
+        : (allowEntry && hasResult && m.pair1Name
             ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">✏️</button>`
             : '');
 
-      html += `<div class="cup-bracket-match${isFinal ? ' cup-bracket-match-final' : ''}">
+      html += `<div class="cup-bracket-match${isFinalMatch ? ' cup-bracket-match-final' : ''}${isLower ? ' cup-bracket-match-lower' : ''}">
         <div class="cup-bm-label">${m.roundLabel || ''}</div>
         ${m.placeLabel ? `<div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>` : ''}
         <div class="cup-bm-pair${p1Win ? ' cup-bm-winner' : p2Win ? ' cup-bm-loser' : ''}">
@@ -3995,8 +4004,10 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
 }
 
 function placeLabelUa(label) {
-  const map = { '1-2': '🥇 1-2 місце', '3-4': '🥉 3-4 місце', '5-6': '5-6 місце', '7-8': '7-8 місце' };
-  return map[label] || label + ' місце';
+  if (!label) return '';
+  const [p1, p2] = label.split('-').map(Number);
+  const medal = p1 === 1 ? '🥇 ' : p1 === 3 ? '🥉 ' : '';
+  return `${medal}${p1}–${p2} місце`;
 }
 
 function escHtml(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
