@@ -2804,6 +2804,7 @@
   letter-spacing: 0.04em;
 }
 .cup-match-score-pending { color: var(--text-muted); min-width: 32px; text-align: center; font-size: 14px; }
+.cup-match-tb { font-size: 10px; font-weight: 600; color: var(--text-muted); opacity: 0.8; }
 .cup-group-match-enter,
 .cup-playoff-match-enter {
   flex: 0 0 auto;
@@ -2824,105 +2825,251 @@
 /* ── Playoff Bracket ─────────────────────────────────────────── */
 .cup-bracket {
   display: flex;
-  gap: 8px;
+  gap: 0;
   overflow-x: auto;
-  padding: 4px 0 8px;
+  padding: 4px 0 12px;
   align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* Round column */
 .cup-bracket-round {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: 160px;
+  gap: 0;
+  min-width: 172px;
+  max-width: 200px;
   flex-shrink: 0;
+  padding: 0 10px 0 0;
+  position: relative;
 }
+/* Vertical separator between rounds */
+.cup-bracket-round:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 36px;
+  bottom: 4px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--border-def) 20%, var(--border-def) 80%, transparent);
+  opacity: 0.4;
+}
+
+/* Column round header */
+.cup-round-header {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0 6px 10px;
+  min-height: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cup-round-header.is-final { color: var(--gold); }
+
+/* Pair group — wraps 2 consecutive matches for bracket-line visual */
+.cup-bracket-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  margin-bottom: 10px;
+}
+/* Right-side vertical connector line */
+.cup-bracket-round:not(:last-child) .cup-bracket-pair::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 26%;
+  bottom: 26%;
+  width: 2px;
+  background: var(--border-def);
+  border-radius: 2px;
+  opacity: 0.45;
+}
+/* Horizontal stub from each match card to the vertical line */
+.cup-bracket-round:not(:last-child) .cup-bracket-pair .cup-bracket-match::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 10px;
+  height: 2px;
+  background: var(--border-def);
+  opacity: 0.45;
+}
+/* Match card must be relative for the ::after stub */
 .cup-bracket-match {
+  position: relative;
   background: var(--card-bg);
   border: 1px solid var(--border-def);
   border-radius: 10px;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .cup-bracket-match-final {
-  border-color: rgba(201,168,76,0.5);
-  background: linear-gradient(135deg, var(--card-bg), rgba(201,168,76,0.06));
+  border-color: rgba(201,168,76,0.6);
+  background: linear-gradient(145deg, var(--card-bg), rgba(201,168,76,0.07));
+  box-shadow: 0 2px 10px rgba(201,168,76,0.18);
 }
 .cup-bracket-match-lower {
-  border-color: rgba(120,120,180,0.35);
-  background: linear-gradient(135deg, var(--card-bg), rgba(100,100,200,0.04));
-  opacity: 0.9;
+  border-color: rgba(120,120,180,0.3);
+  opacity: 0.92;
 }
+/* Matches sitting alone (not in a pair group) */
+.cup-bracket-solo {
+  margin-bottom: 10px;
+}
+
+/* Round label inside card (secondary, small) */
+.cup-bm-label {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding: 3px 8px 2px;
+  text-transform: uppercase;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-def);
+  opacity: 0.75;
+}
+/* Place label — gold accent bar */
+.cup-bm-place {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold);
+  padding: 3px 8px;
+  background: rgba(201,168,76,0.09);
+  border-bottom: 1px solid var(--border-def);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+/* Pair row */
+.cup-bm-pair {
+  display: flex;
+  align-items: center;
+  padding: 7px 8px 7px 10px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-def);
+  transition: background 0.15s;
+  min-height: 32px;
+}
+.cup-bm-pair:last-of-type { border-bottom: none; }
+.cup-bm-winner { background: rgba(40,167,69,0.10); }
+.cup-bm-loser  { opacity: 0.42; }
+/* Winner left accent stripe */
+.cup-bm-pair.cup-bm-winner {
+  position: relative;
+}
+.cup-bm-pair.cup-bm-winner::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: #28a745;
+  border-radius: 0 2px 2px 0;
+}
+
+.cup-bm-name {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cup-bm-name.tbd {
+  font-style: italic;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+/* Score area */
+.cup-bm-score-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 1px;
+}
+.cup-bm-score {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-muted);
+  min-width: 18px;
+  text-align: right;
+  line-height: 1;
+}
+.cup-bm-winner .cup-bm-score { color: #28a745; }
+.cup-bm-tiebreak-score {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+  opacity: 0.8;
+}
+
+/* Tiebreak footer shown once below both pairs */
+.cup-bm-tb-footer {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2px 8px 4px;
+  opacity: 0.7;
+  border-top: 1px solid var(--border-def);
+  background: var(--surface);
+}
+
+/* Enter score button */
+.cup-playoff-match-enter {
+  display: block;
+  margin: 5px 8px 6px;
+  width: calc(100% - 16px);
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 8px;
+  background: rgba(201,168,76,0.10);
+  border: 1px solid rgba(201,168,76,0.30);
+  border-radius: 7px;
+  color: var(--gold);
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.02em;
+}
+.cup-playoff-match-enter:active { background: rgba(201,168,76,0.22); }
+
+/* Bracket divider between upper/lower tracks */
 .cup-bracket-divider {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
   color: var(--text-muted);
   text-transform: uppercase;
-  padding: 4px 2px 2px;
-  border-top: 1px solid var(--border-def);
-  margin-top: 2px;
-}
-.cup-bm-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  padding: 4px 8px 2px;
-  text-transform: uppercase;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-def);
-}
-.cup-bm-place {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--gold);
-  padding: 2px 8px;
-  background: rgba(201,168,76,0.08);
-  border-bottom: 1px solid var(--border-def);
-  text-align: center;
-}
-.cup-bm-pair {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  gap: 6px;
-  border-bottom: 1px solid var(--border-def);
-  transition: background 0.15s;
-}
-.cup-bm-pair:last-of-type { border-bottom: none; }
-.cup-bm-winner { background: rgba(40,167,69,0.08); }
-.cup-bm-loser  { opacity: 0.5; }
-.cup-bm-name {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.cup-bm-score {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--gold);
-  min-width: 16px;
-  text-align: right;
-  flex-shrink: 0;
-}
-.cup-playoff-match-enter {
-  display: block;
-  margin: 4px 8px 6px;
-  width: calc(100% - 16px);
-  text-align: center;
+  padding: 6px 2px 4px;
+  border-top: 1px dashed var(--border-def);
+  margin-top: 4px;
+  opacity: 0.65;
 }
 
 /* Score entry inputs */
 .cup-score-input {
   font-size: 28px !important;
   font-weight: 700 !important;
-  text-align: center;
+  text-align: center !important;
   width: 80px;
   padding: 10px 8px !important;
+}
+.cup-tb-input {
+  font-size: 22px !important;
+  width: 70px;
+  padding: 8px 6px !important;
 }
 
 /* Checkbox styling */

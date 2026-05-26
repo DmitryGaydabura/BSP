@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=16">
+  <link rel="stylesheet" href="css/app.css?v=17">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -684,31 +684,41 @@
 
 <!-- Cup Match Score Entry Modal -->
 <div class="modal-overlay" id="modal-cup-score">
-  <div class="modal-sheet" style="max-height:280px">
+  <div class="modal-sheet" style="max-height:380px">
     <div class="modal-handle"></div>
     <div class="modal-header">
       <span class="modal-title" id="cup-score-title">Результат матчу</span>
       <button class="modal-close" data-close="modal-cup-score">✕</button>
     </div>
     <div class="modal-body">
-      <div id="cup-score-pair-names" style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:12px"></div>
+      <!-- Main set score -->
       <div style="display:flex;align-items:center;gap:12px;justify-content:center">
         <div style="text-align:center">
-          <div id="cup-score-p1-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
-          <input class="form-input cup-score-input" type="number" id="cup-score-1" min="0" max="7" placeholder="0" style="text-align:center;font-size:28px;font-weight:700;width:80px">
+          <div id="cup-score-p1-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <input class="form-input cup-score-input" type="number" id="cup-score-1" min="0" max="7" placeholder="0">
         </div>
         <div style="font-size:24px;font-weight:700;color:var(--text-muted)">:</div>
         <div style="text-align:center">
-          <div id="cup-score-p2-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
-          <input class="form-input cup-score-input" type="number" id="cup-score-2" min="0" max="7" placeholder="0" style="text-align:center;font-size:28px;font-weight:700;width:80px">
+          <div id="cup-score-p2-name" style="font-size:11px;color:var(--text-muted);margin-bottom:4px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+          <input class="form-input cup-score-input" type="number" id="cup-score-2" min="0" max="7" placeholder="0">
         </div>
+      </div>
+      <!-- Tiebreak section — shown only when score is 7:6 or 6:7 -->
+      <div id="cup-tiebreak-section" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-def)">
+        <div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Рахунок тай-брейку</div>
+        <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+          <input class="form-input cup-score-input cup-tb-input" type="number" id="cup-tb-1" min="0" max="15" placeholder="0">
+          <div style="font-size:20px;font-weight:700;color:var(--text-muted)">:</div>
+          <input class="form-input cup-score-input cup-tb-input" type="number" id="cup-tb-2" min="0" max="15" placeholder="0">
+        </div>
+        <div style="text-align:center;font-size:10px;color:var(--text-muted);margin-top:5px">напр: 7:5 · 8:6 · 11:9</div>
       </div>
       <button class="btn-primary" id="cup-score-submit" style="width:100%;margin-top:14px">Зберегти</button>
     </div>
   </div>
 </div>
 
-<script src="js/main.js?v=36" defer></script>
+<script src="js/main.js?v=37" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

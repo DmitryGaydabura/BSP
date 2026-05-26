@@ -3912,9 +3912,13 @@ function renderCupGroup(group, allowEntry) {
     </tr>`).join('');
 
   const matchRows = matches.map(m => {
-    const score = m.played ? `<span class="cup-match-score">${m.score1}:${m.score2}</span>` : '<span class="cup-match-score-pending">—</span>';
+    const hasTb = m.tiebreak1 != null;
+    const tbSuffix = hasTb ? `<span class="cup-match-tb"> (${m.tiebreak1}:${m.tiebreak2})</span>` : '';
+    const score = m.played
+      ? `<span class="cup-match-score">${m.score1}:${m.score2}${tbSuffix}</span>`
+      : '<span class="cup-match-score-pending">—</span>';
     const enterBtn = allowEntry
-      ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(m.pair1Name)}" data-pair2-name="${escHtml(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
+      ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(m.pair1Name)}" data-pair2-name="${escHtml(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
       : '';
     return `<div class="cup-match-row${m.played ? ' cup-match-played' : ''}">
       <span class="cup-match-team">${m.pair1Name}</span>
@@ -3951,56 +3955,97 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
 
   const sortedRounds = Object.keys(rounds).map(Number).sort((a, b) => a - b);
   const maxRound = sortedRounds[sortedRounds.length - 1];
+  const totalRounds = sortedRounds.length;
 
   let html = `<div class="cup-bracket">`;
 
-  sortedRounds.forEach(r => {
+  sortedRounds.forEach((r, roundIdx) => {
     const roundMatches = rounds[r].sort((a, b) => a.matchOrder - b.matchOrder);
     const isFinalRound = r === maxRound;
+    const isLastRound = roundIdx === totalRounds - 1;
 
+    // Column round header — use the label of the first (top-seeded) match
+    const firstLabel = roundMatches[0]?.roundLabel || '';
+    const colLabel = isFinalRound ? (firstLabel || 'Фінал') : (firstLabel || '');
+    const headerClass = (isFinalRound && !isConsolation) ? ' is-final' : '';
     html += `<div class="cup-bracket-round">`;
+    html += `<div class="cup-round-header${headerClass}">${colLabel}</div>`;
 
-    roundMatches.forEach((m, idx) => {
-      const hasResult = m.score1 != null;
-      const p1Win = hasResult && m.score1 > m.score2;
-      const p2Win = hasResult && m.score2 > m.score1;
-      const p1Name = m.pair1Name || (m.seed1 ? `Нас. ${m.seed1}` : 'TBD');
-      const p2Name = m.pair2Name || (m.seed2 ? `Нас. ${m.seed2}` : 'TBD');
-      // Lower-track: non-terminal matches whose roundLabel starts with "За"
-      const isLower = !isFinalRound && (m.roundLabel || '').startsWith('За');
-      const isFinalMatch = isFinalRound && m.placeLabel === '1-2';
+    // Group matches into pairs of 2 for bracket connector lines
+    // (each pair of adj. matches feeds one match in the next round)
+    const halfSize = roundMatches.length;
+    let i = 0;
+    while (i < halfSize) {
+      const m1 = roundMatches[i];
+      const m2 = roundMatches[i + 1];
+      const hasPair = m2 != null && !isLastRound;
 
-      // Insert separator at transition from upper to lower track
-      if (idx > 0 && !isFinalRound && isLower && !(roundMatches[idx-1].roundLabel || '').startsWith('За')) {
+      // Insert upper/lower track divider when needed
+      if (i > 0 && !isFinalRound && (m1.roundLabel || '').startsWith('За') && !(roundMatches[i-1].roundLabel || '').startsWith('За')) {
         html += `<div class="cup-bracket-divider">↓ Матчі за місця</div>`;
       }
 
-      const enterBtn = allowEntry && m.pair1Name && m.pair2Name && !hasResult
-        ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">+ Рахунок</button>`
-        : (allowEntry && hasResult && m.pair1Name
-            ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">✏️</button>`
-            : '');
-
-      html += `<div class="cup-bracket-match${isFinalMatch ? ' cup-bracket-match-final' : ''}${isLower ? ' cup-bracket-match-lower' : ''}">
-        <div class="cup-bm-label">${m.roundLabel || ''}</div>
-        ${m.placeLabel ? `<div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>` : ''}
-        <div class="cup-bm-pair${p1Win ? ' cup-bm-winner' : p2Win ? ' cup-bm-loser' : ''}">
-          <span class="cup-bm-name">${p1Name}</span>
-          <span class="cup-bm-score">${m.score1 ?? ''}</span>
-        </div>
-        <div class="cup-bm-pair${p2Win ? ' cup-bm-winner' : p1Win ? ' cup-bm-loser' : ''}">
-          <span class="cup-bm-name">${p2Name}</span>
-          <span class="cup-bm-score">${m.score2 ?? ''}</span>
-        </div>
-        ${enterBtn}
-      </div>`;
-    });
+      if (hasPair) {
+        html += `<div class="cup-bracket-pair">`;
+        html += renderBracketMatch(m1, allowEntry, isFinalRound, isConsolation);
+        html += renderBracketMatch(m2, allowEntry, isFinalRound, isConsolation);
+        html += `</div>`;
+        i += 2;
+      } else {
+        html += `<div class="cup-bracket-solo">`;
+        html += renderBracketMatch(m1, allowEntry, isFinalRound, isConsolation);
+        html += `</div>`;
+        i += 1;
+      }
+    }
 
     html += `</div>`;
   });
 
   html += `</div>`;
   return html;
+}
+
+function renderBracketMatch(m, allowEntry, isFinalRound, isConsolation) {
+  const hasResult = m.score1 != null;
+  const p1Win = hasResult && m.score1 > m.score2;
+  const p2Win = hasResult && m.score2 > m.score1;
+  const p1Name = m.pair1Name || (m.seed1 ? `Нас. ${m.seed1}` : 'TBD');
+  const p2Name = m.pair2Name || (m.seed2 ? `Нас. ${m.seed2}` : 'TBD');
+  const isTbd1 = !m.pair1Name;
+  const isTbd2 = !m.pair2Name;
+  const isFinalMatch = isFinalRound && m.placeLabel === '1-2';
+  const isLower = !isFinalRound && (m.roundLabel || '').startsWith('За');
+
+  // Score display: for score >= 0 show it, for TBD show nothing
+  const score1Display = hasResult ? m.score1 : '';
+  const score2Display = hasResult ? m.score2 : '';
+  const hasTb = m.tiebreak1 != null;
+
+  const enterBtn = allowEntry && m.pair1Name && m.pair2Name && !hasResult
+    ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">+ Рахунок</button>`
+    : (allowEntry && hasResult && m.pair1Name
+        ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}" data-score1="${m.score1}" data-score2="${m.score2}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">✏️ Редагувати</button>`
+        : '');
+
+  // Tiebreak badge — shown only when the set ended 7:6
+  const tbFooter = hasTb
+    ? `<div class="cup-bm-tb-footer">Т/Б ${m.tiebreak1}:${m.tiebreak2}</div>`
+    : '';
+
+  return `<div class="cup-bracket-match${isFinalMatch ? ' cup-bracket-match-final' : ''}${isLower ? ' cup-bracket-match-lower' : ''}">
+    ${m.placeLabel ? `<div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>` : ''}
+    <div class="cup-bm-pair${p1Win ? ' cup-bm-winner' : p2Win ? ' cup-bm-loser' : ''}">
+      <span class="cup-bm-name${isTbd1 ? ' tbd' : ''}">${p1Name}</span>
+      <span class="cup-bm-score">${score1Display}</span>
+    </div>
+    <div class="cup-bm-pair${p2Win ? ' cup-bm-winner' : p1Win ? ' cup-bm-loser' : ''}">
+      <span class="cup-bm-name${isTbd2 ? ' tbd' : ''}">${p2Name}</span>
+      <span class="cup-bm-score">${score2Display}</span>
+    </div>
+    ${tbFooter}
+    ${enterBtn}
+  </div>`;
 }
 
 function placeLabelUa(label) {
@@ -4015,11 +4060,13 @@ function escHtml(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&l
 // ── Cup Score Modal ───────────────────────────────────────────────
 
 function openCupScoreModal(type, data) {
-  const matchId = data.matchId;
-  const p1 = data.pair1Name || '';
-  const p2 = data.pair2Name || '';
-  const score1 = data.score1 || '';
-  const score2 = data.score2 || '';
+  const matchId  = data.matchId;
+  const p1       = data.pair1Name  || '';
+  const p2       = data.pair2Name  || '';
+  const score1   = data.score1     || '';
+  const score2   = data.score2     || '';
+  const tb1      = data.tiebreak1  || '';
+  const tb2      = data.tiebreak2  || '';
 
   cupScoreCtx = { type, matchId };
 
@@ -4029,10 +4076,30 @@ function openCupScoreModal(type, data) {
   document.getElementById('cup-score-p2-name').textContent = p2;
   document.getElementById('cup-score-1').value = score1;
   document.getElementById('cup-score-2').value = score2;
+  document.getElementById('cup-tb-1').value = tb1;
+  document.getElementById('cup-tb-2').value = tb2;
+
+  // Show/hide tiebreak section based on initial values
+  cupCheckTiebreak();
 
   openModal('modal-cup-score');
   setTimeout(() => document.getElementById('cup-score-1').focus(), 150);
 }
+
+function cupCheckTiebreak() {
+  const s1 = parseInt(document.getElementById('cup-score-1').value, 10);
+  const s2 = parseInt(document.getElementById('cup-score-2').value, 10);
+  const needsTb = !isNaN(s1) && !isNaN(s2) && ((s1 === 7 && s2 === 6) || (s1 === 6 && s2 === 7));
+  document.getElementById('cup-tiebreak-section').style.display = needsTb ? '' : 'none';
+  if (!needsTb) {
+    document.getElementById('cup-tb-1').value = '';
+    document.getElementById('cup-tb-2').value = '';
+  }
+}
+
+// Live show/hide tiebreak as score is typed
+document.getElementById('cup-score-1').addEventListener('input', cupCheckTiebreak);
+document.getElementById('cup-score-2').addEventListener('input', cupCheckTiebreak);
 
 document.getElementById('cup-score-submit').addEventListener('click', async () => {
   if (!cupScoreCtx) return;
@@ -4040,10 +4107,26 @@ document.getElementById('cup-score-submit').addEventListener('click', async () =
   const s2 = parseInt(document.getElementById('cup-score-2').value, 10);
   if (isNaN(s1) || isNaN(s2)) { showToast('Введіть рахунок', 'error'); return; }
 
+  const needsTb = (s1 === 7 && s2 === 6) || (s1 === 6 && s2 === 7);
+  const payload = { score1: s1, score2: s2 };
+
+  if (needsTb) {
+    const tb1 = parseInt(document.getElementById('cup-tb-1').value, 10);
+    const tb2 = parseInt(document.getElementById('cup-tb-2').value, 10);
+    if (isNaN(tb1) || isNaN(tb2)) { showToast('Введіть рахунок тай-брейку', 'error'); return; }
+    // Client-side validation
+    const tbHi = Math.max(tb1, tb2), tbLo = Math.min(tb1, tb2);
+    if (tbHi < 7) { showToast('Тай-брейк: переможець повинен набрати ≥7 очок', 'error'); return; }
+    if (tbHi - tbLo < 2) { showToast('Тай-брейк: перевага повинна бути ≥2 очки', 'error'); return; }
+    const setW1 = s1 > s2, tbW1 = tb1 > tb2;
+    if (setW1 !== tbW1) { showToast('Переможець тай-брейку має збігатися з переможцем сету', 'error'); return; }
+    payload.tiebreak1 = tb1;
+    payload.tiebreak2 = tb2;
+  }
+
   const btn = document.getElementById('cup-score-submit');
   btn.disabled = true;
   try {
-    const payload = { score1: s1, score2: s2 };
     if (cupScoreCtx.type === 'group') {
       cupState = await API.cup.submitGroupMatch(cupTournamentId, cupScoreCtx.matchId, payload);
     } else {
