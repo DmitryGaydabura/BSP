@@ -2825,86 +2825,102 @@
 /* ── Playoff Bracket ─────────────────────────────────────────── */
 .cup-bracket {
   display: flex;
-  gap: 0;
+  gap: 0;           /* Gaps are handled by per-column right-padding */
   overflow-x: auto;
-  padding: 4px 0 12px;
+  padding: 4px 4px 16px;
   align-items: flex-start;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Round column */
+/* ── Round column ──────────────────────────────────────────────── */
 .cup-bracket-round {
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-width: 172px;
-  max-width: 200px;
+  min-width: 164px;
+  max-width: 196px;
   flex-shrink: 0;
-  padding: 0 10px 0 0;
   position: relative;
+  /* Right padding is the "gap zone" where connectors are drawn */
+  padding-right: 32px;
+  overflow: visible;
 }
-/* Vertical separator between rounds */
-.cup-bracket-round:not(:last-child)::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 36px;
-  bottom: 4px;
-  width: 1px;
-  background: linear-gradient(to bottom, transparent, var(--border-def) 20%, var(--border-def) 80%, transparent);
-  opacity: 0.4;
+/* Last column needs no gap zone */
+.cup-bracket-round:last-child {
+  padding-right: 0;
 }
 
-/* Column round header */
+/* ── Column round header ────────────────────────────────────────── */
 .cup-round-header {
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.10em;
   text-transform: uppercase;
   color: var(--text-muted);
   text-align: center;
   padding: 0 6px 10px;
-  min-height: 28px;
+  min-height: 30px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 }
 .cup-round-header.is-final { color: var(--gold); }
 
-/* Pair group — wraps 2 consecutive matches for bracket-line visual */
+/* ── Pair group — two consecutive matches that feed one next-round match ── */
 .cup-bracket-pair {
   display: flex;
   flex-direction: column;
   gap: 6px;
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-/* Right-side vertical connector line */
-.cup-bracket-round:not(:last-child) .cup-bracket-pair::after {
+
+/* ── Bracket connector: vertical bar on right side ────────────────── */
+/* Spans roughly from centre-of-M1 to centre-of-M2 */
+.cup-bracket-round:not(:last-child) .cup-bracket-pair::before {
   content: '';
   position: absolute;
-  right: -10px;
-  top: 26%;
-  bottom: 26%;
+  right: -19px;        /* sits inside the 32px gap zone */
+  top: 27%;
+  bottom: 27%;
   width: 2px;
   background: var(--border-def);
   border-radius: 2px;
-  opacity: 0.45;
+  opacity: 0.5;
+  pointer-events: none;
 }
-/* Horizontal stub from each match card to the vertical line */
+
+/* ── Bracket connector: horizontal stub from each card to the vertical bar ── */
 .cup-bracket-round:not(:last-child) .cup-bracket-pair .cup-bracket-match::after {
   content: '';
   position: absolute;
-  right: -10px;
+  right: -19px;
   top: 50%;
-  width: 10px;
+  width: 19px;
   height: 2px;
   background: var(--border-def);
-  opacity: 0.45;
+  opacity: 0.5;
+  pointer-events: none;
 }
-/* Match card must be relative for the ::after stub */
+
+/* ── Arrow chevron at mid-gap, pointing to next round ────────────── */
+.cup-bracket-round:not(:last-child) .cup-bracket-pair::after {
+  content: '';
+  position: absolute;
+  right: -29px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid rgba(201,168,76,0.55);
+  border-right: 2px solid rgba(201,168,76,0.55);
+  transform: translateY(-50%) rotate(45deg);
+  border-radius: 0 3px 0 0;
+  pointer-events: none;
+}
+
+/* ── Match card ──────────────────────────────────────────────────── */
 .cup-bracket-match {
-  position: relative;
+  position: relative;           /* needed for ::after connector stubs */
   background: var(--card-bg);
   border: 1px solid var(--border-def);
   border-radius: 10px;
@@ -2912,17 +2928,18 @@
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .cup-bracket-match-final {
-  border-color: rgba(201,168,76,0.6);
+  border-color: rgba(201,168,76,0.65);
   background: linear-gradient(145deg, var(--card-bg), rgba(201,168,76,0.07));
-  box-shadow: 0 2px 10px rgba(201,168,76,0.18);
+  box-shadow: 0 2px 12px rgba(201,168,76,0.2);
 }
 .cup-bracket-match-lower {
   border-color: rgba(120,120,180,0.3);
-  opacity: 0.92;
+  opacity: 0.9;
 }
-/* Matches sitting alone (not in a pair group) */
+
+/* ── Solo match (not in a pair group, e.g., terminal round) ────── */
 .cup-bracket-solo {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 /* Round label inside card (secondary, small) */

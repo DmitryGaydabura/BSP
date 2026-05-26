@@ -3947,42 +3947,58 @@ function renderCupGroup(group, allowEntry) {
 
 function renderPlayoffBracket(matches, allowEntry, isConsolation) {
   // Group by roundOrder
-  const rounds = {};
+  const allRounds = {};
   matches.forEach(m => {
-    if (!rounds[m.roundOrder]) rounds[m.roundOrder] = [];
-    rounds[m.roundOrder].push(m);
+    if (!allRounds[m.roundOrder]) allRounds[m.roundOrder] = [];
+    allRounds[m.roundOrder].push(m);
+  });
+
+  const sortedAllRounds = Object.keys(allRounds).map(Number).sort((a, b) => a - b);
+  const maxRound = sortedAllRounds[sortedAllRounds.length - 1];
+
+  // Filter: only keep matches that have at least one real pair or seed.
+  // Phantom matches (both pairs null, no seeds) are hidden — they exist only
+  // as cascade placeholders for brackets padded with byes (e.g. 12 pairs → 16-bracket).
+  const isVisible = m => m.pair1Name || m.pair2Name || m.seed1 || m.seed2;
+
+  // Build filtered round map; skip rounds that become entirely empty
+  const rounds = {};
+  sortedAllRounds.forEach(r => {
+    const visible = allRounds[r].filter(isVisible);
+    if (visible.length > 0) rounds[r] = visible;
   });
 
   const sortedRounds = Object.keys(rounds).map(Number).sort((a, b) => a - b);
-  const maxRound = sortedRounds[sortedRounds.length - 1];
-  const totalRounds = sortedRounds.length;
+  const totalRounds  = sortedRounds.length;
 
   let html = `<div class="cup-bracket">`;
 
   sortedRounds.forEach((r, roundIdx) => {
     const roundMatches = rounds[r].sort((a, b) => a.matchOrder - b.matchOrder);
     const isFinalRound = r === maxRound;
-    const isLastRound = roundIdx === totalRounds - 1;
+    const isLastRound  = roundIdx === totalRounds - 1;
 
-    // Column round header — use the label of the first (top-seeded) match
+    // Column header: use the top-seeded match's round label
     const firstLabel = roundMatches[0]?.roundLabel || '';
-    const colLabel = isFinalRound ? (firstLabel || 'Фінал') : (firstLabel || '');
+    const colLabel   = isFinalRound ? (firstLabel || 'Фінал') : (firstLabel || '');
     const headerClass = (isFinalRound && !isConsolation) ? ' is-final' : '';
+
     html += `<div class="cup-bracket-round">`;
     html += `<div class="cup-round-header${headerClass}">${colLabel}</div>`;
 
-    // Group matches into pairs of 2 for bracket connector lines
-    // (each pair of adj. matches feeds one match in the next round)
-    const halfSize = roundMatches.length;
+    // Group consecutive pairs of matches for bracket-connector CSS.
+    // Each pair of adjacent matches feeds one match in the next round.
     let i = 0;
-    while (i < halfSize) {
+    while (i < roundMatches.length) {
       const m1 = roundMatches[i];
       const m2 = roundMatches[i + 1];
       const hasPair = m2 != null && !isLastRound;
 
-      // Insert upper/lower track divider when needed
-      if (i > 0 && !isFinalRound && (m1.roundLabel || '').startsWith('За') && !(roundMatches[i-1].roundLabel || '').startsWith('За')) {
-        html += `<div class="cup-bracket-divider">↓ Матчі за місця</div>`;
+      // Upper-to-lower track divider
+      if (i > 0 && !isFinalRound
+          && (m1.roundLabel || '').startsWith('За')
+          && !(roundMatches[i - 1].roundLabel || '').startsWith('За')) {
+        html += `<div class="cup-bracket-divider">↓ За місця</div>`;
       }
 
       if (hasPair) {
