@@ -4002,7 +4002,10 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
       }
 
       if (hasPair) {
-        html += `<div class="cup-bracket-pair">`;
+        // Lower-track pairs (losers going to consolation rounds) get a CSS class
+        // so arrows can be suppressed — user wants arrows only on the winner flow.
+        const isLowerPair = !isFinalRound && (m1.roundLabel || '').startsWith('За');
+        html += `<div class="cup-bracket-pair${isLowerPair ? ' cup-bracket-pair-lower' : ''}">`;
         html += renderBracketMatch(m1, allowEntry, isFinalRound, isConsolation);
         html += renderBracketMatch(m2, allowEntry, isFinalRound, isConsolation);
         html += `</div>`;

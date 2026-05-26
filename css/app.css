@@ -2904,7 +2904,8 @@
 }
 
 /* ── Arrow chevron at mid-gap, pointing to next round ────────────── */
-.cup-bracket-round:not(:last-child) .cup-bracket-pair::after {
+/* Only shown on winner-track pairs; loser-track (.cup-bracket-pair-lower) has no arrow */
+.cup-bracket-round:not(:last-child) .cup-bracket-pair:not(.cup-bracket-pair-lower)::after {
   content: '';
   position: absolute;
   right: -29px;
