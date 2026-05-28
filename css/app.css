@@ -787,11 +787,11 @@
       background: linear-gradient(135deg, rgba(201,168,76,0.28), rgba(201,168,76,0.1));
       box-shadow: 0 0 18px rgba(201,168,76,0.4);
     }
-    /* B+ — solid gold fill, static glow */
+    /* B+ — brighter gold, same style as B */
     .level-b-plus {
-      color: var(--navy-deep); border-color: var(--gold);
-      background: linear-gradient(135deg, var(--gold-light), var(--gold));
-      box-shadow: 0 0 14px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
+      color: #F0D882; border-color: rgba(240,216,130,0.9);
+      background: linear-gradient(135deg, rgba(201,168,76,0.38), rgba(201,168,76,0.18));
+      box-shadow: 0 0 22px rgba(201,168,76,0.5);
     }
 
     /* Rating info "?" button */
