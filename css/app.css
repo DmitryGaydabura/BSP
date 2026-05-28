@@ -2833,12 +2833,12 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  min-width: 164px;
-  max-width: 196px;
+  min-width: 176px;
+  max-width: 210px;
   flex-shrink: 0;
   position: relative;
   /* Right padding is the "gap zone" where connectors are drawn */
-  padding-right: 32px;
+  padding-right: 52px;
   overflow: visible;
 }
 /* Last column needs no gap zone */
@@ -2866,23 +2866,23 @@
 .cup-bracket-pair {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 14px;
   position: relative;
-  margin-bottom: 12px;
+  margin-bottom: 22px;
 }
 
 /* ── Bracket connector: vertical bar on right side ────────────────── */
-/* Spans roughly from centre-of-M1 to centre-of-M2 */
+/* Spans from centre-of-M1 to centre-of-M2 */
 .cup-bracket-round:not(:last-child) .cup-bracket-pair::before {
   content: '';
   position: absolute;
-  right: -19px;        /* sits inside the 32px gap zone */
-  top: 27%;
-  bottom: 27%;
+  right: -26px;        /* sits inside the 52px gap zone */
+  top: 26%;
+  bottom: 26%;
   width: 2px;
   background: var(--border-def);
   border-radius: 2px;
-  opacity: 0.5;
+  opacity: 0.65;
   pointer-events: none;
 }
 
@@ -2890,12 +2890,12 @@
 .cup-bracket-round:not(:last-child) .cup-bracket-pair .cup-bracket-match::after {
   content: '';
   position: absolute;
-  right: -19px;
+  right: -26px;
   top: 50%;
-  width: 19px;
+  width: 26px;
   height: 2px;
   background: var(--border-def);
-  opacity: 0.5;
+  opacity: 0.65;
   pointer-events: none;
 }
 
@@ -2904,12 +2904,12 @@
 .cup-bracket-round:not(:last-child) .cup-bracket-pair:not(.cup-bracket-pair-lower)::after {
   content: '';
   position: absolute;
-  right: -29px;
+  right: -47px;
   top: 50%;
-  width: 10px;
-  height: 10px;
-  border-top: 2px solid rgba(201,168,76,0.55);
-  border-right: 2px solid rgba(201,168,76,0.55);
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid rgba(201,168,76,0.7);
+  border-right: 2px solid rgba(201,168,76,0.7);
   transform: translateY(-50%) rotate(45deg);
   border-radius: 0 3px 0 0;
   pointer-events: none;
@@ -2936,7 +2936,7 @@
 
 /* ── Solo match (not in a pair group, e.g., terminal round) ────── */
 .cup-bracket-solo {
-  margin-bottom: 12px;
+  margin-bottom: 22px;
 }
 
 /* Round label inside card (secondary, small) */
