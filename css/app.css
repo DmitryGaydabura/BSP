@@ -725,10 +725,7 @@
     }
 
     /* ── Level badges ─────────────────────────────────────────────── */
-    @keyframes bplus-pulse {
-      0%,100% { box-shadow: 0 0 14px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.25); }
-      50%      { box-shadow: 0 0 26px rgba(201,168,76,0.8), 0 0 44px rgba(201,168,76,0.25), inset 0 1px 0 rgba(255,255,255,0.35); }
-    }
+
     .level-badge {
       display: inline-flex; align-items: center; justify-content: center;
       font-family: var(--font-brand); font-weight: 700;
@@ -790,12 +787,11 @@
       background: linear-gradient(135deg, rgba(201,168,76,0.28), rgba(201,168,76,0.1));
       box-shadow: 0 0 18px rgba(201,168,76,0.4);
     }
-    /* B+ — maximum prestige: solid gold fill, pulsing glow */
+    /* B+ — solid gold fill, static glow */
     .level-b-plus {
       color: var(--navy-deep); border-color: var(--gold);
       background: linear-gradient(135deg, var(--gold-light), var(--gold));
       box-shadow: 0 0 14px rgba(201,168,76,0.55), inset 0 1px 0 rgba(255,255,255,0.25);
-      animation: bplus-pulse 2.8s ease-in-out infinite;
     }
 
     /* Rating info "?" button */
