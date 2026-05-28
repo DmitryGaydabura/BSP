@@ -497,6 +497,10 @@ function renderFinishedList(source, list) {
          </button>`
       : '';
 
+    const cupViewBtn = t.type === 'CUP'
+      ? `<button class="chip-btn chip-cup-view cup-view-btn" data-id="${t.id}">Переглянути Кубок</button>`
+      : '';
+
     return `<div class="finished-card">
       <div class="finished-card-header">
         <div class="finished-card-name">${t.name}</div>
@@ -505,6 +509,7 @@ function renderFinishedList(source, list) {
           ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelLabel}</span>` : ''}
           <span class="tournament-cat">${typeLabel}</span>
         </div>
+        ${cupViewBtn}
         ${currentUser?.role === 'ADMIN' ? `
         <div class="t-admin-actions">
           <button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>
