@@ -703,7 +703,7 @@ function renderPodium(players) {
 }
 
 async function renderRatings() {
-  let source = RATINGS;
+  let source = RATINGS.filter(r => (r.pts || 0) > 0);
   if (apiAvailable && ratingsData === null) {
     try {
       ratingsData = (await API.ratings.list()).map(normalizeRating);
