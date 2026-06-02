@@ -462,7 +462,7 @@ function renderFinishedList(source, list) {
               ${avatarSection}
               <div class="fp-names">${names}</div>
               ${r.score ? `<div class="fp-score">${r.score}</div>` : ''}
-              ${r.pts ? `<div class="fp-pts">+${r.pts}</div>` : ''}
+              ${r.pts !== 0 ? `<div class="fp-pts ${r.pts > 0 ? '' : 'neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</div>` : ''}
               <div class="fp-block ${blockCls}"><span class="fp-rank ${rankCls}">${pos}</span></div>
             </div>`;
           }).join('')}
@@ -484,7 +484,7 @@ function renderFinishedList(source, list) {
               <span class="results-pos pos-${r.pos}">${r.pos}</span>
               <div class="results-pair"><div class="results-pair-names">${nameSpans}</div></div>
               ${r.score ? `<span class="results-score">${r.score}</span>` : (hasScore ? `<span class="results-score-empty"></span>` : '')}
-              <span class="results-pts">+${r.pts}</span>
+              <span class="results-pts ${r.pts > 0 ? '' : r.pts < 0 ? 'neg' : 'zero'}">${r.pts > 0 ? '+' : ''}${r.pts}</span>
             </div>`;
           }).join('')}
         </div>`
