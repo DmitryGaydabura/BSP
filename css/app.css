@@ -520,7 +520,8 @@
       white-space: nowrap; text-align: right;
       min-width: 44px;
     }
-    .results-pts.neg { color: var(--error); }
+    .results-pts.pos  { color: var(--success); }
+    .results-pts.neg  { color: var(--error); }
     .results-pts.zero { color: var(--text-muted, #888); }
     .fp-score {
       font-family: var(--font-mono);
@@ -749,6 +750,8 @@
       color: var(--text-dim);
       width: 64px; text-align: right; flex-shrink: 0;
     }
+    .lb-trn.pos { color: var(--success); }
+    .lb-trn.neg { color: var(--error); }
 
     /* ── Level badges ─────────────────────────────────────────────── */
 
@@ -2799,9 +2802,11 @@
 .ach-result-pts {
   font-size: 12px;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--text-sec);
   flex-shrink: 0;
 }
+.ach-result-pts.pos { color: var(--success); }
+.ach-result-pts.neg { color: var(--error); }
 
 
 /* ══════════════════════════════════════════════════════════════════

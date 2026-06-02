@@ -327,13 +327,23 @@ function renderUpcomingList(source, list) {
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
     const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
 
+    const tStart = t.time
+      ? new Date(`${t.date}T${t.time}`)
+      : new Date(`${t.date}T00:00:00`);
+    const hoursUntil = (tStart - Date.now()) / 36e5;
+    const canLeave = isEnrolled && canJoin && hoursUntil > 24;
+
     const enrolledBadge = isEnrolled
       ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
       : '';
 
+    const leaveBtn = canLeave
+      ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>`
+      : '';
+
     const joinBtn = canJoin
       ? (isEnrolled
-          ? enrolledBadge
+          ? enrolledBadge + leaveBtn
           : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">${isFull ? 'У резерв' : 'Приєднатись'}</button>`)
       : '';
 
@@ -423,6 +433,25 @@ function renderUpcomingList(source, list) {
     });
   });
 
+  list.querySelectorAll('.sr-leave-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tid = parseInt(btn.dataset.id, 10);
+      const t = (tournamentsData || []).find(x => x.id === tid);
+      const name = t ? t.name : 'турнір';
+      if (!confirm(`Відписатись від «${name}»?`)) return;
+      btn.disabled = true;
+      try {
+        await API.tournaments.leave(tid);
+        tournamentsData = null;
+        showToast('Ви відписались від турніру', 'success');
+        await renderResults();
+      } catch (e) {
+        showToast(e.message || 'Помилка відписки', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
   wireAdminTournamentBtns(list);
 }
 
@@ -490,7 +519,7 @@ function renderFinishedList(source, list) {
               <span class="results-pos pos-${r.pos}">${r.pos}</span>
               <div class="results-pair"><div class="results-pair-names">${nameSpans}</div></div>
               ${r.score ? `<span class="results-score">${r.score}</span>` : (hasScore ? `<span class="results-score-empty"></span>` : '')}
-              <span class="results-pts ${r.pts > 0 ? '' : r.pts < 0 ? 'neg' : 'zero'}">${r.pts > 0 ? '+' : ''}${r.pts}</span>
+              <span class="results-pts ${r.pts > 0 ? 'pos' : r.pts < 0 ? 'neg' : 'zero'}">${r.pts > 0 ? '+' : ''}${r.pts}</span>
             </div>`;
           }).join('')}
         </div>`
@@ -672,7 +701,7 @@ function renderLbRow(p, rank, showLevel) {
         ${showLevel ? `<span class="level-badge level-badge-sm ${levelClass(lvl)}">${lvl}</span>` : ''}
       </div>
       <span class="lb-start">${p.startingPts}</span>
-      <span class="lb-trn">${p.tournamentPts >= 0 ? '+' : ''}${p.tournamentPts}</span>
+      <span class="lb-trn ${p.tournamentPts > 0 ? 'pos' : p.tournamentPts < 0 ? 'neg' : ''}">${p.tournamentPts > 0 ? '+' : ''}${p.tournamentPts}</span>
       <span class="lb-pts">${p.pts}</span>
       <span class="lb-change ${changeCls}">${changeSign}</span>
     </div>
@@ -1333,7 +1362,7 @@ function openAchievementTournament(tid) {
     return `<div class="ach-result-row${isWinner ? ' ach-result-winner' : ''}">
       <span class="ach-result-medal">${medal}</span>
       <div class="ach-result-names">${names}</div>
-      ${r.pts ? `<span class="ach-result-pts">+${r.pts}</span>` : ''}
+      ${r.pts !== 0 ? `<span class="ach-result-pts ${r.pts > 0 ? 'pos' : 'neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</span>` : ''}
     </div>`;
   }).join('');
 
