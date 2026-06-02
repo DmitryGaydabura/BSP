@@ -1358,6 +1358,8 @@
       border-bottom: 1px solid var(--border-sub);
     }
     .history-row:last-child { border-bottom: none; }
+    .history-row-tap { cursor: pointer; }
+    .history-row-tap:active { background: rgba(255,255,255,0.04); }
     .history-row-info { flex: 1; min-width: 0; }
     .history-row-name {
       font-size: 13px; font-weight: 500;

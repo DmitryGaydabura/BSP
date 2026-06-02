@@ -884,7 +884,7 @@ async function openPlayerProfile(player, rank) {
             const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
             const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
             return `
-              <div class="history-row">
+              <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
                 <div class="history-row-info">
                   <div class="history-row-name">${h.tournamentName}</div>
                   <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
@@ -1635,7 +1635,7 @@ async function loadHistory() {
       const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
       const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
       return `
-        <div class="history-row">
+        <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
           <div class="history-row-info">
             <div class="history-row-name">${h.tournamentName}</div>
             <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
