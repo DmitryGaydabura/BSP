@@ -340,17 +340,23 @@ function renderUpcomingList(source, list) {
     const priceLabel = t.price ? `${t.price} грн` : 'безкоштовно';
     const nameOf = p => [p.firstName, p.lastName].filter(Boolean).join(' ') || p.displayName || p.username || 'Гравець';
 
+    const tpChip = (p, extra = '') => {
+      const name = nameOf(p);
+      const safeName = name.replace(/'/g, '&#39;');
+      return `<span class="tp-name${extra} tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${safeName}')">${name}</span>`;
+    };
+
     const participantsList = confirmed.length > 0
       ? `<div class="tournament-participants-list">
           <div class="tp-label">Учасники</div>
-          <div class="tp-names">${confirmed.map(p => `<span class="tp-name">${nameOf(p)}</span>`).join('')}</div>
+          <div class="tp-names">${confirmed.map(p => tpChip(p)).join('')}</div>
         </div>`
       : '';
 
     const reserveList = reserve.length > 0
       ? `<div class="tournament-participants-list reserve-section">
           <div class="tp-label">Резерв</div>
-          <div class="tp-names">${reserve.map(p => `<span class="tp-name tp-reserve">${nameOf(p)}</span>`).join('')}</div>
+          <div class="tp-names">${reserve.map(p => tpChip(p, ' tp-reserve')).join('')}</div>
         </div>`
       : '';
 

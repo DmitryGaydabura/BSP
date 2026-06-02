@@ -461,6 +461,8 @@
       border: 1px solid rgba(74,138,181,0.2);
       padding: 2px 8px; border-radius: 10px;
     }
+    .tp-name-tap { cursor: pointer; }
+    .tp-name-tap:active { opacity: 0.6; }
     .tp-sep { color: var(--text-dim); font-size: 11px; }
 
     .results-table { width: 100%; }
