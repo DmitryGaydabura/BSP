@@ -181,32 +181,40 @@
       <!-- Rating system explanation -->
       <div class="rating-info-block">
         <div class="rating-info-title">Система рейтингу</div>
-        <div class="rating-info-text">
-          Рейтинг гравця = <strong>стартові бали</strong> + сума <strong>10 найкращих</strong> результатів турнірів.<br>
-          Стартові бали призначаються адміністратором згідно з рівнем Raketo: D&nbsp;→&nbsp;1000, D+&nbsp;→&nbsp;1250, C−&nbsp;→&nbsp;1500, C&nbsp;→&nbsp;1750, C+&nbsp;→&nbsp;2000, B−&nbsp;→&nbsp;2500, B&nbsp;→&nbsp;2750, B+&nbsp;→&nbsp;3000.
+
+        <div class="rg-inline-formula">
+          <span class="rg-inline-term accent">Рейтинг</span>
+          <span class="rg-inline-eq">=</span>
+          <span class="rg-inline-term">Стартові бали</span>
+          <span class="rg-inline-eq">+</span>
+          <span class="rg-inline-term">Сума усіх турнірів</span>
         </div>
-        <div class="rating-info-subtitle">Бали за місця на турнірах</div>
-        <div class="points-matrix-wrap">
-          <table class="points-matrix">
-            <thead>
-              <tr>
-                <th>Рівень</th>
-                <th>🥇 1</th><th>🥈 2</th><th>🥉 3</th>
-                <th>4</th><th>5</th><th>6</th><th>7</th><th>8</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td class="pm-level">D</td>      <td>80</td><td>56</td><td>39</td><td>27</td><td>19</td><td>13</td><td>9</td><td>6</td></tr>
-              <tr><td class="pm-level">D+</td>     <td>100</td><td>70</td><td>49</td><td>34</td><td>24</td><td>17</td><td>12</td><td>8</td></tr>
-              <tr><td class="pm-level">C−</td>     <td>125</td><td>88</td><td>62</td><td>43</td><td>30</td><td>21</td><td>15</td><td>10</td></tr>
-              <tr><td class="pm-level">C</td>      <td>155</td><td>110</td><td>77</td><td>54</td><td>38</td><td>27</td><td>19</td><td>13</td></tr>
-              <tr><td class="pm-level">C+</td>     <td>195</td><td>137</td><td>96</td><td>67</td><td>47</td><td>33</td><td>23</td><td>16</td></tr>
-              <tr><td class="pm-level">B−</td>     <td>240</td><td>168</td><td>118</td><td>83</td><td>58</td><td>41</td><td>29</td><td>20</td></tr>
-              <tr><td class="pm-level">B</td>      <td>300</td><td>210</td><td>147</td><td>103</td><td>72</td><td>50</td><td>35</td><td>25</td></tr>
-              <tr><td class="pm-level">B+</td>     <td>375</td><td>263</td><td>184</td><td>129</td><td>90</td><td>63</td><td>44</td><td>31</td></tr>
-            </tbody>
-          </table>
+
+        <div class="rg-inline-pillars">
+          <div class="rg-inline-pillar">
+            <div class="rg-inline-pillar-icon">🎯</div>
+            <div class="rg-inline-pillar-body">
+              <div class="rg-inline-pillar-title">Стартові бали</div>
+              <div class="rg-inline-pillar-desc">Визначаються рейтингом Raketo (1.0–4.0) безперервно. Колір 🟢🟡🔴 враховує досвід.</div>
+            </div>
+          </div>
+          <div class="rg-inline-pillar">
+            <div class="rg-inline-pillar-icon">⚡</div>
+            <div class="rg-inline-pillar-body">
+              <div class="rg-inline-pillar-title">Турнірні бали</div>
+              <div class="rg-inline-pillar-desc">Динамічні — залежать від <strong>сили турніру</strong> та вашого результату відносно очікуваного. Сильний гравець на слабкому турнірі ризикує <span style="color:var(--error)">втратити бали</span>.</div>
+            </div>
+          </div>
+          <div class="rg-inline-pillar">
+            <div class="rg-inline-pillar-icon">📊</div>
+            <div class="rg-inline-pillar-body">
+              <div class="rg-inline-pillar-title">Рівні (C / C− / D+ / D)</div>
+              <div class="rg-inline-pillar-desc">Визначаються відсотком серед усіх гравців клубу. Топ 20% — C, наступні 30% — C−, і так далі.</div>
+            </div>
+          </div>
         </div>
+
+        <button class="rg-inline-details-btn" id="btn-rating-info">Детальніше про систему →</button>
       </div>
     </div>
 
