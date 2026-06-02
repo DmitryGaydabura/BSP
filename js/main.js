@@ -875,7 +875,7 @@ async function openPlayerProfile(player, rank) {
           histList.innerHTML = history.map(h => {
             const sign = h.pointsDelta >= 0 ? '+' : '';
             const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
-            const date = new Date(h.createdAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+            const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
             const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
             return `
               <div class="history-row">
@@ -1530,13 +1530,13 @@ function wireAchievements(container) {
 }
 
 function buildRatingChart(history, startingPoints) {
-  const sorted = [...history].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const sorted = [...history].sort((a, b) => new Date(a.tournamentDate) - new Date(b.tournamentDate));
 
   const pts = [{ value: startingPoints, date: null }];
   let running = startingPoints;
   for (const h of sorted) {
     running = (h.totalPointsAfter > 0 ? h.totalPointsAfter : null) ?? (running + (h.pointsDelta || 0));
-    pts.push({ value: running, date: new Date(h.createdAt) });
+    pts.push({ value: running, date: new Date(h.tournamentDate) });
   }
 
   if (pts.length < 2) return null;
@@ -1626,7 +1626,7 @@ async function loadHistory() {
     container.innerHTML = history.map(h => {
       const sign = h.pointsDelta >= 0 ? '+' : '';
       const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
-      const date = new Date(h.createdAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+      const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
       const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
       return `
         <div class="history-row">
