@@ -535,6 +535,28 @@
       background: linear-gradient(180deg, var(--navy-mid) 0%, transparent 100%);
       border-bottom: 1px solid var(--border-sub);
     }
+    .ratings-header-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .ratings-header-stats {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    }
+    .rh-stat { text-align: right; }
+    .rh-stat-val {
+      font-family: var(--font-brand);
+      font-size: 18px; font-weight: 700;
+      color: var(--gold); letter-spacing: 0.02em;
+      margin-right: 3px;
+    }
+    .rh-stat-lbl {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+    .rh-stat-sep {
+      width: 1px; height: 24px;
+      background: var(--border-sub);
+    }
     .ratings-updated {
       font-size: 10px; font-weight: 500;
       letter-spacing: 0.05em;

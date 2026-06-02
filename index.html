@@ -125,7 +125,20 @@
     <div id="tab-ratings" class="tab-panel active">
       <div class="ratings-header">
         <div class="section-eyebrow">Blacksea Padel</div>
-        <div class="section-title" id="ratings-title">Рейтинг гравців</div>
+        <div class="ratings-header-top">
+          <div class="section-title" id="ratings-title">Рейтинг гравців</div>
+          <div class="ratings-header-stats">
+            <div class="rh-stat">
+              <span class="rh-stat-val" id="tournament-count">—</span>
+              <span class="rh-stat-lbl">турнірів</span>
+            </div>
+            <div class="rh-stat-sep"></div>
+            <div class="rh-stat">
+              <span class="rh-stat-val" id="member-count">—</span>
+              <span class="rh-stat-lbl">гравців</span>
+            </div>
+          </div>
+        </div>
         <div class="ratings-updated" id="ratings-updated"></div>
         <div class="ratings-filter-row" id="ratings-filter">
           <button class="filter-chip active" data-level="all">Всі</button>
@@ -133,27 +146,6 @@
           <button class="filter-chip" data-level="D+">D+</button>
           <button class="filter-chip" data-level="C−">C−</button>
           <button class="filter-chip" data-level="C">C</button>
-        </div>
-      </div>
-
-      <!-- Club card (intro + stats) -->
-      <div class="club-card">
-        <div class="club-intro-block">
-          <img class="club-intro-logo" src="assets/logo.jpg" alt="BSP" onerror="this.style.display='none'">
-          <div class="club-intro-body">
-            <div class="club-intro-name">Blacksea Padel</div>
-            <div class="club-intro-desc">Перший паделний клуб Одеси на узбережжі Чорного моря. Організовуємо турніри, ведемо рейтинг та об'єднуємо гравців від початківців до майстрів.</div>
-          </div>
-        </div>
-        <div class="club-stats-row">
-          <div class="club-stat-cell">
-            <div class="club-stat-val" id="tournament-count">—</div>
-            <div class="club-stat-lbl">Турніри</div>
-          </div>
-          <div class="club-stat-cell">
-            <div class="club-stat-val" id="member-count">—</div>
-            <div class="club-stat-lbl">Гравці</div>
-          </div>
         </div>
       </div>
 
