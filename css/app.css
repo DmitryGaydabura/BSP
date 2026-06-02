@@ -1222,6 +1222,14 @@
       border-radius: 12px;
       padding: 16px;
     }
+    .rating-info-block--compact {
+      padding: 10px 14px;
+    }
+    .ri-line {
+      font-size: 11px; color: var(--text-muted); line-height: 1.6;
+    }
+    .ri-line + .ri-line { margin-top: 2px; }
+    .ri-line strong { color: var(--text-sec); font-weight: 600; }
     .rating-info-title {
       font-size: 11px; font-weight: 700;
       letter-spacing: 0.18em; text-transform: uppercase;
