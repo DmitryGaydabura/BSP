@@ -635,6 +635,7 @@ function normalizeRating(r) {
     wins: r.wins,
     losses: r.losses,
     change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
+    level: r.playerLevel || null,
   };
 }
 
@@ -651,7 +652,7 @@ function renderLbRow(p, rank, showLevel) {
   const top3cls = rank <= 3 ? 'top3' : '';
   const changeSign = p.change === '=' ? '–' : p.change;
   const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
-  const lvl = levelFromPoints(p.pts);
+  const lvl = p.level || levelFromPoints(p.pts);
   const avatarContent = p.photoUrl
     ? `<img src="${p.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${initials(p.name)}'">`
     : initials(p.name);
@@ -713,7 +714,7 @@ async function renderRatings() {
   const isAll = activeRatingFilter === 'all';
   const filtered = isAll
     ? source
-    : source.filter(p => levelFromPoints(p.pts) === activeRatingFilter);
+    : source.filter(p => (p.level || levelFromPoints(p.pts)) === activeRatingFilter);
 
   /* Title */
   document.getElementById('ratings-title').textContent =
@@ -728,7 +729,7 @@ async function renderRatings() {
     /* All view: group rows by level visually */
     let html = '';
     for (const lvl of [...LEVELS_ORDER].reverse()) {
-      const group = filtered.filter(p => levelFromPoints(p.pts) === lvl);
+      const group = filtered.filter(p => (p.level || levelFromPoints(p.pts)) === lvl);
       if (!group.length) continue;
       const lvlCls = levelClass(lvl);
       html += `<div class="lb-level-group-header"><span class="level-badge level-badge-sm ${lvlCls}">${lvl}</span></div>`;
@@ -781,7 +782,7 @@ function _actRowTap(userId, displayName) {
 
 async function openPlayerProfile(player, rank) {
   const body = document.getElementById('player-profile-body');
-  const lvl = levelFromPoints(player.pts);
+  const lvl = player.level || levelFromPoints(player.pts);
   const lvlCls = levelClass(lvl);
   const wins = player.wins || 0;
   const losses = player.losses || 0;
@@ -1051,7 +1052,8 @@ function renderProfile() {
 
   const u = currentUser;
   const isAdmin = u.role === 'ADMIN';
-  const level = levelFromPoints(u.ratingPoints);
+  const myRatingEntry = ratingsData?.find(p => p.id === u.id);
+  const level = myRatingEntry?.level || levelFromPoints(u.ratingPoints);
   const tier = tierClass(level);
   const globalRank = ratingsData ? ratingsData.findIndex(p => p.id === u.id) + 1 : 0;
   const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
@@ -1103,8 +1105,8 @@ function renderProfile() {
       <div class="raketo-claimed-card">
         <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
         <div class="raketo-claimed-body">
-          <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)}</div>
-          <div class="raketo-claimed-detail">${colorLabel[u.raketoColor] || ''} · ${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові бали нараховано</div>
+          <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)} · ${colorLabel[u.raketoColor] || ''}</div>
+          <div class="raketo-claimed-detail">${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові бали: <strong>${u.startingPoints || 0}</strong> (${u.raketoColor === 'YELLOW' ? '×0.875' : u.raketoColor === 'RED' ? '×0.75' : '×1.0'} від базового)</div>
         </div>
       </div>
     ` : `
@@ -1598,11 +1600,12 @@ async function loadHistory() {
       const sign = h.pointsDelta >= 0 ? '+' : '';
       const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
       const date = new Date(h.createdAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+      const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
       return `
         <div class="history-row">
           <div class="history-row-info">
             <div class="history-row-name">${h.tournamentName}</div>
-            <div class="history-row-meta">${h.tournamentLevel} · ${date}</div>
+            <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
           </div>
           <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
         </div>
@@ -1618,24 +1621,12 @@ async function loadHistory() {
    CLAIM INITIAL POINTS MODAL
 ════════════════════════════════════════════════════════════════ */
 
-const RAKETO_LEVELS = [
-  { max: 1.5, level: 'D',  pts: 1000 },
-  { max: 2.0, level: 'D+', pts: 1250 },
-  { max: 2.5, level: 'C−', pts: 1500 },
-  { max: 3.0, level: 'C',  pts: 1750 },
-  { max: 3.5, level: 'C+', pts: 2000 },
-  { max: 4.0, level: 'B−', pts: 2500 },
-  { max: 4.5, level: 'B',  pts: 2750 },
-  { max: 99,  level: 'B+', pts: 3000 },
-];
-
-const COLOR_STEPS = { GREEN: 0, YELLOW: -1, RED: -2 };
-
 function raketoPreview(rating, color) {
-  const idx = RAKETO_LEVELS.findIndex(l => rating < l.max);
-  const safeIdx = idx === -1 ? RAKETO_LEVELS.length - 1 : idx;
-  const levelIdx = Math.max(0, Math.min(safeIdx + (COLOR_STEPS[color] ?? 0), RAKETO_LEVELS.length - 1));
-  return RAKETO_LEVELS[levelIdx];
+  if (!rating || rating <= 0) return { pts: 0 };
+  const raw = 1000 + (rating - 1.0) / 3.0 * 2000;
+  const multiplier = { GREEN: 1.0, YELLOW: 0.875, RED: 0.75 }[color] ?? 1.0;
+  const pts = Math.round(raw * multiplier / 50) * 50;
+  return { pts: Math.max(0, pts) };
 }
 
 /* ── Raketo Firestore integration ───────────────────────────── */
@@ -1813,7 +1804,7 @@ function openClaimPointsModal() {
     if (selectedRating !== null && selectedColor && gender) {
       const p = raketoPreview(selectedRating, selectedColor);
       previewPts.textContent = p.pts;
-      previewLevel.textContent = `Рівень BSP: ${p.level}`;
+      previewLevel.textContent = 'Стартові бали у рейтингу BSP';
       previewBox.style.display = '';
     }
   }
