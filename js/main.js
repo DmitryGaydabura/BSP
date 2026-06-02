@@ -2754,6 +2754,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 document.getElementById('btn-rating-info').addEventListener('click', () => openModal('modal-rating-guide'));
 
+function toggleRatingInfo() {
+  document.getElementById('rating-info-block').classList.toggle('rating-info-block--open');
+}
+
 document.getElementById('btn-help').addEventListener('click', () => {
   localStorage.removeItem('bsp_intro_seen');
   initOnboarding();

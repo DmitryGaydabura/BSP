@@ -1223,13 +1223,42 @@
       padding: 16px;
     }
     .rating-info-block--compact {
-      padding: 10px 14px;
+      padding: 0;
+      overflow: hidden;
     }
-    .ri-line {
-      font-size: 11px; color: var(--text-muted); line-height: 1.6;
+    .ri-header {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; padding: 10px 14px;
+      background: none; border: none; cursor: pointer; text-align: left;
     }
-    .ri-line + .ri-line { margin-top: 2px; }
-    .ri-line strong { color: var(--text-sec); font-weight: 600; }
+    .ri-summary {
+      font-size: 11px; color: var(--text-muted); line-height: 1.5; flex: 1;
+    }
+    .ri-summary strong { color: var(--text-sec); font-weight: 600; }
+    .ri-chevron {
+      width: 14px; height: 14px; flex-shrink: 0;
+      color: var(--text-dim);
+      transition: transform 0.25s ease;
+    }
+    .rating-info-block--open .ri-chevron { transform: rotate(180deg); }
+    .ri-details {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.28s ease, padding 0.28s ease;
+      padding: 0 14px;
+    }
+    .rating-info-block--open .ri-details {
+      max-height: 120px;
+      padding: 0 14px 10px;
+    }
+    .ri-detail-line {
+      font-size: 11px; color: var(--text-dim); line-height: 1.6;
+      padding-left: 10px; position: relative;
+    }
+    .ri-detail-line + .ri-detail-line { margin-top: 3px; }
+    .ri-detail-line::before {
+      content: '·'; position: absolute; left: 2px;
+      color: var(--text-dim);
+    }
     .rating-info-title {
       font-size: 11px; font-weight: 700;
       letter-spacing: 0.18em; text-transform: uppercase;

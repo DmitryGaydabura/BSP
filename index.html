@@ -150,11 +150,16 @@
       </div>
 
       <!-- Rating system explanation -->
-      <div class="rating-info-block rating-info-block--compact">
-        <div class="ri-line"><strong>Рейтинг</strong> = стартові бали + сума усіх турнірів</div>
-        <div class="ri-line">Стартові — безперервна конвертація Raketo (1.0–4.0) з поправкою на колір</div>
-        <div class="ri-line">Турнірні — динамічні; залежать від сили турніру та очікуваного місця</div>
-        <div class="ri-line">Рівні C / C− / D+ / D визначаються відсотком серед усіх гравців</div>
+      <div class="rating-info-block rating-info-block--compact" id="rating-info-block">
+        <button class="ri-header" id="ri-toggle" onclick="toggleRatingInfo()">
+          <span class="ri-summary"><strong>Рейтинг</strong> = стартові бали + результати турнірів</span>
+          <svg class="ri-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ri-details" id="ri-details">
+          <div class="ri-detail-line">Стартові бали визначаються рейтингом Raketo (1.0–4.0) та кольором активності 🟢🟡🔴</div>
+          <div class="ri-detail-line">Бали за турнір залежать від його сили та вашого місця відносно очікуваного — результат може бути від'ємним</div>
+          <div class="ri-detail-line">Рівні C / C− / D+ / D формуються за відсотком серед усіх гравців клубу: топ 20% / 30% / 30% / 20%</div>
+        </div>
       </div>
 
       <!-- Podium top-3 -->
