@@ -626,6 +626,7 @@ document.getElementById('results-filter').addEventListener('click', e => {
 
 let ratingsData = null;
 let activeRatingFilter = 'all';
+const playerHistoryCache = new Map();
 
 const LEVELS_ORDER = ['D−','D','D+','C−','C','C+','B−','B','B+'];
 
@@ -866,8 +867,12 @@ async function openPlayerProfile(player, rank) {
     const achEl = document.getElementById('pp-achievements');
     if (achEl) { achEl.innerHTML = renderAchievements(player.id, player.name); wireAchievements(achEl); }
 
+    const historyFetch = playerHistoryCache.has(player.id)
+      ? Promise.resolve(playerHistoryCache.get(player.id))
+      : API.users.userHistory(player.id).then(h => { playerHistoryCache.set(player.id, h); return h; });
+
     const [historyResult, activityResult] = await Promise.allSettled([
-      API.users.userHistory(player.id),
+      historyFetch,
       API.activity.monthly(currentYearMonth()),
     ]);
 
@@ -2742,10 +2747,16 @@ function openAdminImportModal() {
 
 /* ── Modal helpers ──────────────────────────────────────────────── */
 function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  const el = document.getElementById(id);
+  const topZ = Math.max(100, ...[...document.querySelectorAll('.modal-overlay.open')]
+    .map(m => parseInt(m.style.zIndex) || 100));
+  el.style.zIndex = topZ + 10;
+  el.classList.add('open');
 }
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const el = document.getElementById(id);
+  el.style.zIndex = '';
+  el.classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
   if (id === 'modal-achievement' && achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
 }
