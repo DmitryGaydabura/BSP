@@ -838,6 +838,11 @@ async function openPlayerProfile(player, rank) {
       <div class="history-card-title">Прогрес рейтингу</div>
       <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
     </div>
+
+    <div class="history-card" style="margin-top:12px">
+      <div class="history-card-title">Турніри</div>
+      <div id="pp-history-list"><div class="history-loading">Завантаження...</div></div>
+    </div>
   `;
 
   openModal('modal-player-profile');
@@ -860,12 +865,34 @@ async function openPlayerProfile(player, rank) {
       API.activity.monthly(currentYearMonth()),
     ]);
 
+    const histList = document.getElementById('pp-history-list');
     if (historyResult.status === 'fulfilled') {
       const history = historyResult.value;
       const svg = history?.length >= 1 ? buildRatingChart(history, player.startingPts) : null;
       if (chartBody) chartBody.innerHTML = svg ?? '<div class="history-empty">Немає турнірних результатів</div>';
+      if (histList) {
+        if (history?.length > 0) {
+          histList.innerHTML = history.map(h => {
+            const sign = h.pointsDelta >= 0 ? '+' : '';
+            const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
+            const date = new Date(h.createdAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+            const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
+            return `
+              <div class="history-row">
+                <div class="history-row-info">
+                  <div class="history-row-name">${h.tournamentName}</div>
+                  <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
+                </div>
+                <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
+              </div>`;
+          }).join('');
+        } else {
+          histList.innerHTML = '<div class="history-empty">Немає записів</div>';
+        }
+      }
     } else {
       if (chartBody) chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+      if (histList) histList.innerHTML = '<div class="history-empty">Немає записів</div>';
     }
 
     if (activityResult.status === 'fulfilled') {
