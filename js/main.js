@@ -1911,6 +1911,11 @@ function renderAdminPanel() {
           <span class="admin-action-label">AI Аналіз турнірів</span>
           <span class="admin-action-arrow">›</span>
         </button>
+        <button class="admin-action-btn" id="btn-migrate-v2">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span class="admin-action-label">Перерахувати рейтинг v2</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
       </div>
     </div>
   `;
@@ -2496,7 +2501,30 @@ function wireAdminPanel() {
   document.getElementById('btn-users').addEventListener('click', openUsersModal);
   document.getElementById('btn-admin-import').addEventListener('click', openAdminImportModal);
   document.getElementById('btn-admin-analysis').addEventListener('click', openAdminAnalysisModal);
+  document.getElementById('btn-migrate-v2').addEventListener('click', runMigrateV2);
   initAdminImportModal();
+}
+
+/* ── Migrate v2 ─────────────────────────────────────────────────── */
+
+async function runMigrateV2() {
+  const btn = document.getElementById('btn-migrate-v2');
+  const label = btn.querySelector('.admin-action-label');
+  const original = label.textContent;
+  if (!confirm('Це перерахує всі стартові бали та турнірні очки по новій формулі. Продовжити?')) return;
+  label.textContent = 'Виконується...';
+  btn.disabled = true;
+  try {
+    const result = await API.ratings.migrateV2();
+    alert(`Міграція завершена!\nГравців: ${result.usersProcessed}\nТурнірів: ${result.tournamentsProcessed}`);
+    ratingsData = null;
+    await renderRatings();
+  } catch (e) {
+    alert('Помилка міграції: ' + (e.message || 'невідома'));
+  } finally {
+    label.textContent = original;
+    btn.disabled = false;
+  }
 }
 
 /* ── Admin import from Raketo ───────────────────────────────────── */

@@ -87,6 +87,7 @@ const API = (() => {
     ratings: {
       list:        () => request('GET',  '/ratings'),
       recalculate: () => request('POST', '/ratings/recalculate'),
+      migrateV2:   () => request('POST', '/ratings/migrate-v2'),
     },
 
     activity: {
