@@ -2794,6 +2794,8 @@
   gap: 2px 4px;
 }
 .ach-result-names .separator { color: var(--text-dim); font-weight: 400; }
+.ach-name-tap { cursor: pointer; }
+.ach-name-tap:active { opacity: 0.6; }
 .ach-result-pts {
   font-size: 12px;
   font-weight: 700;

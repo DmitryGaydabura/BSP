@@ -1323,7 +1323,7 @@ function openAchievementTournament(tid) {
   const rowsHtml = results.map(r => {
     const rPlayers = r.players || r.pair.map(n => ({ name: n }));
     const medal = r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : `<span class="ach-pos">${r.pos}</span>`;
-    const names = rPlayers.map(p => `<span>${p.name}</span>`).join('<span class="separator"> / </span>');
+    const names = rPlayers.map(p => `<span class="ach-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${(p.name || '').replace(/'/g, "&#39;")}')">${p.name}</span>`).join('<span class="separator"> / </span>');
     const isWinner = r.pos === 1;
     return `<div class="ach-result-row${isWinner ? ' ach-result-winner' : ''}">
       <span class="ach-result-medal">${medal}</span>
