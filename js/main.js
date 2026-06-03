@@ -3811,7 +3811,10 @@ function switchTab(tab) {
     if (tab === 'activity') renderActivity();
     rendered[tab] = true;
   } else if (tab === 'profile') {
-    renderProfile(); // always re-render profile to reflect auth state
+    renderProfile();
+  } else if (tab === 'results') {
+    tournamentsData = null; // always re-fetch so pair changes from bot are visible
+    renderResults();
   }
 
   currentTab = tab;
