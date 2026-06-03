@@ -3676,9 +3676,18 @@ async function openParticipantsModal() {
   }
 }
 
-function updateSlotsIndicator(currentCount, maxParticipants) {
+function updateSlotsIndicator(currentCount, maxParticipants, isPair) {
   const el = document.getElementById('pm-slots');
   if (!el) return;
+  if (isPair) {
+    const pairSlots = maxParticipants ? Math.floor(maxParticipants / 2) : null;
+    const usedPairs = Math.ceil(currentCount / 2); // rough count; pairRegs.length is better but not always available here
+    if (!pairSlots) { el.textContent = `${currentCount} учасників`; el.style.color = 'var(--text-muted)'; return; }
+    const free = pairSlots - usedPairs;
+    el.textContent = `${usedPairs} / ${pairSlots} пар · ${free <= 0 ? 'заповнено' : free + ' вільних'}`;
+    el.style.color = free <= 0 ? 'var(--error, #e05050)' : free <= 1 ? '#e09050' : 'var(--gold)';
+    return;
+  }
   if (!maxParticipants) { el.textContent = `${currentCount} учасників · без обмеження`; el.style.color = 'var(--text-muted)'; return; }
   const free = maxParticipants - currentCount;
   if (free <= 0) {
@@ -3695,36 +3704,130 @@ async function renderParticipantList(tournamentId) {
   if (!tournamentId) { container.innerHTML = ''; pmParticipantIds = new Set(); renderAddableList(); return; }
   container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Завантаження...</div>';
   try {
-    const participants = await API.tournaments.getParticipants(tournamentId);
-    pmParticipantIds = new Set(participants.map(u => u.id));
-
     const tournament = pmTournaments.find(t => String(t.id) === String(tournamentId));
-    updateSlotsIndicator(participants.length, tournament?.maxParticipants);
+    const isPair = tournament?.type === 'PAIR';
 
-    if (!participants.length) {
-      container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
-    } else {
-      container.innerHTML = participants.map(u => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-sub)">
-          <span style="flex:1;font-size:13px">${u.displayName}</span>
-          <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
-          <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${u.id}"
-                  style="color:var(--error);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">✕</button>
-        </div>
-      `).join('');
+    if (isPair) {
+      // Fetch full tournament to get pairRegistrations with partner info
+      const fullT = await API.tournaments.get(tournamentId);
+      const pairRegs = fullT.pairRegistrations || [];
+      pmParticipantIds = new Set(pairRegs.flatMap(pr => [pr.player1?.id, pr.player2?.id].filter(Boolean)));
 
-      container.querySelectorAll('.pm-remove-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          try {
-            await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
-            await renderParticipantList(btn.dataset.tournamentId);
-          } catch (e) {
-            alert('Помилка: ' + (e.message || 'unknown'));
-            btn.disabled = false;
+      updateSlotsIndicator(pairRegs.length, tournament?.maxParticipants, true);
+
+      if (!pairRegs.length) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
+      } else {
+        const solos = pairRegs.filter(pr => !pr.player2);
+        container.innerHTML = pairRegs.map(pr => {
+          if (pr.player2) {
+            return `<div class="pm-pair-row">
+              <div class="pm-pair-names-col">
+                <span class="pm-pair-name">${pr.player1.displayName}</span>
+                <span class="pm-pair-slash">/</span>
+                <span class="pm-pair-name">${pr.player2.displayName}</span>
+              </div>
+              <button class="pm-unlink-btn" data-tid="${tournamentId}" data-uid="${pr.player1.id}"
+                      title="Розпарити">↔</button>
+              <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${pr.player1.id}"
+                      title="Видалити ${pr.player1.displayName}">✕</button>
+            </div>`;
           }
+          // Solo player — show partner picker
+          const soloOptions = solos
+            .filter(s => s.player1.id !== pr.player1.id)
+            .map(s => `<option value="${s.player1.id}">${s.player1.displayName}</option>`)
+            .join('');
+          const hasSoloPartners = soloOptions.length > 0;
+          return `<div class="pm-pair-row pm-solo-row">
+            <span class="pm-pair-name" style="flex:1">${pr.player1.displayName}</span>
+            <span class="pm-solo-label">без пари</span>
+            ${hasSoloPartners
+              ? `<select class="pm-partner-select" data-tid="${tournamentId}" data-uid="${pr.player1.id}">
+                  <option value="">Об'єднати з...</option>
+                  ${soloOptions}
+                </select>`
+              : ''}
+            <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${pr.player1.id}">✕</button>
+          </div>`;
+        }).join('');
+
+        // Wire unlink buttons
+        container.querySelectorAll('.pm-unlink-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await API.tournaments.adminUnpair(btn.dataset.tid, btn.dataset.uid);
+              await renderParticipantList(btn.dataset.tid);
+            } catch (e) {
+              alert('Помилка: ' + (e.message || 'unknown'));
+              btn.disabled = false;
+            }
+          });
         });
-      });
+
+        // Wire partner select dropdowns
+        container.querySelectorAll('.pm-partner-select').forEach(sel => {
+          sel.addEventListener('change', async () => {
+            const partnerId = sel.value;
+            if (!partnerId) return;
+            sel.disabled = true;
+            try {
+              await API.tournaments.adminPair(sel.dataset.tid, sel.dataset.uid, partnerId);
+              await renderParticipantList(sel.dataset.tid);
+            } catch (e) {
+              alert('Помилка: ' + (e.message || 'unknown'));
+              sel.disabled = false;
+              sel.value = '';
+            }
+          });
+        });
+
+        // Wire remove buttons
+        container.querySelectorAll('.pm-remove-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
+              await renderParticipantList(btn.dataset.tournamentId);
+            } catch (e) {
+              alert('Помилка: ' + (e.message || 'unknown'));
+              btn.disabled = false;
+            }
+          });
+        });
+      }
+    } else {
+      // Non-PAIR: existing flat list
+      const participants = await API.tournaments.getParticipants(tournamentId);
+      pmParticipantIds = new Set(participants.map(u => u.id));
+      updateSlotsIndicator(participants.length, tournament?.maxParticipants, false);
+
+      if (!participants.length) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
+      } else {
+        container.innerHTML = participants.map(u => `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-sub)">
+            <span style="flex:1;font-size:13px">${u.displayName}</span>
+            <span style="font-size:11px;color:var(--text-muted)">${u.ratingPoints} pts</span>
+            <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${u.id}"
+                    style="color:var(--error);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:2px 6px">✕</button>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.pm-remove-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            try {
+              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
+              await renderParticipantList(btn.dataset.tournamentId);
+            } catch (e) {
+              alert('Помилка: ' + (e.message || 'unknown'));
+              btn.disabled = false;
+            }
+          });
+        });
+      }
     }
 
     renderAddableList();

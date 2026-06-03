@@ -70,6 +70,8 @@ const API = (() => {
       sendPairRequest:  (id, targetParticipantId) => request('POST', `/tournaments/${id}/pair-request/${targetParticipantId}`),
       cancelPairRequest: id            => request('DELETE', `/tournaments/${id}/pair-request`),
       getMyPairRequest:  id            => request('GET',    `/tournaments/${id}/pair-request/mine`),
+      adminPair:        (id, u1, u2)  => request('POST',   `/tournaments/${id}/admin-pair`, { userId1: u1, userId2: u2 }),
+      adminUnpair:      (id, uid)     => request('DELETE', `/tournaments/${id}/admin-pair/${uid}`),
       setRaketoId:      (id, raketoId) => request('PATCH',  `/tournaments/${id}/raketo`, { raketoId }),
       importFromRaketo: (id)           => request('POST',   `/tournaments/${id}/import-from-raketo`),
       generateAnalysis: id             => request('POST',   `/tournaments/${id}/analysis`),

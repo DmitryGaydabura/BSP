@@ -1715,6 +1715,20 @@
     }
     .pm-addable-row:hover { background: rgba(201,168,76,0.07) !important; }
     .pm-addable-row:active { background: rgba(201,168,76,0.14) !important; opacity: 0.7; }
+    .pm-pair-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border-sub); }
+    .pm-pair-row:last-child { border-bottom:none; }
+    .pm-pair-names-col { display:flex; align-items:center; gap:5px; flex:1; min-width:0; flex-wrap:wrap; }
+    .pm-pair-name { font-size:13px; color:var(--text-pri); }
+    .pm-pair-slash { color:var(--gold-dark); font-weight:700; font-size:13px; flex-shrink:0; }
+    .pm-solo-label { font-size:10px; color:var(--text-dim); font-style:italic; flex-shrink:0; }
+    .pm-unlink-btn { background:none; border:1px solid var(--border-def); border-radius:6px; color:var(--text-dim);
+                     font-size:12px; padding:3px 8px; cursor:pointer; flex-shrink:0; }
+    .pm-unlink-btn:active { opacity:0.6; }
+    .pm-partner-select { font-size:12px; background:var(--navy-mid); color:var(--text-pri);
+                         border:1px solid var(--border-def); border-radius:6px; padding:4px 6px;
+                         cursor:pointer; max-width:130px; flex-shrink:0; }
+    .pm-solo-row .pm-remove-btn { color:var(--error);background:none;border:none;cursor:pointer;
+                                   font-size:16px;line-height:1;padding:2px 6px;flex-shrink:0; }
 
     /* ── Activity tab ── */
     .activity-header { padding: 16px 16px 0; }
