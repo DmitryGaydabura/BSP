@@ -363,8 +363,11 @@ function renderUpcomingList(source, list) {
       } else if (isRegisteredSolo) {
         joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">🔍 Шукає пару</span>`
                 + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
-      } else if (t.canRegisterSolo) {
-        joinBtn = `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Зареєструватись</button>`;
+      } else {
+        const hasSolosToJoin = pairRegs.some(pr => !pr.player2 && pr.player1?.id !== currentUser?.id);
+        if (t.canRegisterSolo || hasSolosToJoin) {
+          joinBtn = `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Зареєструватись</button>`;
+        }
       }
     } else if (t.type !== 'PAIR') {
       const enrolledBadge = isEnrolled
@@ -3865,9 +3868,6 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
   pendingJoinTournamentId = alreadyEnrolled ? null : tournament.id;
   pendingPairJoin = null;
   const isFull = tournament.maxParticipants && (tournament.participantCount || 0) >= tournament.maxParticipants;
-  confirmBtnLabel = alreadyEnrolled ? 'Вже зареєстровані'
-    : tournament.type === 'PAIR' ? 'Зареєструватись без пари'
-    : (isFull ? 'Перейти до резерву' : 'Зареєструватися');
 
   // Tournament card
   const dateObj = new Date(tournament.date);
@@ -3875,12 +3875,8 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
 
   let html = `<div class="rc-name">${tournament.name}</div>`;
   html += `<div class="rc-detail"><span class="rc-detail-icon">📅</span>${dateStr}</div>`;
-  if (tournament.time) {
-    html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
-  }
-  if (tournament.location) {
-    html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
-  }
+  if (tournament.time) html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
+  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
 
   const tags = [];
   if (tournament.minRating != null || tournament.maxRating != null) {
@@ -3891,7 +3887,6 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
   if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
   tags.push(`<span class="rc-tag">${tournament.type === 'SINGLE' ? 'Одиночний' : tournament.type === 'CUP' ? '🏆 Кубок' : 'Парний'}</span>`);
   html += `<div class="rc-tags">${tags.join('')}</div>`;
-
   document.getElementById('reg-confirm-card').innerHTML = html;
 
   // Price section
@@ -3903,15 +3898,77 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
     priceSection.classList.add('hidden');
   }
 
-  const btn = document.getElementById('reg-confirm-submit');
-  btn.textContent = confirmBtnLabel;
-  btn.disabled = alreadyEnrolled;
+  // PAIR tournament: show both options (solo + join) in the body
+  const pairOptsEl = document.getElementById('reg-confirm-pair-options');
+  const submitBtn = document.getElementById('reg-confirm-submit');
+
+  if (tournament.type === 'PAIR' && !alreadyEnrolled) {
+    const solos = (tournament.pairRegistrations || [])
+      .filter(pr => !pr.player2 && pr.player1?.id !== currentUser?.id);
+
+    let optsHtml = '';
+
+    if (tournament.canRegisterSolo) {
+      optsHtml += `<div class="pair-opt-label">Без пари</div>
+        <div class="pair-opt-player-row">
+          <span class="pair-opt-player-name">Зареєструватись і чекати на партнера</span>
+        </div>`;
+    }
+
+    if (solos.length > 0) {
+      if (tournament.canRegisterSolo) {
+        optsHtml += `<div class="pair-opt-sep"><span>або приєднатись до</span></div>`;
+      } else {
+        optsHtml += `<div class="pair-opt-label">Приєднатись до гравця</div>`;
+      }
+      optsHtml += solos.map(pr => {
+        const name = playerNameOf(pr.player1);
+        const safeName = name.replace(/'/g, '&#39;');
+        return `<div class="pair-opt-player-row">
+          <span class="pair-opt-player-name">${name}</span>
+          <button class="pair-opt-join-btn rc-pair-join-btn" data-tid="${tournament.id}" data-pid="${pr.participant1Id}" data-name="${safeName}">Грати разом</button>
+        </div>`;
+      }).join('');
+    }
+
+    pairOptsEl.innerHTML = optsHtml;
+    pairOptsEl.classList.remove('hidden');
+
+    // Wire inline join buttons
+    pairOptsEl.querySelectorAll('.rc-pair-join-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = parseInt(btn.dataset.pid, 10);
+        const soloEntry = (tournament.pairRegistrations || []).find(pr => pr.participant1Id === pid);
+        if (soloEntry) showPairJoinConfirm(tournament, soloEntry);
+      });
+    });
+
+    // Main submit button: "Без пари" if canRegisterSolo, else hidden
+    if (tournament.canRegisterSolo) {
+      confirmBtnLabel = 'Зареєструватись без пари';
+      submitBtn.textContent = confirmBtnLabel;
+      submitBtn.disabled = false;
+      submitBtn.style.display = '';
+    } else {
+      submitBtn.style.display = 'none';
+    }
+  } else {
+    pairOptsEl.innerHTML = '';
+    pairOptsEl.classList.add('hidden');
+    submitBtn.style.display = '';
+    confirmBtnLabel = alreadyEnrolled ? 'Вже зареєстровані'
+      : (isFull ? 'Перейти до резерву' : 'Зареєструватися');
+    submitBtn.textContent = confirmBtnLabel;
+    submitBtn.disabled = alreadyEnrolled;
+  }
 
   document.getElementById('reg-confirm').classList.add('reg-confirm-visible');
 }
 
 function hideRegistrationConfirm() {
   document.getElementById('reg-confirm').classList.remove('reg-confirm-visible');
+  document.getElementById('reg-confirm-submit').style.display = '';
+  document.getElementById('reg-confirm-pair-options').classList.add('hidden');
   pendingJoinTournamentId = null;
   pendingPairJoin = null;
 }
