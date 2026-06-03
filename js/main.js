@@ -247,6 +247,12 @@ function normalizeTournament(t) {
     participantCount: t.participantCount || (t.participants || []).length,
     participants: t.participants || [],
     reserveParticipants: t.reserveParticipants || [],
+    // PAIR tournament registration fields
+    pairRegistrations: t.pairRegistrations || null,
+    canRegisterSolo: t.canRegisterSolo ?? null,
+    myPendingPairRequestId: t.myPendingPairRequestId || null,
+    myPendingPairTargetParticipantId: t.myPendingPairTargetParticipantId || null,
+    myPendingPairTargetName: t.myPendingPairTargetName || null,
     raketoId: t.raketoId || null,
     hasAnalysis: t.hasAnalysis || false,
     analysisGeneratedAt: t.analysisGeneratedAt || null,
