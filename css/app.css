@@ -464,6 +464,11 @@
     .tp-name-tap { cursor: pointer; }
     .tp-name-tap:active { opacity: 0.6; }
     .tp-sep { color: var(--text-dim); font-size: 11px; }
+    .tp-pairs { display: flex; flex-direction: column; gap: 6px; }
+    .tp-pair-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .tp-pair-sep { color: var(--gold-dark); font-weight: 700; font-size: 12px; flex-shrink: 0; }
+    .tp-solo-tag { font-size: 10px; color: var(--text-dim); font-style: italic; flex-shrink: 0; }
+    .tp-pair-row .chip-btn { font-size: 10px; padding: 3px 10px; margin-left: auto; flex-shrink: 0; }
 
     .results-table { width: 100%; }
     .results-row {

@@ -71,6 +71,7 @@ if (tg) {
 
 /* ── App state ─────────────────────────────────────────────────── */
 let currentUser = null;   // UserDto from API when logged in
+const playerNameOf = p => [p?.firstName, p?.lastName].filter(Boolean).join(' ') || p?.displayName || p?.username || 'Гравець';
 let apiAvailable = false; // whether the backend responded
 
 /* ════════════════════════════════════════════════════════════════
@@ -308,10 +309,22 @@ function renderUpcomingList(source, list) {
   list.innerHTML = filtered.map(t => {
     const confirmed   = t.participants || [];
     const reserve     = t.reserveParticipants || [];
-    const isEnrolled  = currentUser && [...confirmed, ...reserve].some(p => p.id === currentUser.id);
-    const isInReserve = currentUser && reserve.some(p => p.id === currentUser.id);
+    const pairRegs    = t.pairRegistrations || [];
+    const myPairEntry = (t.type === 'PAIR' && currentUser)
+        ? pairRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
+        : null;
+    const isRegisteredSolo   = !!(myPairEntry && !myPairEntry.player2);
+    const isRegisteredPaired = !!(myPairEntry && myPairEntry.player2);
+    const hasPendingRequest  = t.type === 'PAIR' && !!t.myPendingPairRequestId;
+    const isEnrolled  = t.type === 'PAIR'
+        ? !!myPairEntry
+        : !!(currentUser && [...confirmed, ...reserve].some(p => p.id === currentUser.id));
+    const isInReserve = t.type === 'PAIR' ? false
+        : !!(currentUser && reserve.some(p => p.id === currentUser.id));
     const canJoin     = currentUser && (t.status === 'DRAFT' || t.status === 'ACTIVE');
-    const isFull      = t.maxParticipants && (t.participantCount || 0) >= t.maxParticipants;
+    const isFull      = t.type === 'PAIR'
+        ? (!t.canRegisterSolo && pairRegs.filter(pr => !pr.player2 && pr.player1?.id !== currentUser?.id).length === 0)
+        : !!(t.maxParticipants && (t.participantCount || 0) >= t.maxParticipants);
 
     const ratingRange = [
       t.minRating ? `від ${t.minRating}` : '',
@@ -319,9 +332,13 @@ function renderUpcomingList(source, list) {
     ].filter(Boolean).join('–');
 
     const reserveCount = reserve.length;
-    const participantsInfo = t.maxParticipants
-      ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
-      : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : '');
+    const participantsInfo = t.type === 'PAIR'
+      ? (t.maxParticipants
+          ? `${pairRegs.length}/${Math.floor(t.maxParticipants / 2)} пар`
+          : (pairRegs.length ? `${pairRegs.length} пар` : ''))
+      : (t.maxParticipants
+          ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
+          : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
     const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
     const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
@@ -333,37 +350,54 @@ function renderUpcomingList(source, list) {
     const hoursUntil = (tStart - Date.now()) / 36e5;
     const canLeave = isEnrolled && canJoin && hoursUntil > 24;
 
-    const enrolledBadge = isEnrolled
-      ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
-      : '';
-
-    const leaveBtn = canLeave
-      ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>`
-      : '';
-
-    const joinBtn = canJoin
-      ? (isEnrolled
-          ? enrolledBadge + leaveBtn
-          : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">${isFull ? 'У резерв' : 'Приєднатись'}</button>`)
-      : '';
+    let joinBtn = '';
+    if (t.type === 'PAIR' && canJoin) {
+      if (hasPendingRequest) {
+        joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">⏳ ${t.myPendingPairTargetName || 'Заявка'}</span>`
+                + `<button class="chip-btn chip-leave sr-pair-cancel-btn" data-id="${t.id}">Скасувати</button>`;
+      } else if (isRegisteredPaired) {
+        const partnerN = myPairEntry.player1?.id === currentUser?.id
+            ? playerNameOf(myPairEntry.player2) : playerNameOf(myPairEntry.player1);
+        joinBtn = `<span class="chip-btn chip-join" title="Пара з ${partnerN}" style="pointer-events:none">✓ У парі</span>`
+                + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
+      } else if (isRegisteredSolo) {
+        joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">🔍 Шукає пару</span>`
+                + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
+      } else if (t.canRegisterSolo) {
+        joinBtn = `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Зареєструватись</button>`;
+      }
+    } else if (t.type !== 'PAIR') {
+      const enrolledBadge = isEnrolled
+        ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
+        : '';
+      const leaveBtn = canLeave
+        ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>`
+        : '';
+      joinBtn = canJoin
+        ? (isEnrolled
+            ? enrolledBadge + leaveBtn
+            : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">${isFull ? 'У резерв' : 'Приєднатись'}</button>`)
+        : '';
+    }
 
     const priceLabel = t.price ? `${t.price} грн` : 'безкоштовно';
-    const nameOf = p => [p.firstName, p.lastName].filter(Boolean).join(' ') || p.displayName || p.username || 'Гравець';
 
     const tpChip = (p, extra = '') => {
-      const name = nameOf(p);
+      const name = playerNameOf(p);
       const safeName = name.replace(/'/g, '&#39;');
       return `<span class="tp-name${extra} tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${safeName}')">${name}</span>`;
     };
 
-    const participantsList = confirmed.length > 0
-      ? `<div class="tournament-participants-list">
-          <div class="tp-label">Учасники</div>
-          <div class="tp-names">${confirmed.map(p => tpChip(p)).join('')}</div>
-        </div>`
-      : '';
+    const participantsList = (t.type === 'PAIR')
+      ? buildPairParticipantsList(t, pairRegs, canJoin, hasPendingRequest, isEnrolled)
+      : (confirmed.length > 0
+          ? `<div class="tournament-participants-list">
+              <div class="tp-label">Учасники</div>
+              <div class="tp-names">${confirmed.map(p => tpChip(p)).join('')}</div>
+            </div>`
+          : '');
 
-    const reserveList = reserve.length > 0
+    const reserveList = (t.type !== 'PAIR' && reserve.length > 0)
       ? `<div class="tournament-participants-list reserve-section">
           <div class="tp-label">Резерв</div>
           <div class="tp-names">${reserve.map(p => tpChip(p, ' tp-reserve')).join('')}</div>
@@ -452,7 +486,63 @@ function renderUpcomingList(source, list) {
     });
   });
 
+  list.querySelectorAll('.sr-pair-join-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
+        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+        switchTab('profile');
+        return;
+      }
+      const tid = parseInt(btn.dataset.id, 10);
+      const pid = parseInt(btn.dataset.pid, 10);
+      const tournament = (tournamentsData || []).find(x => x.id === tid);
+      if (!tournament) return;
+      const soloEntry = (tournament.pairRegistrations || []).find(pr => pr.participant1Id === pid);
+      if (soloEntry) showPairJoinConfirm(tournament, soloEntry);
+    });
+  });
+
+  list.querySelectorAll('.sr-pair-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tid = parseInt(btn.dataset.id, 10);
+      if (!confirm('Скасувати заявку?')) return;
+      btn.disabled = true;
+      try {
+        await API.tournaments.cancelPairRequest(tid);
+        tournamentsData = null;
+        showToast('Заявку скасовано', 'info');
+        await renderResults();
+      } catch (e) {
+        showToast(e.message || 'Помилка', 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
   wireAdminTournamentBtns(list);
+}
+
+function buildPairParticipantsList(t, pairRegs, canJoin, hasPendingRequest, isEnrolled) {
+  if (!pairRegs.length && !t.canRegisterSolo) return '';
+  const canRequest = canJoin && !isEnrolled && !hasPendingRequest;
+  const rows = pairRegs.map(pr => {
+    if (!pr.player2) {
+      const name = playerNameOf(pr.player1);
+      const safe = name.replace(/'/g, '&#39;');
+      const isMe = currentUser && pr.player1?.id === currentUser.id;
+      const joinBtn = (!isMe && canRequest)
+        ? `<button class="chip-btn chip-join sr-pair-join-btn" data-id="${t.id}" data-pid="${pr.participant1Id}" data-name="${safe}">Грати</button>`
+        : '';
+      const soloTag = isMe ? '' : '<span class="tp-solo-tag">шукає пару</span>';
+      return `<div class="tp-pair-row"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${safe}')">${name}</span>${soloTag}${joinBtn}</div>`;
+    }
+    const n1 = playerNameOf(pr.player1), n2 = playerNameOf(pr.player2);
+    const s1 = n1.replace(/'/g, '&#39;'), s2 = n2.replace(/'/g, '&#39;');
+    return `<div class="tp-pair-row"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${s1}')">${n1}</span><span class="tp-pair-sep">/</span><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player2?.id || ''}','${s2}')">${n2}</span></div>`;
+  });
+  const totalSlots = t.maxParticipants ? Math.floor(t.maxParticipants / 2) : 0;
+  const label = totalSlots ? `Пари (${pairRegs.length}/${totalSlots})` : `Пари (${pairRegs.length})`;
+  return `<div class="tournament-participants-list"><div class="tp-label">${label}</div><div class="tp-pairs">${rows.join('')}</div></div>`;
 }
 
 function fpAvatarHtml(player) {
@@ -3768,12 +3858,16 @@ const DAYS_UK_LONG = ['неділя','понеділок','вівторок','с
 const MONTHS_UK_LONG = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
 
 let pendingJoinTournamentId = null;
+let pendingPairJoin = null; // { tournamentId, targetParticipantId, targetName }
 let confirmBtnLabel = 'Зареєструватися';
 
 function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
   pendingJoinTournamentId = alreadyEnrolled ? null : tournament.id;
+  pendingPairJoin = null;
   const isFull = tournament.maxParticipants && (tournament.participantCount || 0) >= tournament.maxParticipants;
-  confirmBtnLabel = alreadyEnrolled ? 'Вже зареєстровані' : (isFull ? 'Перейти до резерву' : 'Зареєструватися');
+  confirmBtnLabel = alreadyEnrolled ? 'Вже зареєстровані'
+    : tournament.type === 'PAIR' ? 'Зареєструватись без пари'
+    : (isFull ? 'Перейти до резерву' : 'Зареєструватися');
 
   // Tournament card
   const dateObj = new Date(tournament.date);
@@ -3819,15 +3913,60 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
 function hideRegistrationConfirm() {
   document.getElementById('reg-confirm').classList.remove('reg-confirm-visible');
   pendingJoinTournamentId = null;
+  pendingPairJoin = null;
+}
+
+function showPairJoinConfirm(tournament, soloEntry) {
+  const targetName = playerNameOf(soloEntry.player1);
+  pendingPairJoin = { tournamentId: tournament.id, targetParticipantId: soloEntry.participant1Id, targetName };
+  pendingJoinTournamentId = null;
+  confirmBtnLabel = `Грати з ${targetName}`;
+
+  const dateObj = new Date(tournament.date);
+  const dateStr = `${dateObj.getDate()} ${MONTHS_UK_LONG[dateObj.getMonth()]} ${dateObj.getFullYear()}, ${DAYS_UK_LONG[dateObj.getDay()]}`;
+  let html = `<div class="rc-name">${tournament.name}</div>`;
+  html += `<div class="rc-detail"><span class="rc-detail-icon">📅</span>${dateStr}</div>`;
+  if (tournament.time) html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
+  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
+  html += `<div class="rc-detail"><span class="rc-detail-icon">🤝</span>Грати в парі з <b>${targetName}</b></div>`;
+  const tags = [];
+  if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
+  tags.push(`<span class="rc-tag">Парний</span>`);
+  html += `<div class="rc-tags">${tags.join('')}</div>`;
+  document.getElementById('reg-confirm-card').innerHTML = html;
+  document.getElementById('reg-confirm-price').classList.add('hidden');
+
+  const btn = document.getElementById('reg-confirm-submit');
+  btn.textContent = confirmBtnLabel;
+  btn.disabled = false;
+  document.getElementById('reg-confirm').classList.add('reg-confirm-visible');
 }
 
 document.getElementById('reg-confirm-back').addEventListener('click', hideRegistrationConfirm);
 
 document.getElementById('reg-confirm-submit').addEventListener('click', async () => {
-  if (!pendingJoinTournamentId) return;
   const btn = document.getElementById('reg-confirm-submit');
   btn.disabled = true;
   btn.textContent = '...';
+
+  if (pendingPairJoin) {
+    try {
+      await API.tournaments.sendPairRequest(pendingPairJoin.tournamentId, pendingPairJoin.targetParticipantId);
+      const targetName = pendingPairJoin.targetName;
+      hideRegistrationConfirm();
+      tournamentsData = null;
+      showToast(`Заявку надіслано! ${targetName} отримає сповіщення 🤝`, 'success');
+      switchTab('results');
+      await renderResults();
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = confirmBtnLabel;
+      showToast(e.message || 'Помилка відправки заявки', 'error');
+    }
+    return;
+  }
+
+  if (!pendingJoinTournamentId) return;
   try {
     const res = await API.tournaments.join(pendingJoinTournamentId);
     hideRegistrationConfirm();
@@ -3841,7 +3980,7 @@ document.getElementById('reg-confirm-submit').addEventListener('click', async ()
     await renderResults();
   } catch (e) {
     const msg = e.message || '';
-    if (msg.includes('already enrolled')) {
+    if (msg.includes('already enrolled') || msg.includes('вже зареєстровані')) {
       hideRegistrationConfirm();
       showToast('Ви вже зареєстровані на цей турнір', 'info');
       switchTab('results');
@@ -4413,6 +4552,28 @@ async function handleTournamentDeepLink(tournamentId) {
   }
 }
 
+async function handlePairJoinDeepLink(tournamentId, targetParticipantId) {
+  try {
+    const tournament = await API.tournaments.get(tournamentId);
+    if (!tournament || tournament.type !== 'PAIR' || tournament.status === 'FINISHED') return;
+    const pairRegs = tournament.pairRegistrations || [];
+    const soloEntry = pairRegs.find(pr => String(pr.participant1Id) === String(targetParticipantId));
+    if (!soloEntry || soloEntry.player2) {
+      switchTab('results');
+      showToast('Цей гравець вже знайшов партнера', 'info');
+      return;
+    }
+    if (currentUser && soloEntry.player1?.id === currentUser.id) {
+      switchTab('results');
+      return;
+    }
+    switchTab('results');
+    showPairJoinConfirm(tournament, soloEntry);
+  } catch {
+    showToast('Не вдалося завантажити турнір', 'error');
+  }
+}
+
 /* ════════════════════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════════════════════ */
@@ -4510,8 +4671,10 @@ apiBootstrap().then(async () => {
 
   const startParam = tg?.initDataUnsafe?.start_param;
   if (startParam && startParam.startsWith('tournament_')) {
-    const tournamentId = startParam.replace('tournament_', '');
-    await handleTournamentDeepLink(tournamentId);
+    await handleTournamentDeepLink(startParam.replace('tournament_', ''));
+  } else if (startParam && startParam.startsWith('join_')) {
+    const parts = startParam.replace('join_', '').split('_');
+    if (parts.length === 2) await handlePairJoinDeepLink(parts[0], parts[1]);
   }
 
   if (!localStorage.getItem('bsp_intro_seen')) {
