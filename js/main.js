@@ -1092,13 +1092,29 @@ function renderH2hStats(stats, player) {
   let html = '';
 
   // AI analysis
+  const hasAnalysis = !!stats.analysis;
+  const generatedAt = stats.analysisGeneratedAt ? new Date(stats.analysisGeneratedAt) : null;
+  const cooldownMs = 7 * 24 * 60 * 60 * 1000;
+  const withinCooldown = generatedAt && (Date.now() - generatedAt.getTime() < cooldownMs);
+  const nextAvailable = withinCooldown
+    ? generatedAt.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })
+    : null;
+
+  let analysisBtnHtml;
+  if (hasAnalysis && withinCooldown) {
+    const genDate = generatedAt.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+    analysisBtnHtml = `<span class="h2h-analysis-meta">Оновлено ${genDate} · наступне через 7 дн.</span>`;
+  } else {
+    analysisBtnHtml = `<button class="chip-btn" id="pp-h2h-analyze-btn" onclick="ppGenerateH2hAnalysis(${player.id})">Проаналізувати</button>`;
+  }
+
   html += `
     <div class="h2h-analysis-section">
       <div class="h2h-analysis-header">
         <span class="h2h-analysis-title">Аналіз</span>
-        <button class="chip-btn" id="pp-h2h-analyze-btn" onclick="ppGenerateH2hAnalysis(${player.id})">Проаналізувати</button>
+        ${analysisBtnHtml}
       </div>
-      <div id="pp-h2h-analysis-text"></div>
+      <div id="pp-h2h-analysis-text">${hasAnalysis ? `<p class="h2h-analysis-body">${stats.analysis.replace(/\n/g, '<br>')}</p>` : ''}</div>
     </div>`;
 
   // Team section
@@ -1174,9 +1190,18 @@ async function ppGenerateH2hAnalysis(targetPlayerId) {
   try {
     const result = await API.users.h2hAnalysis(targetPlayerId);
     textEl.innerHTML = `<p class="h2h-analysis-body">${result.analysis.replace(/\n/g, '<br>')}</p>`;
-    btn.remove();
-  } catch {
-    textEl.innerHTML = '<div class="history-empty">Не вдалося отримати аналіз</div>';
+    // Replace button with meta label
+    const header = btn.closest('.h2h-analysis-header');
+    if (header) {
+      const genDate = new Date(result.generatedAt).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+      btn.replaceWith(Object.assign(document.createElement('span'), {
+        className: 'h2h-analysis-meta',
+        textContent: `Оновлено ${genDate} · наступне через 7 дн.`,
+      }));
+    }
+  } catch (e) {
+    const msg = e?.data?.message || 'Не вдалося отримати аналіз';
+    textEl.innerHTML = `<div class="history-empty">${msg}</div>`;
     btn.disabled = false;
     btn.textContent = 'Проаналізувати';
   }

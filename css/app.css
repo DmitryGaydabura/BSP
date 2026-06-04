@@ -2296,6 +2296,10 @@
       letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--text-muted);
     }
+    .h2h-analysis-meta {
+      font-size: 10px; color: var(--text-muted);
+      font-style: italic;
+    }
     .h2h-analysis-body {
       font-size: 13px; line-height: 1.65;
       color: var(--text-secondary);
