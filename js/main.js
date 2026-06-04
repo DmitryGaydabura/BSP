@@ -931,7 +931,7 @@ async function openPlayerProfile(player, rank) {
     ${showH2hTab ? `
     <div class="pp-tabs">
       <button class="pp-tab active" data-tab="profile" onclick="ppSwitchTab('profile')">Профіль</button>
-      <button class="pp-tab" data-tab="h2h" onclick="ppSwitchTab('h2h')">Зі мною</button>
+      <button class="pp-tab" data-tab="h2h" onclick="ppSwitchTab('h2h')">Наша статистика</button>
     </div>` : ''}
 
     <div id="pp-panel-profile">
@@ -1086,55 +1086,79 @@ function renderH2hStats(stats, player) {
   }
 
   const firstName = player.name ? player.name.split(' ')[0] : player.name;
-  let html = '<div class="h2h-summary">';
-  html += `<div class="h2h-stat"><div class="h2h-stat-val">${total}</div><div class="h2h-stat-lbl">Спільних турнірів</div></div>`;
+  const partnerTourneys = (stats.tournaments || []).filter(e => e.relationship === 'PARTNERS');
+  const rivalTourneys   = (stats.tournaments || []).filter(e => e.relationship === 'OPPONENTS');
 
-  if ((stats.partneredTournaments || 0) > 0) {
-    const pw = stats.partneredWins || 0, pl = stats.partneredLosses || 0;
-    const pct = (pw + pl) > 0 ? Math.round(100 * pw / (pw + pl)) : 0;
-    html += `<div class="h2h-stat"><div class="h2h-stat-val clr-pos">${pw}W / ${pl}L</div><div class="h2h-stat-lbl">Партнери · ${pct}% побід</div></div>`;
-  }
-  if ((stats.opponentTournaments || 0) > 0) {
-    const myW = stats.currentUserWonCount || 0, theirW = stats.targetUserWonCount || 0;
-    html += `<div class="h2h-stat"><div class="h2h-stat-val">${myW} – ${theirW}</div><div class="h2h-stat-lbl">Я vs ${firstName}</div></div>`;
-  }
-  html += '</div>';
+  let html = '';
 
+  // AI analysis
   html += `
     <div class="h2h-analysis-section">
       <div class="h2h-analysis-header">
-        <span class="h2h-analysis-title">Аналіз Claude AI</span>
+        <span class="h2h-analysis-title">Аналіз</span>
         <button class="chip-btn" id="pp-h2h-analyze-btn" onclick="ppGenerateH2hAnalysis(${player.id})">Проаналізувати</button>
       </div>
       <div id="pp-h2h-analysis-text"></div>
     </div>`;
 
-  if (stats.tournaments && stats.tournaments.length > 0) {
-    html += '<div class="history-card" style="margin-top:12px"><div class="history-card-title">Деталі по турнірах</div>';
-    html += stats.tournaments.map(e => {
-      const date = new Date(e.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
-      const isPartners = e.relationship === 'PARTNERS';
-      let badge;
-      if (isPartners) {
-        badge = `<span class="h2h-badge h2h-badge-partner">${e.wins}W / ${e.losses}L</span>`;
-      } else if (e.currentUserWon === true) {
-        badge = `<span class="h2h-badge h2h-badge-win">Я #${e.currentUserPosition}</span>`;
-      } else if (e.currentUserWon === false) {
-        badge = `<span class="h2h-badge h2h-badge-loss">Я #${e.currentUserPosition}</span>`;
-      } else {
-        badge = `<span class="h2h-badge">#${e.currentUserPosition ?? '?'}</span>`;
-      }
-      const rel = isPartners ? 'Партнери' : 'Суперники';
-      return `
-        <div class="history-row">
-          <div class="history-row-info">
-            <div class="history-row-name">${e.tournamentName}</div>
-            <div class="history-row-meta">${e.tournamentLevel} · ${date} · ${rel}</div>
-          </div>
-          ${badge}
-        </div>`;
-    }).join('');
+  // Team section
+  if ((stats.partneredTournaments || 0) > 0) {
+    const pw = stats.partneredWins || 0, pl = stats.partneredLosses || 0;
+    const pct = (pw + pl) > 0 ? Math.round(100 * pw / (pw + pl)) : 0;
+    html += '<div class="h2h-section-label">Команда</div>';
+    html += '<div class="h2h-summary">';
+    html += `<div class="h2h-stat"><div class="h2h-stat-val">${stats.partneredTournaments}</div><div class="h2h-stat-lbl">Турнірів разом</div></div>`;
+    html += `<div class="h2h-stat"><div class="h2h-stat-val clr-pos">${pw}W / ${pl}L</div><div class="h2h-stat-lbl">${pct}% wins</div></div>`;
     html += '</div>';
+    if (partnerTourneys.length > 0) {
+      html += '<div class="history-card" style="margin-bottom:16px">';
+      html += partnerTourneys.map(e => {
+        const date = new Date(e.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+        const badge = `<span class="h2h-badge h2h-badge-partner">${e.wins}W / ${e.losses}L</span>`;
+        return `
+          <div class="history-row">
+            <div class="history-row-info">
+              <div class="history-row-name">${e.tournamentName}</div>
+              <div class="history-row-meta">${e.tournamentLevel} · ${date}${e.position ? ` · #${e.position} місце` : ''}</div>
+            </div>
+            ${badge}
+          </div>`;
+      }).join('');
+      html += '</div>';
+    }
+  }
+
+  // Rivalry section
+  if ((stats.opponentTournaments || 0) > 0) {
+    const myW = stats.currentUserWonCount || 0, theirW = stats.targetUserWonCount || 0;
+    html += '<div class="h2h-section-label">Суперництво</div>';
+    html += '<div class="h2h-summary">';
+    html += `<div class="h2h-stat"><div class="h2h-stat-val">${stats.opponentTournaments}</div><div class="h2h-stat-lbl">Протистоянь</div></div>`;
+    html += `<div class="h2h-stat"><div class="h2h-stat-val">${myW} – ${theirW}</div><div class="h2h-stat-lbl">Я vs ${firstName}</div></div>`;
+    html += '</div>';
+    if (rivalTourneys.length > 0) {
+      html += '<div class="history-card" style="margin-bottom:16px">';
+      html += rivalTourneys.map(e => {
+        const date = new Date(e.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+        let badge;
+        if (e.currentUserWon === true) {
+          badge = `<span class="h2h-badge h2h-badge-win">Я #${e.currentUserPosition}</span>`;
+        } else if (e.currentUserWon === false) {
+          badge = `<span class="h2h-badge h2h-badge-loss">Я #${e.currentUserPosition}</span>`;
+        } else {
+          badge = `<span class="h2h-badge">#${e.currentUserPosition ?? '?'}</span>`;
+        }
+        return `
+          <div class="history-row">
+            <div class="history-row-info">
+              <div class="history-row-name">${e.tournamentName}</div>
+              <div class="history-row-meta">${e.tournamentLevel} · ${date}</div>
+            </div>
+            ${badge}
+          </div>`;
+      }).join('');
+      html += '</div>';
+    }
   }
 
   return html;
