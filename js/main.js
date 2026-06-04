@@ -925,59 +925,74 @@ async function openPlayerProfile(player, rank) {
   const winPct = total > 0 ? Math.round((wins / total) * 100) : 0;
 
   const tier = tierClass(lvl);
+  const showH2hTab = apiAvailable && currentUser && player.id && String(player.id) !== String(currentUser.id);
+
   body.innerHTML = `
-    <div class="pp-hero ${tier}">
-      <div class="pp-avatar">${player.photoUrl
-        ? `<img src="${player.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(player.name)}'">`
-        : initials(player.name)}</div>
-      <div class="pp-info">
-        <div class="pp-name">${player.name}</div>
-        <span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>
-        <div class="pp-meta">
-          <span class="pp-rank-badge">#${rank} у рейтингу</span>
-        </div>
-        <div class="pp-stats-compact">
-          <div class="pp-stat-c">
-            <div class="pp-stat-val">${player.pts}</div>
-            <div class="pp-stat-lbl">Рейтинг</div>
-          </div>
-          <div class="pp-stat-c">
-            <div class="pp-stat-val">${player.startingPts}</div>
-            <div class="pp-stat-lbl">Старт</div>
-          </div>
-          <div class="pp-stat-c">
-            <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
-            <div class="pp-stat-lbl">Турніри</div>
-          </div>
-          <div class="pp-stat-c" id="pp-act-stat">
-            <div class="pp-stat-val" id="pp-act-val">—</div>
-            <div class="pp-stat-lbl" id="pp-act-lbl">Активність</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="pp-achievements"></div>
-
-    ${total > 0 ? `
-    <div class="pp-wl">
-      <div class="pp-wl-bar"><div class="pp-wl-fill" style="width:${winPct}%"></div></div>
-      <div class="pp-wl-labels">
-        <span class="clr-pos">${wins} перемог</span>
-        <span class="pp-wl-pct">${winPct}%</span>
-        <span class="clr-neg">${losses} поразок</span>
-      </div>
+    ${showH2hTab ? `
+    <div class="pp-tabs">
+      <button class="pp-tab active" data-tab="profile" onclick="ppSwitchTab('profile')">Профіль</button>
+      <button class="pp-tab" data-tab="h2h" onclick="ppSwitchTab('h2h')">Зі мною</button>
     </div>` : ''}
 
-    <div class="rating-chart-card">
-      <div class="history-card-title">Прогрес рейтингу</div>
-      <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
+    <div id="pp-panel-profile">
+      <div class="pp-hero ${tier}">
+        <div class="pp-avatar">${player.photoUrl
+          ? `<img src="${player.photoUrl}" alt="" onerror="this.parentNode.textContent='${initials(player.name)}'">`
+          : initials(player.name)}</div>
+        <div class="pp-info">
+          <div class="pp-name">${player.name}</div>
+          <span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>
+          <div class="pp-meta">
+            <span class="pp-rank-badge">#${rank} у рейтингу</span>
+          </div>
+          <div class="pp-stats-compact">
+            <div class="pp-stat-c">
+              <div class="pp-stat-val">${player.pts}</div>
+              <div class="pp-stat-lbl">Рейтинг</div>
+            </div>
+            <div class="pp-stat-c">
+              <div class="pp-stat-val">${player.startingPts}</div>
+              <div class="pp-stat-lbl">Старт</div>
+            </div>
+            <div class="pp-stat-c">
+              <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
+              <div class="pp-stat-lbl">Турніри</div>
+            </div>
+            <div class="pp-stat-c" id="pp-act-stat">
+              <div class="pp-stat-val" id="pp-act-val">—</div>
+              <div class="pp-stat-lbl" id="pp-act-lbl">Активність</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pp-achievements"></div>
+
+      ${total > 0 ? `
+      <div class="pp-wl">
+        <div class="pp-wl-bar"><div class="pp-wl-fill" style="width:${winPct}%"></div></div>
+        <div class="pp-wl-labels">
+          <span class="clr-pos">${wins} перемог</span>
+          <span class="pp-wl-pct">${winPct}%</span>
+          <span class="clr-neg">${losses} поразок</span>
+        </div>
+      </div>` : ''}
+
+      <div class="rating-chart-card">
+        <div class="history-card-title">Прогрес рейтингу</div>
+        <div id="pp-chart-body"><div class="history-loading">Завантаження...</div></div>
+      </div>
+
+      <div class="history-card" style="margin-top:12px">
+        <div class="history-card-title">Турніри</div>
+        <div id="pp-history-list"><div class="history-loading">Завантаження...</div></div>
+      </div>
     </div>
 
-    <div class="history-card" style="margin-top:12px">
-      <div class="history-card-title">Турніри</div>
-      <div id="pp-history-list"><div class="history-loading">Завантаження...</div></div>
-    </div>
+    ${showH2hTab ? `
+    <div id="pp-panel-h2h" hidden>
+      <div id="pp-h2h-content"><div class="history-loading">Завантаження...</div></div>
+    </div>` : ''}
   `;
 
   openModal('modal-player-profile');
@@ -999,10 +1014,13 @@ async function openPlayerProfile(player, rank) {
       ? Promise.resolve(playerHistoryCache.get(player.id))
       : API.users.userHistory(player.id).then(h => { playerHistoryCache.set(player.id, h); return h; });
 
-    const [historyResult, activityResult] = await Promise.allSettled([
+    const fetches = [
       historyFetch,
       API.activity.monthly(currentYearMonth()),
-    ]);
+    ];
+    if (showH2hTab) fetches.push(API.users.h2h(player.id));
+
+    const [historyResult, activityResult, h2hResult] = await Promise.allSettled(fetches);
 
     const histList = document.getElementById('pp-history-list');
     if (historyResult.status === 'fulfilled') {
@@ -1039,6 +1057,104 @@ async function openPlayerProfile(player, rank) {
       if (actVal) actVal.textContent = entry ? entry.activityPoints : '—';
       if (actLbl) actLbl.textContent = entry ? `Активність · #${entry.rank}` : 'Активність';
     }
+
+    if (showH2hTab) {
+      const h2hEl = document.getElementById('pp-h2h-content');
+      if (h2hEl) {
+        if (h2hResult?.status === 'fulfilled') {
+          h2hEl.innerHTML = renderH2hStats(h2hResult.value, player);
+        } else {
+          h2hEl.innerHTML = '<div class="history-empty">Не вдалося завантажити статистику</div>';
+        }
+      }
+    }
+  }
+}
+
+function ppSwitchTab(tab) {
+  document.querySelectorAll('.pp-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const profilePanel = document.getElementById('pp-panel-profile');
+  const h2hPanel = document.getElementById('pp-panel-h2h');
+  if (profilePanel) profilePanel.hidden = tab !== 'profile';
+  if (h2hPanel) h2hPanel.hidden = tab !== 'h2h';
+}
+
+function renderH2hStats(stats, player) {
+  const total = (stats.partneredTournaments || 0) + (stats.opponentTournaments || 0);
+  if (total === 0) {
+    return '<div class="history-empty" style="padding:32px 0;text-align:center">Ви ще не грали разом у жодному турнірі</div>';
+  }
+
+  const firstName = player.name ? player.name.split(' ')[0] : player.name;
+  let html = '<div class="h2h-summary">';
+  html += `<div class="h2h-stat"><div class="h2h-stat-val">${total}</div><div class="h2h-stat-lbl">Спільних турнірів</div></div>`;
+
+  if ((stats.partneredTournaments || 0) > 0) {
+    const pw = stats.partneredWins || 0, pl = stats.partneredLosses || 0;
+    const pct = (pw + pl) > 0 ? Math.round(100 * pw / (pw + pl)) : 0;
+    html += `<div class="h2h-stat"><div class="h2h-stat-val clr-pos">${pw}W / ${pl}L</div><div class="h2h-stat-lbl">Партнери · ${pct}% побід</div></div>`;
+  }
+  if ((stats.opponentTournaments || 0) > 0) {
+    const myW = stats.currentUserWonCount || 0, theirW = stats.targetUserWonCount || 0;
+    html += `<div class="h2h-stat"><div class="h2h-stat-val">${myW} – ${theirW}</div><div class="h2h-stat-lbl">Я vs ${firstName}</div></div>`;
+  }
+  html += '</div>';
+
+  html += `
+    <div class="h2h-analysis-section">
+      <div class="h2h-analysis-header">
+        <span class="h2h-analysis-title">Аналіз Claude AI</span>
+        <button class="chip-btn" id="pp-h2h-analyze-btn" onclick="ppGenerateH2hAnalysis(${player.id})">Проаналізувати</button>
+      </div>
+      <div id="pp-h2h-analysis-text"></div>
+    </div>`;
+
+  if (stats.tournaments && stats.tournaments.length > 0) {
+    html += '<div class="history-card" style="margin-top:12px"><div class="history-card-title">Деталі по турнірах</div>';
+    html += stats.tournaments.map(e => {
+      const date = new Date(e.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+      const isPartners = e.relationship === 'PARTNERS';
+      let badge;
+      if (isPartners) {
+        badge = `<span class="h2h-badge h2h-badge-partner">${e.wins}W / ${e.losses}L</span>`;
+      } else if (e.currentUserWon === true) {
+        badge = `<span class="h2h-badge h2h-badge-win">Я #${e.currentUserPosition}</span>`;
+      } else if (e.currentUserWon === false) {
+        badge = `<span class="h2h-badge h2h-badge-loss">Я #${e.currentUserPosition}</span>`;
+      } else {
+        badge = `<span class="h2h-badge">#${e.currentUserPosition ?? '?'}</span>`;
+      }
+      const rel = isPartners ? 'Партнери' : 'Суперники';
+      return `
+        <div class="history-row">
+          <div class="history-row-info">
+            <div class="history-row-name">${e.tournamentName}</div>
+            <div class="history-row-meta">${e.tournamentLevel} · ${date} · ${rel}</div>
+          </div>
+          ${badge}
+        </div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  return html;
+}
+
+async function ppGenerateH2hAnalysis(targetPlayerId) {
+  const btn = document.getElementById('pp-h2h-analyze-btn');
+  const textEl = document.getElementById('pp-h2h-analysis-text');
+  if (!btn || !textEl) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  textEl.innerHTML = '<div class="history-loading">Аналізуємо...</div>';
+  try {
+    const result = await API.users.h2hAnalysis(targetPlayerId);
+    textEl.innerHTML = `<p class="h2h-analysis-body">${result.analysis.replace(/\n/g, '<br>')}</p>`;
+    btn.remove();
+  } catch {
+    textEl.innerHTML = '<div class="history-empty">Не вдалося отримати аналіз</div>';
+    btn.disabled = false;
+    btn.textContent = 'Проаналізувати';
   }
 }
 

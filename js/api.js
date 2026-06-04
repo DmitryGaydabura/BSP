@@ -50,6 +50,8 @@ const API = (() => {
       adminImportFromRaketo: (data)         => request('POST', '/users/import-from-raketo', data),
       mergeUsers:            (keepId, deleteId) => request('POST', `/users/${keepId}/merge/${deleteId}`),
       support:               (message)          => request('POST', '/users/me/support', { message }),
+      h2h:                   (targetId)         => request('GET',  `/users/${targetId}/h2h`),
+      h2hAnalysis:           (targetId)         => request('POST', `/users/${targetId}/h2h/analysis`),
     },
 
     tournaments: {

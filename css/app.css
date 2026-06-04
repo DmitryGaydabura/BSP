@@ -2224,6 +2224,87 @@
     }
     .pp-wl-pct { color: var(--text-muted); }
 
+    /* ─── Player profile tabs ─── */
+    .pp-tabs {
+      display: flex; gap: 0;
+      background: rgba(13,27,46,0.6);
+      border: 1px solid var(--border-def);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 14px;
+    }
+    .pp-tab {
+      flex: 1;
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      transition: all 200ms var(--ease);
+      cursor: pointer;
+    }
+    .pp-tab.active {
+      background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+      color: var(--navy-deep);
+      box-shadow: 0 1px 6px rgba(201,168,76,0.25);
+    }
+
+    /* ─── H2H stats ─── */
+    .h2h-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .h2h-stat {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 12px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+    .h2h-stat-val {
+      font-size: 16px; font-weight: 800;
+      color: var(--text-primary);
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .h2h-stat-lbl {
+      font-size: 10px; font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .h2h-analysis-section {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .h2h-analysis-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .h2h-analysis-title {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .h2h-analysis-body {
+      font-size: 13px; line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .h2h-badge {
+      flex-shrink: 0;
+      font-size: 11px; font-weight: 700;
+      padding: 3px 9px; border-radius: 7px;
+      background: rgba(255,255,255,0.07);
+      color: var(--text-muted);
+    }
+    .h2h-badge-partner { background: rgba(201,168,76,0.15); color: var(--gold); }
+    .h2h-badge-win { background: rgba(72,187,120,0.15); color: var(--success); }
+    .h2h-badge-loss { background: rgba(224,85,69,0.12); color: var(--danger); }
+
     /* ─── Achievements ─── */
     .achievements-section { margin-bottom: 14px; }
     .achievements-title {
