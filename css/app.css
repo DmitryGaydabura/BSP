@@ -1985,7 +1985,20 @@
 
     /* ── Reserve queue ─────────────────────────────────────────── */
     .tp-reserve { opacity: 0.65; font-style: italic; }
+    .tp-reserve-row { opacity: 0.8; }
+    .tp-reserve-row .tp-solo-tag { color: var(--gold); }
     .reserve-section .tp-label { color: var(--text-muted); }
+    .pair-opt-reserve-notice {
+      font-size: 12px; color: var(--text-muted);
+      background: rgba(201,168,76,0.07);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+    }
+    .pm-reserve-tag {
+      font-size: 10px; color: var(--gold);
+      background: rgba(201,168,76,0.1);
+      border-radius: 4px; padding: 1px 5px; flex-shrink: 0;
+    }
     .chip-reserve {
       background: rgba(201,168,76,0.08);
       color: var(--gold);

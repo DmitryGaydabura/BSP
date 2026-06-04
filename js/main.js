@@ -249,7 +249,9 @@ function normalizeTournament(t) {
     reserveParticipants: t.reserveParticipants || [],
     // PAIR tournament registration fields
     pairRegistrations: t.pairRegistrations || null,
+    pairReserveRegistrations: t.pairReserveRegistrations || [],
     canRegisterSolo: t.canRegisterSolo ?? null,
+    canJoinAsReserve: t.canJoinAsReserve ?? false,
     myPendingPairRequestId: t.myPendingPairRequestId || null,
     myPendingPairTargetParticipantId: t.myPendingPairTargetParticipantId || null,
     myPendingPairTargetName: t.myPendingPairTargetName || null,
@@ -313,19 +315,26 @@ function renderUpcomingList(source, list) {
   const statusCls   = { DRAFT: 't-status-draft', ACTIVE: 't-status-active', FINISHED: 't-status-done', GROUP_STAGE: 't-status-live', PLAYOFF: 't-status-live' };
 
   list.innerHTML = filtered.map(t => {
-    const confirmed   = t.participants || [];
-    const reserve     = t.reserveParticipants || [];
-    const pairRegs    = t.pairRegistrations || [];
-    const myPairEntry = (t.type === 'PAIR' && currentUser)
+    const confirmed     = t.participants || [];
+    const reserve       = t.reserveParticipants || [];
+    const pairRegs      = t.pairRegistrations || [];
+    const pairResRegs   = t.pairReserveRegistrations || [];
+    const myPairEntry   = (t.type === 'PAIR' && currentUser)
         ? pairRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
+        : null;
+    const myReserveEntry = (t.type === 'PAIR' && currentUser)
+        ? pairResRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
         : null;
     const isRegisteredSolo   = !!(myPairEntry && !myPairEntry.player2);
     const isRegisteredPaired = !!(myPairEntry && myPairEntry.player2);
+    const isReserveSolo      = !!(myReserveEntry && !myReserveEntry.player2);
+    const isReservePaired    = !!(myReserveEntry && myReserveEntry.player2);
     const hasPendingRequest  = t.type === 'PAIR' && !!t.myPendingPairRequestId;
     const isEnrolled  = t.type === 'PAIR'
-        ? !!myPairEntry
+        ? !!(myPairEntry || myReserveEntry)
         : !!(currentUser && [...confirmed, ...reserve].some(p => p.id === currentUser.id));
-    const isInReserve = t.type === 'PAIR' ? false
+    const isInReserve = t.type === 'PAIR'
+        ? !!(myReserveEntry)
         : !!(currentUser && reserve.some(p => p.id === currentUser.id));
     const canJoin     = currentUser && (t.status === 'DRAFT' || t.status === 'ACTIVE');
     const isFull      = t.type === 'PAIR'
@@ -337,11 +346,12 @@ function renderUpcomingList(source, list) {
       t.maxRating ? `до ${t.maxRating}` : '',
     ].filter(Boolean).join('–');
 
+    const pairResCount = pairResRegs.length;
     const reserveCount = reserve.length;
     const participantsInfo = t.type === 'PAIR'
       ? (t.maxParticipants
-          ? `${pairRegs.length}/${Math.floor(t.maxParticipants / 2)} пар`
-          : (pairRegs.length ? `${pairRegs.length} пар` : ''))
+          ? `${pairRegs.length}/${Math.floor(t.maxParticipants / 2)} пар${pairResCount ? ` · +${pairResCount} резерв` : ''}`
+          : (pairRegs.length ? `${pairRegs.length} пар${pairResCount ? ` · +${pairResCount} резерв` : ''}` : ''))
       : (t.maxParticipants
           ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
           : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
@@ -361,6 +371,15 @@ function renderUpcomingList(source, list) {
       if (hasPendingRequest) {
         joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">⏳ ${t.myPendingPairTargetName || 'Заявка'}</span>`
                 + `<button class="chip-btn chip-leave sr-pair-cancel-btn" data-id="${t.id}">Скасувати</button>`;
+      } else if (isReservePaired) {
+        const activeEntry = myReserveEntry;
+        const partnerN = activeEntry.player1?.id === currentUser?.id
+            ? playerNameOf(activeEntry.player2) : playerNameOf(activeEntry.player1);
+        joinBtn = `<span class="chip-btn chip-reserve" title="Резерв · пара з ${partnerN}" style="pointer-events:none">⏳ Резерв · у парі</span>`
+                + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
+      } else if (isReserveSolo) {
+        joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">⏳ Резерв · шукає пару</span>`
+                + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
       } else if (isRegisteredPaired) {
         const partnerN = myPairEntry.player1?.id === currentUser?.id
             ? playerNameOf(myPairEntry.player2) : playerNameOf(myPairEntry.player1);
@@ -373,6 +392,8 @@ function renderUpcomingList(source, list) {
         const hasSolosToJoin = pairRegs.some(pr => !pr.player2 && pr.player1?.id !== currentUser?.id);
         if (t.canRegisterSolo || hasSolosToJoin) {
           joinBtn = `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">Зареєструватись</button>`;
+        } else if (t.canJoinAsReserve) {
+          joinBtn = `<button class="chip-btn chip-reserve sr-join-reserve-btn" data-id="${t.id}">У резерв</button>`;
         }
       }
     } else if (t.type !== 'PAIR') {
@@ -398,7 +419,7 @@ function renderUpcomingList(source, list) {
     };
 
     const participantsList = (t.type === 'PAIR')
-      ? buildPairParticipantsList(t, pairRegs, canJoin, hasPendingRequest, isEnrolled)
+      ? buildPairParticipantsList(t, pairRegs, pairResRegs, canJoin, hasPendingRequest, isEnrolled, myReserveEntry)
       : (confirmed.length > 0
           ? `<div class="tournament-participants-list">
               <div class="tp-label">Учасники</div>
@@ -504,10 +525,25 @@ function renderUpcomingList(source, list) {
       }
       const tid = parseInt(btn.dataset.id, 10);
       const pid = parseInt(btn.dataset.pid, 10);
+      const isReserve = btn.dataset.reserve === '1';
       const tournament = (tournamentsData || []).find(x => x.id === tid);
       if (!tournament) return;
-      const soloEntry = (tournament.pairRegistrations || []).find(pr => pr.participant1Id === pid);
-      if (soloEntry) showPairJoinConfirm(tournament, soloEntry);
+      const pool = isReserve ? (tournament.pairReserveRegistrations || []) : (tournament.pairRegistrations || []);
+      const soloEntry = pool.find(pr => pr.participant1Id === pid);
+      if (soloEntry) showPairJoinConfirm(tournament, soloEntry, isReserve);
+    });
+  });
+
+  list.querySelectorAll('.sr-join-reserve-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
+        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+        switchTab('profile');
+        return;
+      }
+      const tid = parseInt(btn.dataset.id, 10);
+      const tournament = (tournamentsData || []).find(x => x.id === tid);
+      if (tournament) showRegistrationConfirm(tournament, false, true);
     });
   });
 
@@ -531,27 +567,41 @@ function renderUpcomingList(source, list) {
   wireAdminTournamentBtns(list);
 }
 
-function buildPairParticipantsList(t, pairRegs, canJoin, hasPendingRequest, isEnrolled) {
-  if (!pairRegs.length && !t.canRegisterSolo) return '';
-  const canRequest = canJoin && !isEnrolled && !hasPendingRequest;
-  const rows = pairRegs.map(pr => {
+function buildPairParticipantsList(t, pairRegs, pairResRegs, canJoin, hasPendingRequest, isEnrolled, myReserveEntry) {
+  if (!pairRegs.length && !t.canRegisterSolo && !pairResRegs.length) return '';
+
+  const canRequestConfirmed = canJoin && !isEnrolled && !hasPendingRequest;
+  const canRequestReserve   = canJoin && !isEnrolled && !hasPendingRequest && !!myReserveEntry === false;
+
+  const renderRow = (pr, isReserve) => {
     if (!pr.player2) {
       const name = playerNameOf(pr.player1);
       const safe = name.replace(/'/g, '&#39;');
       const isMe = currentUser && pr.player1?.id === currentUser.id;
-      const joinBtn = (!isMe && canRequest)
-        ? `<button class="chip-btn chip-join sr-pair-join-btn" data-id="${t.id}" data-pid="${pr.participant1Id}" data-name="${safe}">Грати</button>`
+      const canReq = isReserve ? (canJoin && !isEnrolled && !hasPendingRequest) : canRequestConfirmed;
+      const joinBtn = (!isMe && canReq)
+        ? `<button class="chip-btn chip-join sr-pair-join-btn" data-id="${t.id}" data-pid="${pr.participant1Id}" data-name="${safe}"${isReserve ? ' data-reserve="1"' : ''}>Грати</button>`
         : '';
-      const soloTag = isMe ? '' : '<span class="tp-solo-tag">шукає пару</span>';
-      return `<div class="tp-pair-row"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${safe}')">${name}</span>${soloTag}${joinBtn}</div>`;
+      const soloTag = isMe ? '' : `<span class="tp-solo-tag">${isReserve ? 'резерв · шукає пару' : 'шукає пару'}</span>`;
+      return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${safe}')">${name}</span>${soloTag}${joinBtn}</div>`;
     }
     const n1 = playerNameOf(pr.player1), n2 = playerNameOf(pr.player2);
     const s1 = n1.replace(/'/g, '&#39;'), s2 = n2.replace(/'/g, '&#39;');
-    return `<div class="tp-pair-row"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${s1}')">${n1}</span><span class="tp-pair-sep">/</span><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player2?.id || ''}','${s2}')">${n2}</span></div>`;
-  });
+    const reserveTag = isReserve ? '<span class="tp-solo-tag">резерв</span>' : '';
+    return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${s1}')">${n1}</span><span class="tp-pair-sep">/</span><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player2?.id || ''}','${s2}')">${n2}</span>${reserveTag}</div>`;
+  };
+
+  const confirmedRows = pairRegs.map(pr => renderRow(pr, false));
+  const reserveRows   = pairResRegs.map(pr => renderRow(pr, true));
+
   const totalSlots = t.maxParticipants ? Math.floor(t.maxParticipants / 2) : 0;
   const label = totalSlots ? `Пари (${pairRegs.length}/${totalSlots})` : `Пари (${pairRegs.length})`;
-  return `<div class="tournament-participants-list"><div class="tp-label">${label}</div><div class="tp-pairs">${rows.join('')}</div></div>`;
+
+  let html = `<div class="tournament-participants-list"><div class="tp-label">${label}</div><div class="tp-pairs">${confirmedRows.join('')}</div></div>`;
+  if (reserveRows.length) {
+    html += `<div class="tournament-participants-list reserve-section"><div class="tp-label">Резерв (${pairResRegs.length})</div><div class="tp-pairs">${reserveRows.join('')}</div></div>`;
+  }
+  return html;
 }
 
 function fpAvatarHtml(player) {
@@ -3887,22 +3937,23 @@ async function renderParticipantList(tournamentId) {
     if (isPair) {
       // Fetch full tournament to get pairRegistrations with partner info
       const fullT = await API.tournaments.get(tournamentId);
-      const pairRegs = fullT.pairRegistrations || [];
-      pmParticipantIds = new Set(pairRegs.flatMap(pr => [pr.player1?.id, pr.player2?.id].filter(Boolean)));
+      const pairRegs    = fullT.pairRegistrations || [];
+      const pairResRegs = fullT.pairReserveRegistrations || [];
+      pmParticipantIds = new Set([...pairRegs, ...pairResRegs].flatMap(pr => [pr.player1?.id, pr.player2?.id].filter(Boolean)));
 
       updateSlotsIndicator(pairRegs.length, tournament?.maxParticipants, true);
 
-      if (!pairRegs.length) {
-        container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
-      } else {
-        const solos = pairRegs.filter(pr => !pr.player2);
-        container.innerHTML = pairRegs.map(pr => {
+      const renderAdminPairRows = (regs, isReserve) => {
+        const solos = regs.filter(pr => !pr.player2);
+        return regs.map(pr => {
           if (pr.player2) {
+            const label = isReserve ? `<span class="pm-reserve-tag">резерв</span>` : '';
             return `<div class="pm-pair-row">
               <div class="pm-pair-names-col">
                 <span class="pm-pair-name">${pr.player1.displayName}</span>
                 <span class="pm-pair-slash">/</span>
                 <span class="pm-pair-name">${pr.player2.displayName}</span>
+                ${label}
               </div>
               <button class="pm-unlink-btn" data-tid="${tournamentId}" data-uid="${pr.player1.id}"
                       title="Розпарити">↔</button>
@@ -3910,15 +3961,17 @@ async function renderParticipantList(tournamentId) {
                       title="Видалити ${pr.player1.displayName}">✕</button>
             </div>`;
           }
-          // Solo player — show partner picker
+          // Solo player — show partner picker from same pool
           const soloOptions = solos
             .filter(s => s.player1.id !== pr.player1.id)
             .map(s => `<option value="${s.player1.id}">${s.player1.displayName}</option>`)
             .join('');
           const hasSoloPartners = soloOptions.length > 0;
+          const label = isReserve ? `<span class="pm-reserve-tag">резерв</span>` : '';
           return `<div class="pm-pair-row pm-solo-row">
             <span class="pm-pair-name" style="flex:1">${pr.player1.displayName}</span>
             <span class="pm-solo-label">без пари</span>
+            ${label}
             ${hasSoloPartners
               ? `<select class="pm-partner-select" data-tid="${tournamentId}" data-uid="${pr.player1.id}">
                   <option value="">Об'єднати з...</option>
@@ -3928,6 +3981,18 @@ async function renderParticipantList(tournamentId) {
             <button class="pm-remove-btn" data-tournament-id="${tournamentId}" data-user-id="${pr.player1.id}">✕</button>
           </div>`;
         }).join('');
+      };
+
+      if (!pairRegs.length && !pairResRegs.length) {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:4px 0">Учасників ще немає</div>';
+      } else {
+        const confirmedHtml = pairRegs.length
+          ? renderAdminPairRows(pairRegs, false)
+          : '';
+        const reserveHtml = pairResRegs.length
+          ? `<div class="pm-section-label" style="margin-top:10px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)">Резерв</div>` + renderAdminPairRows(pairResRegs, true)
+          : '';
+        container.innerHTML = confirmedHtml + reserveHtml;
 
         // Wire unlink buttons
         container.querySelectorAll('.pm-unlink-btn').forEach(btn => {
@@ -4150,11 +4215,13 @@ const DAYS_UK_LONG = ['неділя','понеділок','вівторок','с
 const MONTHS_UK_LONG = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
 
 let pendingJoinTournamentId = null;
+let pendingJoinAsReserve = false;
 let pendingPairJoin = null; // { tournamentId, targetParticipantId, targetName }
 let confirmBtnLabel = 'Зареєструватися';
 
-function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
+function showRegistrationConfirm(tournament, alreadyEnrolled = false, asReserve = false) {
   pendingJoinTournamentId = alreadyEnrolled ? null : tournament.id;
+  pendingJoinAsReserve = asReserve;
   pendingPairJoin = null;
   const isFull = tournament.maxParticipants && (tournament.participantCount || 0) >= tournament.maxParticipants;
 
@@ -4192,30 +4259,39 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
   const submitBtn = document.getElementById('reg-confirm-submit');
 
   if (tournament.type === 'PAIR' && !alreadyEnrolled) {
-    const solos = (tournament.pairRegistrations || [])
-      .filter(pr => !pr.player2 && pr.player1?.id !== currentUser?.id);
+    const pool = asReserve
+      ? (tournament.pairReserveRegistrations || [])
+      : (tournament.pairRegistrations || []);
+    const solos = pool.filter(pr => !pr.player2 && pr.player1?.id !== currentUser?.id);
 
     let optsHtml = '';
+    const reserveNotice = asReserve
+      ? `<div class="pair-opt-reserve-notice">⏳ Ви вступаєте до резерву. Вас буде переведено у підтверджений список, коли звільниться місце.</div>`
+      : '';
 
-    if (tournament.canRegisterSolo) {
-      optsHtml += `<div class="pair-opt-label">Без пари</div>
+    const canSoloRegister = asReserve ? true : tournament.canRegisterSolo;
+
+    if (canSoloRegister) {
+      optsHtml += reserveNotice;
+      optsHtml += `<div class="pair-opt-label">${asReserve ? 'Резерв без пари' : 'Без пари'}</div>
         <div class="pair-opt-player-row">
-          <span class="pair-opt-player-name">Зареєструватись і чекати на партнера</span>
+          <span class="pair-opt-player-name">${asReserve ? 'Зареєструватись до резерву і чекати на партнера' : 'Зареєструватись і чекати на партнера'}</span>
         </div>`;
     }
 
     if (solos.length > 0) {
-      if (tournament.canRegisterSolo) {
+      if (canSoloRegister) {
         optsHtml += `<div class="pair-opt-sep"><span>або приєднатись до</span></div>`;
       } else {
-        optsHtml += `<div class="pair-opt-label">Приєднатись до гравця</div>`;
+        optsHtml += reserveNotice;
+        optsHtml += `<div class="pair-opt-label">${asReserve ? 'Приєднатись до гравця в резерві' : 'Приєднатись до гравця'}</div>`;
       }
       optsHtml += solos.map(pr => {
         const name = playerNameOf(pr.player1);
         const safeName = name.replace(/'/g, '&#39;');
         return `<div class="pair-opt-player-row">
           <span class="pair-opt-player-name">${name}</span>
-          <button class="pair-opt-join-btn rc-pair-join-btn" data-tid="${tournament.id}" data-pid="${pr.participant1Id}" data-name="${safeName}">Грати разом</button>
+          <button class="pair-opt-join-btn rc-pair-join-btn" data-tid="${tournament.id}" data-pid="${pr.participant1Id}" data-name="${safeName}"${asReserve ? ' data-reserve="1"' : ''}>Грати разом</button>
         </div>`;
       }).join('');
     }
@@ -4227,14 +4303,16 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false) {
     pairOptsEl.querySelectorAll('.rc-pair-join-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const pid = parseInt(btn.dataset.pid, 10);
-        const soloEntry = (tournament.pairRegistrations || []).find(pr => pr.participant1Id === pid);
-        if (soloEntry) showPairJoinConfirm(tournament, soloEntry);
+        const isRes = btn.dataset.reserve === '1';
+        const entryPool = isRes ? (tournament.pairReserveRegistrations || []) : (tournament.pairRegistrations || []);
+        const soloEntry = entryPool.find(pr => pr.participant1Id === pid);
+        if (soloEntry) showPairJoinConfirm(tournament, soloEntry, isRes);
       });
     });
 
-    // Main submit button: "Без пари" if canRegisterSolo, else hidden
-    if (tournament.canRegisterSolo) {
-      confirmBtnLabel = 'Зареєструватись без пари';
+    // Main submit button: solo registration or hidden
+    if (canSoloRegister) {
+      confirmBtnLabel = asReserve ? 'У резерв без пари' : 'Зареєструватись без пари';
       submitBtn.textContent = confirmBtnLabel;
       submitBtn.disabled = false;
       submitBtn.style.display = '';
@@ -4259,10 +4337,11 @@ function hideRegistrationConfirm() {
   document.getElementById('reg-confirm-submit').style.display = '';
   document.getElementById('reg-confirm-pair-options').classList.add('hidden');
   pendingJoinTournamentId = null;
+  pendingJoinAsReserve = false;
   pendingPairJoin = null;
 }
 
-function showPairJoinConfirm(tournament, soloEntry) {
+function showPairJoinConfirm(tournament, soloEntry, asReserve = false) {
   const targetName = playerNameOf(soloEntry.player1);
   pendingPairJoin = { tournamentId: tournament.id, targetParticipantId: soloEntry.participant1Id, targetName };
   pendingJoinTournamentId = null;
@@ -4275,9 +4354,13 @@ function showPairJoinConfirm(tournament, soloEntry) {
   if (tournament.time) html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
   if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
   html += `<div class="rc-detail"><span class="rc-detail-icon">🤝</span>Грати в парі з <b>${targetName}</b></div>`;
+  if (asReserve) {
+    html += `<div class="rc-detail" style="color:var(--text-muted);font-size:12px"><span class="rc-detail-icon">⏳</span>Це місце в резерві — пара буде підтверджена, коли звільниться місце</div>`;
+  }
   const tags = [];
   if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
   tags.push(`<span class="rc-tag">Парний</span>`);
+  if (asReserve) tags.push(`<span class="rc-tag" style="color:var(--text-muted)">Резерв</span>`);
   html += `<div class="rc-tags">${tags.join('')}</div>`;
   document.getElementById('reg-confirm-card').innerHTML = html;
   document.getElementById('reg-confirm-price').classList.add('hidden');
@@ -4318,7 +4401,7 @@ document.getElementById('reg-confirm-submit').addEventListener('click', async ()
     hideRegistrationConfirm();
     tournamentsData = null;
     if (res && res.reserved) {
-      showToast('Ви додані до резерву турніру 🎾', 'info');
+      showToast('Ви додані до резерву турніру. Очікуйте підтвердження місця 🎾', 'info');
     } else {
       showToast('Ви успішно зареєстровані! 🎾', 'success');
     }
