@@ -2287,7 +2287,10 @@ async function openAnalysisModal(tournamentId) {
 
     if (data.chartData) renderTournamentChart(data.chartData);
 
-    if (currentUser && currentUser.raketoDocId) {
+    const tournamentMeta = (tournamentsData || []).find(t => t.id === tournamentId);
+    const isCupTournament = tournamentMeta?.type === 'CUP';
+
+    if (!isCupTournament && currentUser && currentUser.raketoDocId) {
       playerSection.style.display = 'block';
       const cached = await API.tournaments.getPlayerAnalysis(tournamentId).catch(() => null);
       if (cached) {
@@ -2513,19 +2516,28 @@ async function openAdminAnalysisModal() {
       return;
     }
 
-    list.innerHTML = finished.map(t => `
+    list.innerHTML = finished.map(t => {
+      const isCup = t.type === 'CUP';
+      const canGenerate = isCup || !!t.raketoId;
+      return `
       <div class="aa-item" data-id="${t.id}" data-date="${t.date}">
         <div class="aa-item-header">
           <div class="aa-item-name">${t.name}</div>
           <div class="aa-item-date">${fmt(t.date)}</div>
         </div>
-        ${t.raketoId
+        ${isCup
           ? `<div class="aa-linked">
                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-               Ракето підключено
-               <button class="aa-unlink-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
+               Кубок — аналіз з даних BSP
              </div>`
-          : ''}
+          : t.raketoId
+            ? `<div class="aa-linked">
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                 Ракето підключено
+                 <button class="aa-unlink-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
+               </div>`
+            : ''}
+        ${!isCup ? `
         <div class="aa-picker" style="display:none">
           <div class="aa-date-row">
             <input type="date" class="form-input aa-date-input" value="${t.date}" style="flex:1;font-size:13px">
@@ -2533,13 +2545,13 @@ async function openAdminAnalysisModal() {
           </div>
           <div class="aa-results"></div>
         </div>
-        ${!t.raketoId ? `<button class="btn-secondary aa-find-btn" style="width:100%;font-size:12px;margin-top:6px">Знайти в Ракето</button>` : ''}
-        <button class="btn-primary aa-generate-btn" ${!t.raketoId ? 'disabled' : ''} style="width:100%;margin-top:6px;font-size:12px">
+        ${!t.raketoId ? `<button class="btn-secondary aa-find-btn" style="width:100%;font-size:12px;margin-top:6px">Знайти в Ракето</button>` : ''}` : ''}
+        <button class="btn-primary aa-generate-btn" ${!canGenerate ? 'disabled' : ''} style="width:100%;margin-top:6px;font-size:12px">
           ${t.hasAnalysis ? 'Перегенерувати аналіз' : 'Згенерувати аналіз'}
         </button>
         ${t.hasAnalysis ? `<div class="aa-status">Аналіз готовий · ${fmtDatetime(t.analysisGeneratedAt)}</div>` : ''}
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
 
     list.querySelectorAll('.aa-item').forEach(item => {
       const bspId   = item.dataset.id;
@@ -2605,7 +2617,7 @@ async function openAdminAnalysisModal() {
 
       if (findBtn)   findBtn.addEventListener('click', openPicker);
       if (unlinkBtn) unlinkBtn.addEventListener('click', openPicker);
-      searchBtn.addEventListener('click', doSearch);
+      if (searchBtn) searchBtn.addEventListener('click', doSearch);
 
       generateBtn.addEventListener('click', async () => {
         generateBtn.disabled = true; generateBtn.textContent = 'Генерую...';
