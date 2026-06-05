@@ -3,6 +3,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 let ratingsData = null;
+let guestsData = null;        // admin-only: registered users who haven't played yet
 let activeRatingFilter = 'all';
 const playerHistoryCache = new Map();
 
@@ -140,6 +141,58 @@ async function renderRatings() {
   /* Updated date */
   document.getElementById('ratings-updated').textContent =
     'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  /* Admin-only guest list (registered but not yet participated) */
+  renderGuestSection(isAll);
+}
+
+async function renderGuestSection(isAll) {
+  const section = document.getElementById('guest-section');
+  if (!section) return;
+
+  // Only for admins, only with a live backend, only on the "all" view
+  if (!apiAvailable || !isAll || currentUser?.role !== 'ADMIN') {
+    section.style.display = 'none';
+    return;
+  }
+
+  if (guestsData === null) {
+    try {
+      guestsData = (await API.ratings.guests()).map(normalizeRating);
+    } catch {
+      section.style.display = 'none';
+      return;
+    }
+    if (activeRatingFilter !== 'all') return; // filter changed while loading
+  }
+
+  if (!guestsData.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  document.getElementById('guest-count').textContent = guestsData.length;
+  document.getElementById('guest-rows').innerHTML = guestsData.map(renderGuestRow).join('');
+  section.style.display = '';
+}
+
+function renderGuestRow(p) {
+  const avatarContent = p.photoUrl
+    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
+    : initials(p.name);
+  const linked = (p.startingPts || 0) > 0;
+  const tag = linked
+    ? `<span class="guest-tag guest-tag-raketo">Raketo</span>`
+    : `<span class="guest-tag guest-tag-none">Raketo не підключено</span>`;
+  return `
+    <div class="guest-row lb-row-tap" onclick="_lbRowTap('${p.id || ''}',0)">
+      <div class="guest-avatar">${avatarContent}</div>
+      <div class="guest-name">
+        <div class="guest-name-text">${esc(p.name)}</div>
+        ${tag}
+      </div>
+      <span class="guest-pts">${linked ? p.startingPts : '—'}</span>
+    </div>`;
 }
 
 /* ════════════════════════════════════════════════════════════════

@@ -960,6 +960,7 @@ renderRatings();
 apiBootstrap().then(async () => {
   if (apiAvailable) {
     ratingsData = null; // discard fallback, re-render with real data
+    guestsData = null;
     renderRatings();
   }
 

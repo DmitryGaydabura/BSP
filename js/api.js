@@ -93,6 +93,7 @@ const API = (() => {
 
     ratings: {
       list:        () => request('GET',  '/ratings'),
+      guests:      () => request('GET',  '/ratings/guests'),
       recalculate: () => request('POST', '/ratings/recalculate'),
       migrateV2:   () => request('POST', '/ratings/migrate-v2'),
     },

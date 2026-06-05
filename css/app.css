@@ -749,6 +749,58 @@
       color: var(--text-dim);
       width: 44px; text-align: right; flex-shrink: 0;
     }
+
+    /* ── Admin-only guest list (registered, not yet played) ──────────── */
+    .guest-section {
+      margin-top: 22px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--border-def);
+    }
+    .guest-section-header {
+      display: flex; align-items: baseline; gap: 8px;
+      padding: 0 12px 8px;
+    }
+    .guest-section-title {
+      font-family: var(--font-brand); font-size: 14px; font-weight: 700;
+      color: var(--text-muted);
+    }
+    .guest-section-hint {
+      font-size: 11px; color: var(--text-dim); flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .guest-count {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      color: var(--text-dim); flex-shrink: 0;
+    }
+    .guest-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 10px;
+      opacity: 0.82;
+    }
+    .guest-row:nth-child(odd) { background: rgba(26,47,74,0.22); }
+    .guest-avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--navy-light); border: 1.5px dashed var(--border-def);
+      flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-brand); font-size: 9px; font-weight: 700;
+      color: var(--text-dim);
+    }
+    .guest-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .guest-name-text {
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .guest-tag {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em;
+      padding: 1px 6px; border-radius: 6px; align-self: flex-start;
+    }
+    .guest-tag-raketo { background: rgba(201,168,76,0.14); color: var(--gold); }
+    .guest-tag-none   { background: rgba(255,255,255,0.05); color: var(--text-dim); }
+    .guest-pts {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      color: var(--text-dim); width: 56px; text-align: right; flex-shrink: 0;
+    }
     .lb-trn {
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 500;
