@@ -750,7 +750,12 @@
   </div>
 </div>
 
-<script src="js/main.js?v=38" defer></script>
+<!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
+<script src="js/core.js?v=39" defer></script>
+<script src="js/tournaments.js?v=39" defer></script>
+<script src="js/players.js?v=39" defer></script>
+<script src="js/analysis-admin.js?v=39" defer></script>
+<script src="js/app.js?v=39" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">
