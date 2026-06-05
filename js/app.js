@@ -454,7 +454,7 @@ function renderCupGroup(group, allowEntry) {
       ? `<span class="cup-match-score">${m.score1}:${m.score2}${tbSuffix}</span>`
       : '<span class="cup-match-score-pending">—</span>';
     const enterBtn = allowEntry
-      ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(m.pair1Name)}" data-pair2-name="${escHtml(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
+      ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${esc(m.pair1Name)}" data-pair2-name="${esc(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
       : '';
     return `<div class="cup-match-row${m.played ? ' cup-match-played' : ''}">
       <span class="cup-match-team">${m.pair1Name}</span>
@@ -578,9 +578,9 @@ function renderBracketMatch(m, allowEntry, isFinalRound, isConsolation) {
   const hasTb = m.tiebreak1 != null;
 
   const enterBtn = allowEntry && m.pair1Name && m.pair2Name && !hasResult
-    ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}">+ Рахунок</button>`
+    ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${esc(p1Name)}" data-pair2-name="${esc(p2Name)}">+ Рахунок</button>`
     : (allowEntry && hasResult && m.pair1Name
-        ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${escHtml(p1Name)}" data-pair2-name="${escHtml(p2Name)}" data-score1="${m.score1}" data-score2="${m.score2}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">✏️ Редагувати</button>`
+        ? `<button class="cup-playoff-match-enter" data-match-id="${m.id}" data-pair1-name="${esc(p1Name)}" data-pair2-name="${esc(p2Name)}" data-score1="${m.score1}" data-score2="${m.score2}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">✏️ Редагувати</button>`
         : '');
 
   // Tiebreak badge — shown only when the set ended 7:6
@@ -610,7 +610,7 @@ function placeLabelUa(label) {
   return `${medal}${p1}–${p2} місце`;
 }
 
-function escHtml(s) { return (s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+// (legacy cup escaper removed — uses the strict shared esc() from analysis-admin.js)
 
 // ── Cup Score Modal ───────────────────────────────────────────────
 
