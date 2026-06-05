@@ -41,6 +41,10 @@ function renderLbRow(p, rank, showLevel) {
   const avatarContent = p.photoUrl
     ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
     : initials(p.name);
+  const startDisp = p.startingPts ?? '—';
+  const tp = p.tournamentPts;
+  const trnCls = tp > 0 ? 'pos' : tp < 0 ? 'neg' : '';
+  const trnDisp = tp == null ? '—' : `${tp > 0 ? '+' : ''}${tp}`;
   return `
     <div class="lb-row ${top3cls} lb-row-tap" onclick="_lbRowTap('${p.id || ''}',${rank})">
       <span class="lb-rank ${rankCls}">${rank <= 3 ? ['①','②','③'][rank-1] : rank}</span>
@@ -49,8 +53,8 @@ function renderLbRow(p, rank, showLevel) {
         <div class="lb-name-text">${esc(p.name)}</div>
         ${showLevel ? `<span class="level-badge level-badge-sm ${levelClass(lvl)}">${lvl}</span>` : ''}
       </div>
-      <span class="lb-start">${p.startingPts}</span>
-      <span class="lb-trn ${p.tournamentPts > 0 ? 'pos' : p.tournamentPts < 0 ? 'neg' : ''}">${p.tournamentPts > 0 ? '+' : ''}${p.tournamentPts}</span>
+      <span class="lb-start">${startDisp}</span>
+      <span class="lb-trn ${trnCls}">${trnDisp}</span>
       <span class="lb-pts">${p.pts}</span>
       <span class="lb-change ${changeCls}">${changeSign}</span>
     </div>
