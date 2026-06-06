@@ -801,6 +801,43 @@
       font-family: var(--font-mono); font-size: 12px; font-weight: 700;
       color: var(--text-dim); width: 56px; text-align: right; flex-shrink: 0;
     }
+    .guest-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    .guest-uname { font-size: 11px; font-weight: 500; color: var(--text-dim); }
+    .guest-joined { font-size: 10px; color: var(--text-dim); }
+    .guest-tag-upcoming { background: rgba(75,168,108,0.16); color: #6cc08a; }
+
+    /* Personal "you're not in the rating yet" banner */
+    .guest-self-banner {
+      display: flex; align-items: center; gap: 12px;
+      margin: 4px 0 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04));
+      border: 1px solid rgba(201,168,76,0.22);
+    }
+    .gsb-icon { font-size: 26px; line-height: 1; flex-shrink: 0; }
+    .gsb-text { flex: 1; min-width: 0; }
+    .gsb-title {
+      font-family: var(--font-brand); font-size: 14px; font-weight: 700;
+      color: var(--white-warm); margin-bottom: 2px;
+    }
+    .gsb-sub { font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+    .gsb-sub strong { color: var(--gold); font-family: var(--font-mono); }
+    .gsb-cta {
+      flex-shrink: 0; border: none; cursor: pointer;
+      background: var(--gold); color: var(--navy-deep);
+      font-size: 13px; font-weight: 700;
+      padding: 9px 14px; border-radius: 10px;
+      transition: opacity 160ms var(--ease);
+    }
+    .gsb-cta:active { opacity: 0.85; }
+
+    /* Admin rated/guest breakdown line */
+    .rating-breakdown {
+      font-size: 11px; color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .rating-breakdown strong { color: var(--text-muted); font-family: var(--font-mono); }
     .lb-trn {
       font-family: var(--font-mono);
       font-size: 11px; font-weight: 500;

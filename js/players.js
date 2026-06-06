@@ -142,32 +142,64 @@ async function renderRatings() {
   document.getElementById('ratings-updated').textContent =
     'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  /* Admin-only guest list (registered but not yet participated) */
+  /* Personal banner for a logged-in user who hasn't entered the rating yet */
+  renderGuestSelfBanner();
+
+  /* Admin-only guest list + rated/guest breakdown */
   renderGuestSection(isAll);
+}
+
+/* Shown to a logged-in user who hasn't played a tournament yet (not in the rating). */
+function renderGuestSelfBanner() {
+  const el = document.getElementById('guest-self-banner');
+  if (!el) return;
+  const me = currentUser;
+  const inRating = ratingsData && me && ratingsData.some(p => String(p.id) === String(me.id));
+  if (!apiAvailable || !me || inRating) { el.style.display = 'none'; return; }
+
+  const proj = me.startingPoints || 0;
+  el.innerHTML = `
+    <div class="gsb-icon">🎾</div>
+    <div class="gsb-text">
+      <div class="gsb-title">Ти ще не в рейтингу</div>
+      <div class="gsb-sub">Зіграй свій перший турнір, щоб з'явитися в загальному рейтингу.${
+        proj > 0 ? ` Прогнозований старт: <strong>${proj}</strong>` : ''}</div>
+    </div>
+    <button class="gsb-cta" onclick="switchTab('results')">Турніри</button>`;
+  el.style.display = '';
 }
 
 async function renderGuestSection(isAll) {
   const section = document.getElementById('guest-section');
-  if (!section) return;
+  const breakdown = document.getElementById('rating-breakdown');
+  const isAdmin = apiAvailable && isAll && currentUser?.role === 'ADMIN';
 
-  // Only for admins, only with a live backend, only on the "all" view
-  if (!apiAvailable || !isAll || currentUser?.role !== 'ADMIN') {
-    section.style.display = 'none';
+  if (!isAdmin) {
+    if (section) section.style.display = 'none';
+    if (breakdown) breakdown.style.display = 'none';
     return;
   }
 
   if (guestsData === null) {
     try {
-      guestsData = (await API.ratings.guests()).map(normalizeRating);
+      guestsData = (await API.ratings.guests()).map(normalizeGuest);
     } catch {
-      section.style.display = 'none';
+      if (section) section.style.display = 'none';
+      if (breakdown) breakdown.style.display = 'none';
       return;
     }
     if (activeRatingFilter !== 'all') return; // filter changed while loading
   }
 
+  /* Admin header breakdown: rated vs guests */
+  if (breakdown && ratingsData) {
+    const g = guestsData.length;
+    breakdown.innerHTML = `<strong>${ratingsData.length}</strong> у рейтингу · <strong>${g}</strong> ${guestWordUa(g)}`;
+    breakdown.style.display = '';
+  }
+
   if (!guestsData.length) {
-    section.style.display = 'none';
+    if (section) section.style.display = 'none';
     return;
   }
 
@@ -176,20 +208,56 @@ async function renderGuestSection(isAll) {
   section.style.display = '';
 }
 
+function normalizeGuest(r) {
+  const n = normalizeRating(r);
+  n.username = r.username || null;
+  n.createdAt = r.createdAt || null;
+  n.registeredForUpcoming = !!r.registeredForUpcoming;
+  return n;
+}
+
+function _guestRowTap(id) {
+  const player = (guestsData || []).find(p => String(p.id) === String(id));
+  if (player) openPlayerProfile(player, 0);
+}
+
+function guestWordUa(n) {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'гість';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'гості';
+  return 'гостей';
+}
+
+function relativeDateUa(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return 'сьогодні';
+  if (days === 1) return 'вчора';
+  if (days < 7) return `${days} дн. тому`;
+  if (days < 30) return `${Math.floor(days / 7)} тиж. тому`;
+  if (days < 365) return `${Math.floor(days / 30)} міс. тому`;
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 function renderGuestRow(p) {
   const avatarContent = p.photoUrl
     ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
     : initials(p.name);
   const linked = (p.startingPts || 0) > 0;
-  const tag = linked
+  const raketoTag = linked
     ? `<span class="guest-tag guest-tag-raketo">Raketo</span>`
     : `<span class="guest-tag guest-tag-none">Raketo не підключено</span>`;
+  const upcomingTag = p.registeredForUpcoming
+    ? `<span class="guest-tag guest-tag-upcoming">записаний на турнір</span>` : '';
+  const joined = p.createdAt ? `<span class="guest-joined">реєстрація ${relativeDateUa(p.createdAt)}</span>` : '';
+  const uname = p.username ? ` <span class="guest-uname">@${esc(p.username)}</span>` : '';
   return `
-    <div class="guest-row lb-row-tap" onclick="_lbRowTap('${p.id || ''}',0)">
+    <div class="guest-row lb-row-tap" onclick="_guestRowTap('${p.id || ''}')">
       <div class="guest-avatar">${avatarContent}</div>
       <div class="guest-name">
-        <div class="guest-name-text">${esc(p.name)}</div>
-        ${tag}
+        <div class="guest-name-text">${esc(p.name)}${uname}</div>
+        <div class="guest-meta">${raketoTag}${upcomingTag}${joined}</div>
       </div>
       <span class="guest-pts">${linked ? p.startingPts : '—'}</span>
     </div>`;

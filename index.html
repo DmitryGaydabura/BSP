@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=19">
+  <link rel="stylesheet" href="css/app.css?v=20">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -141,6 +141,7 @@
           </div>
         </div>
         <div class="ratings-updated" id="ratings-updated"></div>
+        <div class="rating-breakdown" id="rating-breakdown" style="display:none"></div>
         <div class="ratings-filter-row" id="ratings-filter">
           <button class="filter-chip active" data-level="all">Всі</button>
           <button class="filter-chip" data-level="D">D</button>
@@ -162,6 +163,9 @@
           <div class="ri-detail-line">Рівні C / C− / D+ / D формуються за відсотком серед усіх гравців клубу</div>
         </div>
       </div>
+
+      <!-- Personal banner: logged-in user not yet in the rating -->
+      <div id="guest-self-banner" class="guest-self-banner" style="display:none"></div>
 
       <!-- Podium top-3 -->
       <div class="podium" id="podium">
@@ -763,7 +767,7 @@
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=39" defer></script>
 <script src="js/tournaments.js?v=39" defer></script>
-<script src="js/players.js?v=41" defer></script>
+<script src="js/players.js?v=42" defer></script>
 <script src="js/analysis-admin.js?v=39" defer></script>
 <script src="js/app.js?v=41" defer></script>
   <!-- Home screen banner -->
