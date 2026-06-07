@@ -1649,7 +1649,10 @@ async function renderParticipantList(tournamentId) {
   container.innerHTML = '<div style="color:var(--text-muted);font-size:13px">Завантаження...</div>';
   try {
     const tournament = pmTournaments.find(t => String(t.id) === String(tournamentId));
-    const isPair = tournament?.type === 'PAIR';
+    // CUP registers with the same partner flow as PAIR (while in DRAFT), so the admin
+    // pairing controls (merge two solos / unpair) must show for cups too.
+    const isPair = tournament?.type === 'PAIR'
+      || (tournament?.type === 'CUP' && tournament?.status === 'DRAFT');
 
     if (isPair) {
       // Fetch full tournament to get pairRegistrations with partner info
