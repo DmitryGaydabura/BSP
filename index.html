@@ -272,10 +272,16 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Рівень турніру</label>
-          <select class="form-select" id="ct-level">
-            <option value="">Завантаження...</option>
-          </select>
+          <label class="form-label">Рівень турніру (діапазон)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select class="form-select" id="ct-level">
+              <option value="">Завантаження...</option>
+            </select>
+            <span style="color:var(--text-muted);font-size:14px;flex-shrink:0">–</span>
+            <select class="form-select" id="ct-level-max">
+              <option value="">—</option>
+            </select>
+          </div>
           <div id="ct-level-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
         </div>
         <div class="form-group">
@@ -712,11 +718,14 @@
         <label class="form-label">Пар виходить з кожної групи</label>
         <input class="form-input" type="number" id="cup-pairs-advancing" min="1" max="4" value="2">
       </div>
-      <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <input type="checkbox" id="cup-randomize" class="cup-checkbox" checked>
-        <label for="cup-randomize" style="font-size:14px;color:var(--text-primary);cursor:pointer">
-          Рандомізувати пари автоматично
-        </label>
+      <div class="form-group">
+        <label class="form-label">Формування пар</label>
+        <select class="form-select" id="cup-pair-mode">
+          <option value="registration">За реєстрацією (пари із заявок)</option>
+          <option value="manual">Вручну</option>
+          <option value="random">Випадково</option>
+        </select>
+        <div id="cup-registration-info" style="font-size:12px;margin-top:6px"></div>
       </div>
       <div id="cup-pairs-manual-section" style="display:none">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Вкажіть пари гравців:</div>
@@ -766,10 +775,10 @@
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=39" defer></script>
-<script src="js/tournaments.js?v=39" defer></script>
+<script src="js/tournaments.js?v=42" defer></script>
 <script src="js/players.js?v=42" defer></script>
-<script src="js/analysis-admin.js?v=39" defer></script>
-<script src="js/app.js?v=41" defer></script>
+<script src="js/analysis-admin.js?v=42" defer></script>
+<script src="js/app.js?v=42" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

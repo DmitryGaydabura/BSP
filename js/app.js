@@ -708,21 +708,54 @@ function openCupStartModal(tournamentId) {
 
   document.getElementById('cup-group-count').value = '2';
   document.getElementById('cup-pairs-advancing').value = '2';
-  document.getElementById('cup-randomize').checked = true;
+  document.getElementById('cup-pair-mode').value = 'registration';
   document.getElementById('cup-pairs-manual-section').style.display = 'none';
   cupManualPairs = [];
   renderManualPairs(t);
+  renderCupRegistrationInfo(t);
 
   openModal('modal-cup-start');
 }
 
-document.getElementById('cup-randomize').addEventListener('change', function() {
-  document.getElementById('cup-pairs-manual-section').style.display = this.checked ? 'none' : '';
-  if (!this.checked) {
-    const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
-    if (t && (t.participants || []).length > 0) buildManualPairsFromParticipants(t);
+// Pairs/solos formed during cup registration (partner-invite flow), from the DTO.
+function cupRegistrationPairs(t) {
+  const regs = (t && t.pairRegistrations) || [];
+  return { pairs: regs.filter(pr => pr.player2), solos: regs.filter(pr => !pr.player2) };
+}
+
+function renderCupRegistrationInfo(t) {
+  const el = document.getElementById('cup-registration-info');
+  if (!el) return;
+  if (document.getElementById('cup-pair-mode').value !== 'registration') { el.textContent = ''; return; }
+  const { pairs, solos } = cupRegistrationPairs(t);
+  if (solos.length) {
+    el.style.color = 'var(--error)';
+    el.innerHTML = `⚠️ ${solos.length} без пари: ${esc(solos.map(pr => nameOf(pr.player1)).join(', '))}. Допаруйте або видаліть перед запуском.`;
+  } else {
+    el.style.color = 'var(--text-muted)';
+    el.textContent = `${pairs.length} пар із заявок готові до запуску.`;
   }
+}
+
+document.getElementById('cup-pair-mode').addEventListener('change', function() {
+  const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
+  const manual = this.value === 'manual';
+  document.getElementById('cup-pairs-manual-section').style.display = manual ? '' : 'none';
+  if (manual) buildManualPairsFromRegistration(t);
+  renderCupRegistrationInfo(t);
 });
+
+// Pre-fill the manual editor from the registration pairs (solos become single editable rows).
+function buildManualPairsFromRegistration(t) {
+  const { pairs, solos } = cupRegistrationPairs(t);
+  cupManualPairs = pairs.map(pr => ({
+    p1: pr.player1.id, p2: pr.player2.id, p1Name: nameOf(pr.player1), p2Name: nameOf(pr.player2),
+  }));
+  solos.forEach(pr => cupManualPairs.push({
+    p1: pr.player1.id, p2: null, p1Name: nameOf(pr.player1), p2Name: '',
+  }));
+  renderManualPairs(t);
+}
 
 function buildManualPairsFromParticipants(t) {
   const participants = t.participants || [];
@@ -775,23 +808,32 @@ document.getElementById('cup-start-btn').addEventListener('click', async () => {
   const btn = document.getElementById('cup-start-btn');
   const groupCount = parseInt(document.getElementById('cup-group-count').value, 10);
   const pairsAdvancing = parseInt(document.getElementById('cup-pairs-advancing').value, 10);
-  const randomize = document.getElementById('cup-randomize').checked;
+  const mode = document.getElementById('cup-pair-mode').value;
 
   if (isNaN(groupCount) || groupCount < 2) { showToast('Мінімум 2 групи', 'error'); return; }
   if (isNaN(pairsAdvancing) || pairsAdvancing < 1) { showToast('Мінімум 1 пара виходить', 'error'); return; }
 
-  let payload = { groupCount, pairsAdvancing, randomizePairs: randomize };
+  const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
+  let payload = { groupCount, pairsAdvancing };
 
-  if (!randomize) {
-    // Read current manual pair values from selects
-    const t = (tournamentsData || []).find(x => String(x.id) === String(cupStartTournamentId));
-    const container = document.getElementById('cup-manual-pairs-container');
-    const pairDivs = container.querySelectorAll('.cup-manual-pair');
-    payload.pairAssignments = Array.from(pairDivs).map(div => {
+  if (mode === 'random') {
+    payload.randomizePairs = true;
+  } else if (mode === 'manual') {
+    const pairDivs = document.getElementById('cup-manual-pairs-container').querySelectorAll('.cup-manual-pair');
+    const assignments = Array.from(pairDivs).map(div => {
       const p1 = div.querySelector('.cup-manual-p1')?.value;
       const p2 = div.querySelector('.cup-manual-p2')?.value;
       return { player1Id: parseInt(p1, 10), player2Id: p2 ? parseInt(p2, 10) : null };
     }).filter(a => a.player1Id);
+    if (assignments.some(a => !a.player2Id)) {
+      showToast('Кожна пара має складатися з двох гравців', 'error'); return;
+    }
+    payload.pairAssignments = assignments;
+  } else {
+    // registration mode: use pairs from invites; block if anyone is still unpaired
+    const { solos } = cupRegistrationPairs(t);
+    if (solos.length) { showToast(`${solos.length} гравців без пари. Допаруйте або видаліть.`, 'error'); return; }
+    // no randomize / no assignments → backend uses registration pairs
   }
 
   btn.disabled = true;

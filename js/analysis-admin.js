@@ -888,11 +888,17 @@ async function openCreateTournament() {
   document.getElementById('ct-price').value = '';
   openModal('modal-create-tournament');
   await loadTournamentLevels();
-  const sel = document.getElementById('ct-level');
-  sel.innerHTML = tournamentLevels.map(l =>
+  populateLevelSelects();
+  document.getElementById('ct-level-max').value = document.getElementById('ct-level').value;
+  updateLevelHint();
+}
+
+function populateLevelSelects() {
+  const opts = tournamentLevels.map(l =>
     `<option value="${l.value}">${l.label} (до ${l.ratingCeiling} pts)</option>`
   ).join('');
-  updateLevelHint();
+  document.getElementById('ct-level').innerHTML = opts;
+  document.getElementById('ct-level-max').innerHTML = opts;
 }
 
 async function openEditTournament(t) {
@@ -901,14 +907,12 @@ async function openEditTournament(t) {
   document.getElementById('ct-submit').textContent = 'Зберегти';
   openModal('modal-create-tournament');
   await loadTournamentLevels();
-  const sel = document.getElementById('ct-level');
-  sel.innerHTML = tournamentLevels.map(l =>
-    `<option value="${l.value}">${l.label} (до ${l.ratingCeiling} pts)</option>`
-  ).join('');
+  populateLevelSelects();
   document.getElementById('ct-name').value = t.name || '';
   document.getElementById('ct-date').value = t.date || '';
   document.getElementById('ct-time').value = t.time ? t.time.slice(0, 5) : '';
-  sel.value = t.level || '';
+  document.getElementById('ct-level').value = t.level || '';
+  document.getElementById('ct-level-max').value = t.levelMax || t.level || '';
   document.getElementById('ct-type').value = t.type || 'PAIR';
   document.getElementById('ct-max-participants').value = t.maxParticipants || '';
   document.getElementById('ct-min-rating').value = t.minRating || '';
@@ -937,13 +941,18 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const level = document.getElementById('ct-level').value;
   const type = document.getElementById('ct-type').value;
   if (!name || !date || !level) { alert('Заповніть всі поля'); return; }
+  // Informational level range: clamp max to be >= min (BE clamps too).
+  let levelMax = document.getElementById('ct-level-max').value || level;
+  const minIdx = tournamentLevels.findIndex(l => l.value === level);
+  const maxIdx = tournamentLevels.findIndex(l => l.value === levelMax);
+  if (maxIdx < minIdx) levelMax = level;
   const maxParticipants = parseInt(document.getElementById('ct-max-participants').value) || null;
   const minRating = parseInt(document.getElementById('ct-min-rating').value) || null;
   const maxRating = parseInt(document.getElementById('ct-max-rating').value) || null;
   const location = document.getElementById('ct-location').value.trim() || null;
   const price = parseInt(document.getElementById('ct-price').value) || null;
   const time = document.getElementById('ct-time').value || null;
-  const payload = { name, date, level, type, maxParticipants, minRating, maxRating, location, price, time };
+  const payload = { name, date, level, levelMax, type, maxParticipants, minRating, maxRating, location, price, time };
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';

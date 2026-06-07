@@ -15,6 +15,7 @@ function normalizeTournament(t) {
     year: String(t.date).slice(0, 4),
     level: t.level,
     levelLabel: t.levelLabel || t.level,
+    levelRangeLabel: t.levelRangeLabel || t.levelLabel || t.level,
     type: t.type || 'PAIR',
     status: t.status,
     maxParticipants: t.maxParticipants,
@@ -98,25 +99,27 @@ function renderUpcomingList(source, list) {
     const reserve       = t.reserveParticipants || [];
     const pairRegs      = t.pairRegistrations || [];
     const pairResRegs   = t.pairReserveRegistrations || [];
-    const myPairEntry   = (t.type === 'PAIR' && currentUser)
+    // CUP registers in DRAFT using the same partner-invite flow as PAIR tournaments.
+    const isPairReg     = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+    const myPairEntry   = (isPairReg && currentUser)
         ? pairRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
         : null;
-    const myReserveEntry = (t.type === 'PAIR' && currentUser)
+    const myReserveEntry = (isPairReg && currentUser)
         ? pairResRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
         : null;
     const isRegisteredSolo   = !!(myPairEntry && !myPairEntry.player2);
     const isRegisteredPaired = !!(myPairEntry && myPairEntry.player2);
     const isReserveSolo      = !!(myReserveEntry && !myReserveEntry.player2);
     const isReservePaired    = !!(myReserveEntry && myReserveEntry.player2);
-    const hasPendingRequest  = t.type === 'PAIR' && !!t.myPendingPairRequestId;
-    const isEnrolled  = t.type === 'PAIR'
+    const hasPendingRequest  = isPairReg && !!t.myPendingPairRequestId;
+    const isEnrolled  = isPairReg
         ? !!(myPairEntry || myReserveEntry)
         : !!(currentUser && [...confirmed, ...reserve].some(p => p.id === currentUser.id));
-    const isInReserve = t.type === 'PAIR'
+    const isInReserve = isPairReg
         ? !!(myReserveEntry)
         : !!(currentUser && reserve.some(p => p.id === currentUser.id));
     const canJoin     = currentUser && (t.status === 'DRAFT' || t.status === 'ACTIVE');
-    const isFull      = t.type === 'PAIR'
+    const isFull      = isPairReg
         ? (!t.canRegisterSolo && pairRegs.filter(pr => !pr.player2 && pr.player1?.id !== currentUser?.id).length === 0)
         : !!(t.maxParticipants && (t.participantCount || 0) >= t.maxParticipants);
 
@@ -127,7 +130,7 @@ function renderUpcomingList(source, list) {
 
     const pairResCount = pairResRegs.length;
     const reserveCount = reserve.length;
-    const participantsInfo = t.type === 'PAIR'
+    const participantsInfo = isPairReg
       ? (t.maxParticipants
           ? `${pairRegs.length}/${Math.floor(t.maxParticipants / 2)} пар${pairResCount ? ` · +${pairResCount} резерв` : ''}`
           : (pairRegs.length ? `${pairRegs.length} пар${pairResCount ? ` · +${pairResCount} резерв` : ''}` : ''))
@@ -146,7 +149,7 @@ function renderUpcomingList(source, list) {
     const canLeave = isEnrolled && canJoin && hoursUntil > 24;
 
     let joinBtn = '';
-    if (t.type === 'PAIR' && canJoin) {
+    if (isPairReg && canJoin) {
       if (hasPendingRequest) {
         joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">⏳ ${t.myPendingPairTargetName || 'Заявка'}</span>`
                 + `<button class="chip-btn chip-leave sr-pair-cancel-btn" data-id="${t.id}">Скасувати</button>`;
@@ -175,7 +178,7 @@ function renderUpcomingList(source, list) {
           joinBtn = `<button class="chip-btn chip-reserve sr-join-reserve-btn" data-id="${t.id}">У резерв</button>`;
         }
       }
-    } else if (t.type !== 'PAIR') {
+    } else if (!isPairReg) {
       const enrolledBadge = isEnrolled
         ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
         : '';
@@ -197,7 +200,7 @@ function renderUpcomingList(source, list) {
       return `<span class="tp-name${extra} tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${safeName}')">${esc(name)}</span>`;
     };
 
-    const participantsList = (t.type === 'PAIR')
+    const participantsList = isPairReg
       ? buildPairParticipantsList(t, pairRegs, pairResRegs, canJoin, hasPendingRequest, isEnrolled, myReserveEntry)
       : (confirmed.length > 0
           ? `<div class="tournament-participants-list">
@@ -206,7 +209,7 @@ function renderUpcomingList(source, list) {
             </div>`
           : '');
 
-    const reserveList = (t.type !== 'PAIR' && reserve.length > 0)
+    const reserveList = (!isPairReg && reserve.length > 0)
       ? `<div class="tournament-participants-list reserve-section">
           <div class="tp-label">Резерв</div>
           <div class="tp-names">${reserve.map(p => tpChip(p, ' tp-reserve')).join('')}</div>
@@ -233,7 +236,7 @@ function renderUpcomingList(source, list) {
             </div>
             <div class="tournament-date-cat">
               <span class="tournament-date">${fmt(t.date)}${t.time ? ' · ' + t.time.slice(0,5) : ''}</span>
-              ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelLabel}</span>` : ''}
+              ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelRangeLabel || t.levelLabel}</span>` : ''}
               <span class="tournament-cat">${typeLabel}</span>
             </div>
             <div class="tournament-meta-info">
@@ -469,7 +472,7 @@ function renderFinishedList(source, list) {
         <div class="finished-card-name">${esc(t.name)}</div>
         <div class="finished-card-meta">
           <span class="tournament-date">${fmt(t.date)}</span>
-          ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelLabel}</span>` : ''}
+          ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelRangeLabel || t.levelLabel}</span>` : ''}
           <span class="tournament-cat">${typeLabel}</span>
         </div>
         ${cupViewBtn}
