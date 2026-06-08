@@ -101,5 +101,10 @@ const API = (() => {
     activity: {
       monthly: (month) => request('GET', `/activity?month=${month}`),
     },
+
+    achievements: {
+      getConfig: ()             => request('GET', '/achievements/config'),
+      setEnabled: (id, enabled) => request('PUT', `/achievements/config/${id}`, { enabled }),
+    },
   };
 })();

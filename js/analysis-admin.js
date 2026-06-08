@@ -601,9 +601,100 @@ function wireAdminPanel() {
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);
   document.getElementById('btn-users').addEventListener('click', openUsersModal);
   document.getElementById('btn-admin-import').addEventListener('click', openAdminImportModal);
+  document.getElementById('btn-admin-achievements').addEventListener('click', openAchievementsModal);
   document.getElementById('btn-admin-analysis').addEventListener('click', openAdminAnalysisModal);
   document.getElementById('btn-migrate-v2').addEventListener('click', runMigrateV2);
   initAdminImportModal();
+}
+
+/* ── Achievements config ─────────────────────────────────────────── */
+
+const ACH_CATALOG = [
+  { group: 'Турнірні перемоги', items: [
+    { id: 'first_win',    name: 'Перша перемога' },
+    { id: 'champion',     name: 'Чемпіон' },
+    { id: 'cup_winner',   name: 'Володар Кубка' },
+    { id: 'season_champ', name: 'Чемпіон сезону' },
+    { id: 'podium',       name: 'Подіум' },
+    { id: 'flawless',     name: 'Бездоганний' },
+  ]},
+  { group: 'Серії та форма', items: [
+    { id: 'hat_trick',   name: 'Хет-трик' },
+    { id: 'fire_streak', name: 'Вогняна серія' },
+    { id: 'unstoppable', name: 'Незупинний' },
+  ]},
+  { group: 'Участь та активність', items: [
+    { id: 'debut',        name: 'Дебютант' },
+    { id: 'regular',      name: 'Завсідник' },
+    { id: 'veteran',      name: 'Ветеран' },
+    { id: 'player_month', name: 'Гравець місяця' },
+    { id: 'iron_will',    name: 'Залізна воля' },
+    { id: 'club_soul',    name: 'Душа клубу' },
+  ]},
+  { group: 'Рівні майстерності', items: [
+    { id: 'level_dplus',  name: 'Рівень D+' },
+    { id: 'level_cminus', name: 'Рівень C−' },
+    { id: 'level_c',      name: 'Рівень C' },
+  ]},
+  { group: 'Особливі', items: [
+    { id: 'lucky',       name: 'Щасливчик' },
+    { id: 'grandmaster', name: 'Гросмейстер' },
+  ]},
+];
+
+async function openAchievementsModal() {
+  openModal('modal-admin-achievements');
+  const list = document.getElementById('ach-config-list');
+  list.innerHTML = '<div style="color:var(--text-sec);font-size:13px;padding:12px 0">Завантаження...</div>';
+
+  let enabledSet;
+  try {
+    const enabled = await API.achievements.getConfig();
+    enabledSet = new Set(enabled);
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--danger,#e74c3c);font-size:13px">Помилка: ${esc(e.message)}</div>`;
+    return;
+  }
+
+  list.innerHTML = ACH_CATALOG.map(group => `
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">${esc(group.group)}</div>
+      ${group.items.map(item => {
+        const on = enabledSet.has(item.id);
+        return `<div class="ach-config-row" data-ach-id="${item.id}">
+          <span class="ach-config-name">${esc(item.name)}</span>
+          <button class="ach-toggle-btn ${on ? 'on' : 'off'}" data-id="${item.id}" data-on="${on}">
+            ${on ? 'Увімкнено' : 'Вимкнено'}
+          </button>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+
+  list.querySelectorAll('.ach-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const nowOn = btn.dataset.on === 'true';
+      const newOn = !nowOn;
+      btn.disabled = true;
+      try {
+        await API.achievements.setEnabled(id, newOn);
+        btn.dataset.on = String(newOn);
+        btn.className = `ach-toggle-btn ${newOn ? 'on' : 'off'}`;
+        btn.textContent = newOn ? 'Увімкнено' : 'Вимкнено';
+        // Keep local config in sync so profiles reflect changes immediately
+        if (newOn) {
+          if (!achievementsConfig) achievementsConfig = [];
+          if (!achievementsConfig.includes(id)) achievementsConfig.push(id);
+        } else {
+          if (achievementsConfig) achievementsConfig = achievementsConfig.filter(x => x !== id);
+        }
+      } catch (e) {
+        showToast('Помилка: ' + (e.message || 'невідома'));
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 /* ── Migrate v2 ─────────────────────────────────────────────────── */

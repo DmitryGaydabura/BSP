@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Achievement System (polished)" subtitle="Profile grid · auto-computed · unlock celebration + entrance stagger" viewport="440x900" -->
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Achievement System — Blacksea Padel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:wght@0,300;0,400;0,500;0,600;0,700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/bsp-achievements.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1000px 520px at 50% -10%, #122742, transparent 70%), #0D1B2E;
+    color: #F5F0E8; font-family: 'Montserrat', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; min-height: 100vh; padding: 22px 0 60px;
+  }
+  .frame { max-width: 440px; margin: 0 auto; padding: 0 18px; }
+
+  /* faux profile header (mirrors the app's profile-hero, for context only) */
+  .demo-hero { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 18px;
+    background: linear-gradient(180deg, #1A2F4A, #16283f); border: 1px solid rgba(201,168,76,.16); margin-bottom: 8px; }
+  .demo-av { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center;
+    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 22px; color: #0D1B2E;
+    background: linear-gradient(135deg, #E8C97A, #9B7A2E); }
+  .demo-hero-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 20px; }
+  .demo-hero-meta { font-family: 'Courier Prime', monospace; font-size: 11px; color: #8FA3B8; letter-spacing: .06em; margin-top: 3px; }
+
+  .demo-bar { position: sticky; top: 0; z-index: 50; display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 12px 0 14px; background: linear-gradient(#0D1B2E 70%, transparent); margin-bottom: 6px; }
+  .demo-btn { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    cursor: pointer; border-radius: 9999px; padding: 8px 14px; color: #0D1B2E; border: none;
+    background: linear-gradient(135deg, #E8C97A, #C9A84C); transition: transform .15s ease, opacity .2s ease; }
+  .demo-btn.ghost { background: transparent; color: #C9A84C; border: 1px solid rgba(201,168,76,.4); }
+  .demo-btn:active { transform: scale(.96); }
+  .demo-btn:disabled { opacity: .4; cursor: default; }
+
+  /* keep the existing tournament-cups list above the grid (placement: keep cups too) */
+  .demo-cups-title { font-family: 'Courier Prime', monospace; font-size: 11px; letter-spacing: .14em;
+    text-transform: uppercase; color: #C9A84C; margin: 22px 0 10px; }
+  .demo-cups { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .demo-cup { flex: 0 0 auto; width: 120px; padding: 12px; border-radius: 12px; text-align: center;
+    background: rgba(8,16,28,.5); border: 1px solid rgba(201,168,76,.14); }
+  .demo-cup-name { font-family: 'Playfair Display', serif; font-size: 12px; margin-top: 6px; }
+  .demo-cup-date { font-family: 'Courier Prime', monospace; font-size: 9.5px; color: #8FA3B8; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <div class="demo-hero">
+    <div class="demo-av">Я</div>
+    <div>
+      <div class="demo-hero-name">Я (демо-гравець)</div>
+      <div class="demo-hero-meta">★ рівень C− · #5 у рейтингу ★</div>
+    </div>
+  </div>
+
+  <div class="demo-bar">
+    <button class="demo-btn" id="btn-unlock">★ Розблокувати наступне</button>
+    <button class="demo-btn ghost" id="btn-replay">↻ Програти вхід</button>
+  </div>
+
+  <!-- existing tournament-win cups stay above the new grid -->
+  <div class="demo-cups-title">Перемоги</div>
+  <div class="demo-cups" id="cups"></div>
+
+  <div id="profile-achievements" style="margin-top:24px"></div>
+</div>
+
+<script src="js/bsp-crest.js"></script>
+<script src="js/bsp-achievements.js"></script>
+<script>
+  /* ---- sample data shaped like the real app (TOURNAMENTS + ratings) ---- */
+  var ME = { id: 'me', name: 'Я' };
+  var PARTNERS = ['Олег', 'Дмитро', 'Артем', 'Іван', 'Микола', 'Василь', 'Роман', 'Сергій', 'Андрій'];
+  var POSITIONS = [7, 3, 2, 1, 1, 1, 4, 2, 1, 7, 5, 1, 1, 3, 7, 2, 1, 1]; // oldest → newest
+  var CUP_MONTHS = { 4: 1, 13: 1 }; // these wins count as Cup titles
+
+  var SAMPLE_TOURNAMENTS = POSITIONS.map(function (pos, i) {
+    var d = new Date(2024, 11 - (POSITIONS.length - 1 - i), 12); // one per consecutive month
+    var isCup = !!CUP_MONTHS[i];
+    return {
+      id: i + 1,
+      date: d.toISOString().slice(0, 10),
+      name: (isCup ? 'Кубок клубу' : 'Blacksea Open') + ' #' + (i + 1),
+      category: isCup ? 'cup' : 'open',
+      categoryLabel: isCup ? 'Cup' : 'Open',
+      results: [
+        { pos: pos, players: [ME, { id: 'p' + i, name: PARTNERS[i % PARTNERS.length] }] }
+      ]
+    };
+  });
+
+  /* ---- derive stats the same way the app will ---- */
+  var stats = BSPAchievements.computeStats({
+    playerId: ME.id,
+    playerName: ME.name,
+    tournaments: SAMPLE_TOURNAMENTS,
+    level: 'C-',
+    rank: 5,
+    isMonthLeader: false
+  });
+
+  /* ---- render the grid + entrance animation ---- */
+  var host = document.getElementById('profile-achievements');
+  function render() {
+    host.innerHTML = BSPAchievements.renderGrid(stats);
+    BSPAchievements.revealStagger(host);
+  }
+  render();
+
+  /* ---- cups list above (tournament wins) ---- */
+  var MONTHS = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+  document.getElementById('cups').innerHTML = SAMPLE_TOURNAMENTS
+    .filter(function (t) { return t.results[0].pos === 1; })
+    .reverse()
+    .map(function (t) {
+      var d = new Date(t.date);
+      return '<div class="demo-cup">' +
+        BSPCrest.houseCrest({ icon: 'cup', cat: 'gold', locked: false }).replace('class="crest-svg"', 'class="crest-svg" style="width:54px;height:64px"') +
+        '<div class="demo-cup-name">' + t.name + '</div>' +
+        '<div class="demo-cup-date">' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + '</div>' +
+      '</div>';
+    }).join('');
+
+  /* ---- controls ---- */
+  document.getElementById('btn-unlock').addEventListener('click', function () {
+    var locked = host.querySelector('.bsp-ach.is-locked');
+    if (!locked) { this.disabled = true; this.textContent = '✓ Усе розблоковано'; return; }
+    BSPAchievements.playUnlock(locked);
+  });
+  document.getElementById('btn-replay').addEventListener('click', function () {
+    document.getElementById('btn-unlock').disabled = false;
+    document.getElementById('btn-unlock').textContent = '★ Розблокувати наступне';
+    render();
+  });
+</script>
+</body>
+</html>

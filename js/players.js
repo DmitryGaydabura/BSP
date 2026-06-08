@@ -990,6 +990,8 @@ function trophySvg(tier) {
 function renderAchievements(playerId, playerName) {
   const source = tournamentsData || TOURNAMENTS;
   const MONTHS = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+
+  // ── existing: tournament-win cups ──────────────────────────────
   const wins = source
     .filter(t => t.status === 'FINISHED' && (t.results || []).some(r =>
       r.pos === 1 && (r.players || []).some(p =>
@@ -998,8 +1000,8 @@ function renderAchievements(playerId, playerName) {
       )
     ))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
-  if (!wins.length) return '';
-  const cups = wins.map(t => {
+
+  const cupsHtml = wins.map(t => {
     const d = new Date(t.date);
     const dateStr = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
     return `<div class="ach-cup cup-gold" data-tid="${t.id}" role="button" tabindex="0">
@@ -1008,10 +1010,43 @@ function renderAchievements(playerId, playerName) {
       <div class="ach-date">${dateStr}</div>
     </div>`;
   }).join('');
-  return `<div class="achievements-section">
+
+  const cupsSection = wins.length ? `<div class="achievements-section">
     <div class="achievements-title">Перемоги</div>
-    <div class="achievements-list">${cups}</div>
-  </div>`;
+    <div class="achievements-list">${cupsHtml}</div>
+  </div>` : '';
+
+  // ── new: achievement grid (only when some achievements are enabled) ──
+  if (!window.BSPAchievements || !achievementsConfig || !achievementsConfig.length) {
+    return cupsSection;
+  }
+
+  const ratingEntry = (ratingsData || []).find(p =>
+    (playerId && String(p.id) === String(playerId)) || p.name === playerName);
+  const level = ratingEntry?.level
+    || (playerId === currentUser?.id ? levelFromPoints(currentUser?.ratingPoints) : 'E');
+  const rank = ratingsData
+    ? ratingsData.findIndex(p =>
+        (playerId && String(p.id) === String(playerId)) || p.name === playerName) + 1
+    : 0;
+
+  const stats = BSPAchievements.computeStats({
+    playerId, playerName,
+    tournaments: source,
+    level,
+    rank,
+    isMonthLeader: false
+  });
+
+  // Force disabled achievements to locked/zero so post-processing can hide them
+  const enabled = new Set(achievementsConfig);
+  const overrides = {};
+  BSPAchievements.CATALOG.forEach(def => {
+    if (!enabled.has(def.id)) overrides[def.id] = { earned: false, value: 0 };
+  });
+
+  const gridSection = BSPAchievements.renderGrid(stats, { overrides });
+  return cupsSection + gridSection;
 }
 
 function spawnAchParticles(el) {
@@ -1253,12 +1288,70 @@ function wireAchievements(container) {
   container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
     cup.addEventListener('click', () => {
       cup.classList.remove('ach-tapped');
-      void cup.offsetWidth; // reflow to restart animation
+      void cup.offsetWidth;
       cup.classList.add('ach-tapped');
       spawnAchParticles(cup);
       setTimeout(() => openAchievementTournament(cup.dataset.tid), 220);
     });
   });
+
+  if (!window.BSPAchievements || !achievementsConfig || !achievementsConfig.length) return;
+
+  // Remove disabled achievement cards and tidy up sections/counts/summary
+  const enabled = new Set(achievementsConfig);
+  container.querySelectorAll('.bsp-ach[data-ach-id]').forEach(card => {
+    if (!enabled.has(card.dataset.achId)) card.remove();
+  });
+  container.querySelectorAll('.bsp-ach-section').forEach((section, i, all) => {
+    const cards = [...section.querySelectorAll('.bsp-ach')];
+    if (!cards.length) { section.remove(); return; }
+    const earned = cards.filter(c => c.classList.contains('is-earned')).length;
+    const countEl = section.querySelector('.bsp-ach-count');
+    if (countEl) countEl.textContent = `${earned}/${cards.length}`;
+  });
+  // Renumber remaining sections
+  let n = 0;
+  container.querySelectorAll('.bsp-ach-section').forEach(section => {
+    const numEl = section.querySelector('.bsp-ach-num');
+    if (numEl) numEl.textContent = String(++n).padStart(2, '0');
+  });
+  // Update summary to reflect enabled count
+  const allCards = [...container.querySelectorAll('.bsp-ach')];
+  const totalEarned = allCards.filter(c => c.classList.contains('is-earned')).length;
+  const summaryBig = container.querySelector('.bsp-ach-summary-big');
+  const summarySub = container.querySelector('.bsp-ach-summary-sub');
+  if (summaryBig) summaryBig.textContent = totalEarned;
+  if (summarySub) summarySub.textContent = `з ${enabled.size} досягнень`;
+
+  BSPAchievements.revealStagger(container);
+  playNewlyEarned(container);
+}
+
+function playNewlyEarned(container) {
+  if (!window.BSPAchievements || !currentUser) return;
+  if (container.id !== 'profile-achievements') return;
+
+  const key = `bsp_seen_ach_${currentUser.id}`;
+  let seen;
+  try { seen = JSON.parse(localStorage.getItem(key) || '[]'); } catch { seen = []; }
+  const seenSet = new Set(seen);
+
+  const earnedCards = [...container.querySelectorAll('.bsp-ach.is-earned')];
+  const earnedIds = earnedCards.map(c => c.dataset.achId);
+
+  if (seen.length === 0) {
+    localStorage.setItem(key, JSON.stringify(earnedIds));
+    return;
+  }
+
+  const fresh = earnedCards.filter(c => !seenSet.has(c.dataset.achId));
+  fresh.forEach((card, i) => setTimeout(() => {
+    card.classList.add('is-locked');
+    card.classList.remove('is-earned');
+    BSPAchievements.playUnlock(card);
+  }, 500 + i * 900));
+
+  localStorage.setItem(key, JSON.stringify(earnedIds));
 }
 
 function buildRatingChart(history, startingPoints) {
@@ -1663,6 +1756,11 @@ function renderAdminPanel() {
         <button class="admin-action-btn" id="btn-admin-import">
           <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <span class="admin-action-label">Імпорт з Raketo</span>
+          <span class="admin-action-arrow">›</span>
+        </button>
+        <button class="admin-action-btn" id="btn-admin-achievements">
+          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <span class="admin-action-label">Досягнення</span>
           <span class="admin-action-arrow">›</span>
         </button>
         <button class="admin-action-btn" id="btn-admin-analysis">

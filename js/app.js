@@ -1005,6 +1005,9 @@ apiBootstrap().then(async () => {
   if (apiAvailable) {
     ratingsData = null;
     guestsData = null;
+    try { achievementsConfig = await API.achievements.getConfig(); } catch { achievementsConfig = []; }
+  } else {
+    achievementsConfig = [];
   }
   renderRatings(); // replace skeleton with real data or offline state
 

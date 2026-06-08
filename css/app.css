@@ -3565,3 +3565,29 @@
   padding: 6px 8px;
 }
 
+/* ── Admin achievements config ── */
+.ach-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-sub);
+}
+.ach-config-name {
+  font-size: 14px;
+  color: var(--text-pri);
+}
+.ach-toggle-btn {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.ach-toggle-btn.on  { background: var(--gold); color: #0D1B2E; }
+.ach-toggle-btn.off { background: var(--navy-mid); color: var(--text-sec); border: 1px solid var(--border-sub); }
+.ach-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+

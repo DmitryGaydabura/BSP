@@ -74,6 +74,7 @@ let currentUser = null;   // UserDto from API when logged in
 const playerNameOf = p => [p?.firstName, p?.lastName].filter(Boolean).join(' ') || p?.displayName || p?.username || 'Гравець';
 let apiAvailable = false; // whether the backend responded
 let apiLoading   = true;  // true until apiBootstrap() resolves
+let achievementsConfig = null; // array of enabled achievement IDs (null = not yet fetched)
 
 /* ════════════════════════════════════════════════════════════════
    FALLBACK DATA (used when API is unavailable)
