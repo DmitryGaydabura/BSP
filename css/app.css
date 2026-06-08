@@ -1027,7 +1027,80 @@
     /* ── Loading skeleton ────────────────────────────────────────── */
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
+      100% { background-position:  400px 0; }
+    }
+
+    .skel {
+      background: linear-gradient(
+        90deg,
+        var(--navy-mid) 25%,
+        rgba(201,168,76,0.13) 50%,
+        var(--navy-mid) 75%
+      );
+      background-size: 800px 100%;
+      animation: shimmer 1.6s infinite linear;
+      border-radius: 6px;
+    }
+
+    /* Podium skeleton */
+    .skel-podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 8px; padding: 0 16px 12px; min-height: 130px;
+    }
+    .skel-pdm-place { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+    .skel-pdm-av { width: 48px; height: 48px; border-radius: 50% !important; }
+    .skel-pdm-name { height: 11px; width: 56px; }
+    .skel-pdm-block { width: 100%; border-radius: 6px 6px 0 0 !important; }
+    .skel-pdm-1st .skel-pdm-block { height: 72px; }
+    .skel-pdm-2nd .skel-pdm-block { height: 52px; }
+    .skel-pdm-3rd .skel-pdm-block { height: 40px; }
+
+    /* Leaderboard row skeleton */
+    .lb-skel-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; margin: 0 4px 4px;
+    }
+    .lb-skel-rank { width: 24px; height: 24px; border-radius: 50% !important; flex-shrink: 0; }
+    .lb-skel-av   { width: 36px; height: 36px; border-radius: 50% !important; flex-shrink: 0; }
+    .lb-skel-name { flex: 1; height: 13px; max-width: 130px; }
+    .lb-skel-pts  { width: 36px; height: 13px; }
+
+    /* Tournament card skeleton */
+    .t-skel-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border-def);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .t-skel-title { height: 17px; width: 68%; margin-bottom: 10px; }
+    .t-skel-meta  { height: 12px; width: 46%; margin-bottom: 8px; }
+    .t-skel-tags  { height: 12px; width: 30%; }
+
+    /* Tournament description */
+    .t-description {
+      font-size: 12px;
+      color: var(--text-sec);
+      line-height: 1.5;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-sub);
+      white-space: pre-wrap;
+    }
+
+    /* Offline / no-data state for tabs */
+    .tab-offline-state {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 40px 24px; text-align: center; gap: 10px;
+    }
+    .tab-offline-icon { font-size: 32px; opacity: 0.7; }
+    .tab-offline-text { font-size: 14px; color: var(--text-muted); }
+
+    /* Description textarea */
+    .form-textarea {
+      resize: vertical;
+      min-height: 72px;
+      font-family: var(--font-body);
+      font-size: 14px;
     }
 
     /* ── Loading / API state ────────────────────────────────────── */

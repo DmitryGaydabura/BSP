@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=20">
+  <link rel="stylesheet" href="css/app.css?v=21">
 </head>
 <body>
 <div id="toast" role="alert" aria-live="polite"></div>
@@ -313,6 +313,10 @@
         <div class="form-group">
           <label class="form-label">Вартість участі (грн)</label>
           <input class="form-input" type="number" id="ct-price" min="0" placeholder="безкоштовно">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Опис / нотатки</label>
+          <textarea class="form-input form-textarea" id="ct-description" rows="3" placeholder="Необов'язково — призи, правила, деталі..."></textarea>
         </div>
         <button class="btn-primary" id="ct-submit" style="width:100%;margin-top:4px">Створити</button>
       </div>
@@ -774,11 +778,11 @@
 </div>
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
-<script src="js/core.js?v=39" defer></script>
-<script src="js/tournaments.js?v=42" defer></script>
-<script src="js/players.js?v=42" defer></script>
-<script src="js/analysis-admin.js?v=43" defer></script>
-<script src="js/app.js?v=42" defer></script>
+<script src="js/core.js?v=40" defer></script>
+<script src="js/tournaments.js?v=43" defer></script>
+<script src="js/players.js?v=43" defer></script>
+<script src="js/analysis-admin.js?v=44" defer></script>
+<script src="js/app.js?v=43" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

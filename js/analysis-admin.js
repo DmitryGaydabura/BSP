@@ -886,6 +886,7 @@ async function openCreateTournament() {
   document.getElementById('ct-max-rating').value = '';
   document.getElementById('ct-location').value = '';
   document.getElementById('ct-price').value = '';
+  document.getElementById('ct-description').value = '';
   openModal('modal-create-tournament');
   await loadTournamentLevels();
   populateLevelSelects();
@@ -919,6 +920,7 @@ async function openEditTournament(t) {
   document.getElementById('ct-max-rating').value = t.maxRating || '';
   document.getElementById('ct-location').value = t.location || '';
   document.getElementById('ct-price').value = t.price || '';
+  document.getElementById('ct-description').value = t.description || '';
   updateLevelHint();
 }
 
@@ -952,7 +954,8 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const location = document.getElementById('ct-location').value.trim() || null;
   const price = parseInt(document.getElementById('ct-price').value) || null;
   const time = document.getElementById('ct-time').value || null;
-  const payload = { name, date, level, levelMax, type, maxParticipants, minRating, maxRating, location, price, time };
+  const description = document.getElementById('ct-description').value.trim() || null;
+  const payload = { name, date, level, levelMax, type, maxParticipants, minRating, maxRating, location, price, time, description };
 
   const btn = document.getElementById('ct-submit');
   btn.disabled = true; btn.textContent = '...';

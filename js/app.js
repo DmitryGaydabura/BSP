@@ -110,6 +110,7 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false, asReserve 
   if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
   tags.push(`<span class="rc-tag">${tournament.type === 'SINGLE' ? 'Одиночний' : tournament.type === 'CUP' ? '🏆 Кубок' : 'Парний'}</span>`);
   html += `<div class="rc-tags">${tags.join('')}</div>`;
+  if (tournament.description) html += `<div class="t-description" style="margin-top:8px">${esc(tournament.description)}</div>`;
   document.getElementById('reg-confirm-card').innerHTML = html;
 
   // Price section
@@ -1000,10 +1001,17 @@ function initHomescreenBanner() {
 renderRatings();
 
 apiBootstrap().then(async () => {
+  apiLoading = false;
   if (apiAvailable) {
-    ratingsData = null; // discard fallback, re-render with real data
+    ratingsData = null;
     guestsData = null;
-    renderRatings();
+  }
+  renderRatings(); // replace skeleton with real data or offline state
+
+  // Re-render results if visible (bootstrap may have completed while user was on that tab)
+  if (currentTab === 'results') {
+    tournamentsData = null;
+    renderResults();
   }
 
   updateMemberCount();

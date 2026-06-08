@@ -92,14 +92,67 @@ function renderPodium(players) {
   }).join('');
 }
 
+function renderRatingsSkeleton() {
+  const podium = document.getElementById('podium');
+  podium.innerHTML = `
+    <div class="skel-podium">
+      <div class="skel-pdm-place skel-pdm-2nd">
+        <div class="skel skel-pdm-av"></div>
+        <div class="skel skel-pdm-name"></div>
+        <div class="skel skel-pdm-block"></div>
+      </div>
+      <div class="skel-pdm-place skel-pdm-1st">
+        <div class="skel skel-pdm-av"></div>
+        <div class="skel skel-pdm-name"></div>
+        <div class="skel skel-pdm-block"></div>
+      </div>
+      <div class="skel-pdm-place skel-pdm-3rd">
+        <div class="skel skel-pdm-av"></div>
+        <div class="skel skel-pdm-name"></div>
+        <div class="skel skel-pdm-block"></div>
+      </div>
+    </div>`;
+
+  document.getElementById('leaderboard-rows').innerHTML =
+    Array.from({ length: 8 }, (_, i) => `
+      <div class="lb-skel-row">
+        <span class="skel lb-skel-rank"></span>
+        <div class="skel lb-skel-av"></div>
+        <div class="skel lb-skel-name" style="max-width:${90 + (i * 11) % 55}px"></div>
+        <div style="flex:1"></div>
+        <div class="skel lb-skel-pts"></div>
+      </div>`).join('');
+
+  document.getElementById('ratings-title').textContent = 'Рейтинг гравців';
+  document.getElementById('ratings-updated').textContent = '';
+}
+
 async function renderRatings() {
-  let source = RATINGS.filter(r => (r.pts || 0) > 0);
+  if (apiLoading && !ratingsData) {
+    renderRatingsSkeleton();
+    return;
+  }
+
   if (apiAvailable && ratingsData === null) {
+    renderRatingsSkeleton();
     try {
       ratingsData = (await API.ratings.list()).map(normalizeRating);
-    } catch { /* fallback */ }
+    } catch { /* offline */ }
   }
-  if (ratingsData) source = ratingsData;
+
+  const source = ratingsData || [];
+
+  if (!source.length && !apiAvailable) {
+    document.getElementById('podium').innerHTML = '';
+    document.getElementById('leaderboard-rows').innerHTML =
+      `<div class="tab-offline-state">
+         <div class="tab-offline-icon">📡</div>
+         <div class="tab-offline-text">Немає з'єднання з сервером</div>
+       </div>`;
+    document.getElementById('ratings-updated').textContent = '';
+    document.getElementById('guest-self-banner').style.display = 'none';
+    return;
+  }
 
   const isAll = activeRatingFilter === 'all';
   const filtered = isAll

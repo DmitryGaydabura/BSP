@@ -24,6 +24,7 @@ function normalizeTournament(t) {
     price: t.price ?? null,
     location: t.location || null,
     time: t.time || null,
+    description: t.description || null,
     participantCount: t.participantCount || (t.participants || []).length,
     participants: t.participants || [],
     reserveParticipants: t.reserveParticipants || [],
@@ -55,17 +56,40 @@ function normalizeTournament(t) {
   };
 }
 
+function renderTournamentsSkeleton(list) {
+  list.innerHTML = Array.from({ length: 3 }, (_, i) => `
+    <div class="t-skel-card">
+      <div class="skel t-skel-title" style="width:${65 + i * 5}%"></div>
+      <div class="skel t-skel-meta" style="width:${40 + i * 4}%"></div>
+      <div class="skel t-skel-tags"></div>
+    </div>`).join('');
+}
+
 async function renderResults() {
   const list = document.getElementById('results-list');
-  list.innerHTML = '<div class="empty-state"><div class="empty-state-text">Завантаження...</div></div>';
 
-  let source = TOURNAMENTS;
+  // Bootstrap hasn't resolved yet — show skeleton and wait
+  if (apiLoading && !tournamentsData) {
+    renderTournamentsSkeleton(list);
+    return;
+  }
+
+  let source = [];
   if (apiAvailable && tournamentsData === null) {
+    renderTournamentsSkeleton(list);
     try {
       tournamentsData = (await API.tournaments.list()).map(normalizeTournament);
-    } catch { /* fallback */ }
+    } catch { /* offline */ }
   }
   if (tournamentsData) source = tournamentsData;
+
+  if (!source.length && !apiAvailable) {
+    list.innerHTML = `<div class="tab-offline-state">
+      <div class="tab-offline-icon">📡</div>
+      <div class="tab-offline-text">Немає з'єднання з сервером</div>
+    </div>`;
+    return;
+  }
 
   if (activeResultsSubTab === 'upcoming') {
     const upcoming = source.filter(t => t.status !== 'FINISHED');
@@ -249,6 +273,7 @@ function renderUpcomingList(source, list) {
               ${t.location ? `<span class="t-location-tag">📍 ${t.location}</span>` : ''}
               <span class="t-location-tag">💳 ${priceLabel}</span>
             </div>` : ''}
+            ${t.description ? `<div class="t-description">${esc(t.description)}</div>` : ''}
             ${t.type === 'CUP' && t.status === 'DRAFT' ? (joinBtn || '') : ''}
             ${cupViewBtn}
             ${currentUser?.role === 'ADMIN' ? `
@@ -475,6 +500,7 @@ function renderFinishedList(source, list) {
           ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelRangeLabel || t.levelLabel}</span>` : ''}
           <span class="tournament-cat">${typeLabel}</span>
         </div>
+        ${t.description ? `<div class="t-description">${esc(t.description)}</div>` : ''}
         ${cupViewBtn}
         ${currentUser?.role === 'ADMIN' ? `
         <div class="t-admin-actions">
