@@ -99,7 +99,7 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false, asReserve 
   let html = `<div class="rc-name">${esc(tournament.name)}</div>`;
   html += `<div class="rc-detail"><span class="rc-detail-icon">📅</span>${dateStr}</div>`;
   if (tournament.time) html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
-  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
+  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${esc(tournament.location)}</div>`;
 
   const tags = [];
   if (tournament.minRating != null || tournament.maxRating != null) {
@@ -122,11 +122,14 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false, asReserve 
     priceSection.classList.add('hidden');
   }
 
-  // PAIR tournament: show both options (solo + join) in the body
+  // Pair-based registration (PAIR, and CUP while in DRAFT): show both options
+  // (solo + join a waiting player) in the body
   const pairOptsEl = document.getElementById('reg-confirm-pair-options');
   const submitBtn = document.getElementById('reg-confirm-submit');
+  const isPairReg = tournament.type === 'PAIR'
+    || (tournament.type === 'CUP' && tournament.status === 'DRAFT');
 
-  if (tournament.type === 'PAIR' && !alreadyEnrolled) {
+  if (isPairReg && !alreadyEnrolled) {
     const pool = asReserve
       ? (tournament.pairReserveRegistrations || [])
       : (tournament.pairRegistrations || []);
@@ -220,14 +223,14 @@ function showPairJoinConfirm(tournament, soloEntry, asReserve = false) {
   let html = `<div class="rc-name">${esc(tournament.name)}</div>`;
   html += `<div class="rc-detail"><span class="rc-detail-icon">📅</span>${dateStr}</div>`;
   if (tournament.time) html += `<div class="rc-detail"><span class="rc-detail-icon">⏰</span>${tournament.time.slice(0, 5)}</div>`;
-  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${tournament.location}</div>`;
-  html += `<div class="rc-detail"><span class="rc-detail-icon">🤝</span>Грати в парі з <b>${targetName}</b></div>`;
+  if (tournament.location) html += `<div class="rc-detail"><span class="rc-detail-icon">📍</span>${esc(tournament.location)}</div>`;
+  html += `<div class="rc-detail"><span class="rc-detail-icon">🤝</span>Грати в парі з <b>${esc(targetName)}</b></div>`;
   if (asReserve) {
     html += `<div class="rc-detail" style="color:var(--text-muted);font-size:12px"><span class="rc-detail-icon">⏳</span>Це місце в резерві — пара буде підтверджена, коли звільниться місце</div>`;
   }
   const tags = [];
   if (tournament.levelLabel) tags.push(`<span class="rc-tag">${tournament.levelLabel}</span>`);
-  tags.push(`<span class="rc-tag">Парний</span>`);
+  tags.push(`<span class="rc-tag">${tournament.type === 'CUP' ? '🏆 Кубок' : 'Парний'}</span>`);
   if (asReserve) tags.push(`<span class="rc-tag" style="color:var(--text-muted)">Резерв</span>`);
   html += `<div class="rc-tags">${tags.join('')}</div>`;
   document.getElementById('reg-confirm-card').innerHTML = html;
@@ -440,7 +443,7 @@ function renderCupGroup(group, allowEntry) {
   const standingRows = standings.map((s, i) => `
     <tr class="${i < advanceCount ? 'cup-standing-advance' : ''}">
       <td class="cup-st-pos">${i + 1}</td>
-      <td class="cup-st-name">${s.pairName}</td>
+      <td class="cup-st-name">${esc(s.pairName)}</td>
       <td class="cup-st-num">${s.played}</td>
       <td class="cup-st-num">${s.won}</td>
       <td class="cup-st-num">${s.lost}</td>
@@ -458,9 +461,9 @@ function renderCupGroup(group, allowEntry) {
       ? `<button class="cup-group-match-enter" data-match-id="${m.id}" data-pair1-name="${esc(m.pair1Name)}" data-pair2-name="${esc(m.pair2Name)}" data-score1="${m.score1 ?? ''}" data-score2="${m.score2 ?? ''}" data-tiebreak1="${m.tiebreak1 ?? ''}" data-tiebreak2="${m.tiebreak2 ?? ''}">${m.played ? '✏️' : '+ Рахунок'}</button>`
       : '';
     return `<div class="cup-match-row${m.played ? ' cup-match-played' : ''}">
-      <span class="cup-match-team">${m.pair1Name}</span>
+      <span class="cup-match-team">${esc(m.pair1Name)}</span>
       ${score}
-      <span class="cup-match-team cup-match-team-right">${m.pair2Name}</span>
+      <span class="cup-match-team cup-match-team-right">${esc(m.pair2Name)}</span>
       ${enterBtn}
     </div>`;
   }).join('');
@@ -592,11 +595,11 @@ function renderBracketMatch(m, allowEntry, isFinalRound, isConsolation) {
   return `<div class="cup-bracket-match${isFinalMatch ? ' cup-bracket-match-final' : ''}${isLower ? ' cup-bracket-match-lower' : ''}">
     ${m.placeLabel ? `<div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>` : ''}
     <div class="cup-bm-pair${p1Win ? ' cup-bm-winner' : p2Win ? ' cup-bm-loser' : ''}">
-      <span class="cup-bm-name${isTbd1 ? ' tbd' : ''}">${p1Name}</span>
+      <span class="cup-bm-name${isTbd1 ? ' tbd' : ''}">${esc(p1Name)}</span>
       <span class="cup-bm-score">${score1Display}</span>
     </div>
     <div class="cup-bm-pair${p2Win ? ' cup-bm-winner' : p1Win ? ' cup-bm-loser' : ''}">
-      <span class="cup-bm-name${isTbd2 ? ' tbd' : ''}">${p2Name}</span>
+      <span class="cup-bm-name${isTbd2 ? ' tbd' : ''}">${esc(p2Name)}</span>
       <span class="cup-bm-score">${score2Display}</span>
     </div>
     ${tbFooter}
@@ -778,14 +781,14 @@ function renderManualPairs(t) {
   container.innerHTML = cupManualPairs.map((pair, i) => `
     <div class="cup-manual-pair" data-index="${i}">
       <select class="form-select cup-manual-p1" data-index="${i}" style="flex:1">
-        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p1) ? 'selected' : ''}>${nameOf(p)}</option>`).join('')}
+        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p1) ? 'selected' : ''}>${esc(nameOf(p))}</option>`).join('')}
       </select>
       <span style="color:var(--text-muted)"> / </span>
       <select class="form-select cup-manual-p2" data-index="${i}" style="flex:1">
         <option value="">—</option>
-        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p2) ? 'selected' : ''}>${nameOf(p)}</option>`).join('')}
+        ${participants.map(p => `<option value="${p.id}" ${String(p.id) === String(pair.p2) ? 'selected' : ''}>${esc(nameOf(p))}</option>`).join('')}
       </select>
-      <button class="cup-remove-pair-btn" data-index="${i}" style="flex:0 0 30px;background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer">✕</button>
+      <button class="cup-remove-pair-btn" data-index="${i}" style="flex:0 0 30px;background:none;border:none;color:var(--error);font-size:16px;cursor:pointer">✕</button>
     </div>`).join('');
 
   container.querySelectorAll('.cup-remove-pair-btn').forEach(btn => {
@@ -894,7 +897,10 @@ async function handleTournamentDeepLink(tournamentId) {
 async function handlePairJoinDeepLink(tournamentId, targetParticipantId) {
   try {
     const tournament = await API.tournaments.get(tournamentId);
-    if (!tournament || tournament.type !== 'PAIR' || tournament.status === 'FINISHED') return;
+    // CUP uses the same partner-invite flow as PAIR while in DRAFT
+    const isPairReg = tournament && (tournament.type === 'PAIR'
+      || (tournament.type === 'CUP' && tournament.status === 'DRAFT'));
+    if (!isPairReg || tournament.status === 'FINISHED') return;
     const pairRegs = tournament.pairRegistrations || [];
     const soloEntry = pairRegs.find(pr => String(pr.participant1Id) === String(targetParticipantId));
     if (!soloEntry || soloEntry.player2) {
@@ -976,7 +982,9 @@ function initHomescreenBanner() {
     }, 1800);
 
     document.getElementById('hs-add-btn').addEventListener('click', () => {
-      if (typeof tg.addToHomeScreen === 'function') tg.addToHomeScreen();
+      try {
+        if (typeof tg.addToHomeScreen === 'function') tg.addToHomeScreen();
+      } catch { /* old client without home-screen support */ }
       banner.classList.remove('hs-visible');
       localStorage.setItem('bsp_hs_added', '1');
     });
@@ -987,12 +995,18 @@ function initHomescreenBanner() {
     });
   }
 
+  // Home-screen methods exist on the WebApp object even on old clients but
+  // throw WebAppMethodUnsupported when called (requires Bot API 8.0+).
+  if (typeof tg.isVersionAtLeast === 'function' && !tg.isVersionAtLeast('8.0')) return;
+
   if (typeof tg.checkHomeScreenStatus === 'function') {
-    tg.checkHomeScreenStatus(status => {
-      if (status === 'added') { localStorage.setItem('bsp_hs_added', '1'); return; }
-      if (status === 'unsupported') return;
-      showBanner();
-    });
+    try {
+      tg.checkHomeScreenStatus(status => {
+        if (status === 'added') { localStorage.setItem('bsp_hs_added', '1'); return; }
+        if (status === 'unsupported') return;
+        showBanner();
+      });
+    } catch { /* unsupported despite version check — skip the banner */ }
   } else {
     showBanner();
   }

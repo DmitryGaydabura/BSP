@@ -14,6 +14,7 @@ function normalizeTournament(t) {
     date: t.date,
     year: String(t.date).slice(0, 4),
     level: t.level,
+    levelMax: t.levelMax || null,
     levelLabel: t.levelLabel || t.level,
     levelRangeLabel: t.levelRangeLabel || t.levelLabel || t.level,
     type: t.type || 'PAIR',
@@ -83,7 +84,8 @@ async function renderResults() {
   }
   if (tournamentsData) source = tournamentsData;
 
-  if (!source.length && !apiAvailable) {
+  // Offline: bootstrap failed, or the tournaments fetch itself failed
+  if (!source.length && (!apiAvailable || tournamentsData === null)) {
     list.innerHTML = `<div class="tab-offline-state">
       <div class="tab-offline-icon">📡</div>
       <div class="tab-offline-text">Немає з'єднання з сервером</div>
@@ -181,7 +183,7 @@ function renderUpcomingList(source, list) {
         const activeEntry = myReserveEntry;
         const partnerN = activeEntry.player1?.id === currentUser?.id
             ? playerNameOf(activeEntry.player2) : playerNameOf(activeEntry.player1);
-        joinBtn = `<span class="chip-btn chip-reserve" title="Резерв · пара з ${partnerN}" style="pointer-events:none">⏳ Резерв · у парі</span>`
+        joinBtn = `<span class="chip-btn chip-reserve" title="Резерв · пара з ${esc(partnerN)}" style="pointer-events:none">⏳ Резерв · у парі</span>`
                 + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
       } else if (isReserveSolo) {
         joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">⏳ Резерв · шукає пару</span>`
@@ -189,7 +191,7 @@ function renderUpcomingList(source, list) {
       } else if (isRegisteredPaired) {
         const partnerN = myPairEntry.player1?.id === currentUser?.id
             ? playerNameOf(myPairEntry.player2) : playerNameOf(myPairEntry.player1);
-        joinBtn = `<span class="chip-btn chip-join" title="Пара з ${partnerN}" style="pointer-events:none">✓ У парі</span>`
+        joinBtn = `<span class="chip-btn chip-join" title="Пара з ${esc(partnerN)}" style="pointer-events:none">✓ У парі</span>`
                 + (canLeave ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>` : '');
       } else if (isRegisteredSolo) {
         joinBtn = `<span class="chip-btn chip-reserve" style="pointer-events:none">🔍 Шукає пару</span>`
@@ -220,8 +222,7 @@ function renderUpcomingList(source, list) {
 
     const tpChip = (p, extra = '') => {
       const name = playerNameOf(p);
-      const safeName = esc(name);
-      return `<span class="tp-name${extra} tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${safeName}')">${esc(name)}</span>`;
+      return `<span class="tp-name${extra} tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(name)}')">${esc(name)}</span>`;
     };
 
     const participantsList = isPairReg
@@ -270,7 +271,7 @@ function renderUpcomingList(source, list) {
             </div>
             ${t.location || t.price != null ? `
             <div class="t-location-row">
-              ${t.location ? `<span class="t-location-tag">📍 ${t.location}</span>` : ''}
+              ${t.location ? `<span class="t-location-tag">📍 ${esc(t.location)}</span>` : ''}
               <span class="t-location-tag">💳 ${priceLabel}</span>
             </div>` : ''}
             ${t.description ? `<div class="t-description">${esc(t.description)}</div>` : ''}
@@ -383,19 +384,17 @@ function buildPairParticipantsList(t, pairRegs, pairResRegs, canJoin, hasPending
   const renderRow = (pr, isReserve) => {
     if (!pr.player2) {
       const name = playerNameOf(pr.player1);
-      const safe = esc(name);
       const isMe = currentUser && pr.player1?.id === currentUser.id;
       const canReq = isReserve ? (canJoin && !isEnrolled && !hasPendingRequest) : canRequestConfirmed;
       const joinBtn = (!isMe && canReq)
-        ? `<button class="chip-btn chip-join sr-pair-join-btn" data-id="${t.id}" data-pid="${pr.participant1Id}" data-name="${safe}"${isReserve ? ' data-reserve="1"' : ''}>Грати</button>`
+        ? `<button class="chip-btn chip-join sr-pair-join-btn" data-id="${t.id}" data-pid="${pr.participant1Id}" data-name="${esc(name)}"${isReserve ? ' data-reserve="1"' : ''}>Грати</button>`
         : '';
       const soloTag = isMe ? '' : `<span class="tp-solo-tag">${isReserve ? 'резерв · шукає пару' : 'шукає пару'}</span>`;
-      return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${safe}')">${esc(name)}</span>${soloTag}${joinBtn}</div>`;
+      return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${jsq(name)}')">${esc(name)}</span>${soloTag}${joinBtn}</div>`;
     }
     const n1 = playerNameOf(pr.player1), n2 = playerNameOf(pr.player2);
-    const s1 = n1.replace(/'/g, '&#39;'), s2 = n2.replace(/'/g, '&#39;');
     const reserveTag = isReserve ? '<span class="tp-solo-tag">резерв</span>' : '';
-    return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${s1}')">${n1}</span><span class="tp-pair-sep">/</span><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player2?.id || ''}','${s2}')">${n2}</span>${reserveTag}</div>`;
+    return `<div class="tp-pair-row${isReserve ? ' tp-reserve-row' : ''}"><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player1?.id || ''}','${jsq(n1)}')">${esc(n1)}</span><span class="tp-pair-sep">/</span><span class="tp-name tp-name-tap" onclick="_tournamentPlayerTap('${pr.player2?.id || ''}','${jsq(n2)}')">${esc(n2)}</span>${reserveTag}</div>`;
   };
 
   const confirmedRows = pairRegs.map(pr => renderRow(pr, false));
@@ -446,13 +445,13 @@ function renderFinishedList(source, list) {
             if (!r) return '';
             const players = r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
             const avatarSection = players.length > 1
-              ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar lb-row-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${esc(p.name)}')">${fpAvatarHtml(p)}</div>`).join('')}</div>`
-              : `<div class="fp-avatar-wrap lb-row-tap" onclick="_tournamentPlayerTap('${players[0].id || ''}','${esc(players[0].name)}')"> ${crown}<div class="fp-avatar">${fpAvatarHtml(players[0])}</div></div>`;
-            const names = players.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${esc(p.name)}')">${esc(p.name)}</span>`).join('<span class="fp-name-sep"> / </span>');
+              ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar lb-row-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${fpAvatarHtml(p)}</div>`).join('')}</div>`
+              : `<div class="fp-avatar-wrap lb-row-tap" onclick="_tournamentPlayerTap('${players[0].id || ''}','${jsq(players[0].name)}')"> ${crown}<div class="fp-avatar">${fpAvatarHtml(players[0])}</div></div>`;
+            const names = players.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${esc(p.name)}</span>`).join('<span class="fp-name-sep"> / </span>');
             return `<div class="fp-place ${cls}">
               ${avatarSection}
               <div class="fp-names">${names}</div>
-              ${r.score ? `<div class="fp-score">${r.score}</div>` : ''}
+              ${r.score ? `<div class="fp-score">${esc(r.score)}</div>` : ''}
               ${r.pts !== 0 ? `<div class="fp-pts ${r.pts > 0 ? '' : 'neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</div>` : ''}
               <div class="fp-block ${blockCls}"><span class="fp-rank ${rankCls}">${pos}</span></div>
             </div>`;
@@ -469,12 +468,12 @@ function renderFinishedList(source, list) {
           </div>` : ''}
           ${rest.map(r => {
             const rPlayers = r.players || r.pair.map(n => ({ id: null, name: n }));
-            const nameSpans = rPlayers.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${esc(p.name)}')">${esc(p.name)}</span>`).join('<span class="separator"> / </span>');
+            const nameSpans = rPlayers.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${esc(p.name)}</span>`).join('<span class="separator"> / </span>');
             return `
             <div class="results-row">
               <span class="results-pos pos-${r.pos}">${r.pos}</span>
               <div class="results-pair"><div class="results-pair-names">${nameSpans}</div></div>
-              ${r.score ? `<span class="results-score">${r.score}</span>` : (hasScore ? `<span class="results-score-empty"></span>` : '')}
+              ${r.score ? `<span class="results-score">${esc(r.score)}</span>` : (hasScore ? `<span class="results-score-empty"></span>` : '')}
               <span class="results-pts ${r.pts > 0 ? 'pos' : r.pts < 0 ? 'neg' : 'zero'}">${r.pts > 0 ? '+' : ''}${r.pts}</span>
             </div>`;
           }).join('')}

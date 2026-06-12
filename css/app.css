@@ -2488,7 +2488,7 @@
     }
     .h2h-badge-partner { background: rgba(201,168,76,0.15); color: var(--gold); }
     .h2h-badge-win { background: rgba(72,187,120,0.15); color: var(--success); }
-    .h2h-badge-loss { background: rgba(224,85,69,0.12); color: var(--danger); }
+    .h2h-badge-loss { background: rgba(224,85,69,0.12); color: var(--error); }
 
     /* ─── Achievements ─── */
     .achievements-section { margin-bottom: 14px; }

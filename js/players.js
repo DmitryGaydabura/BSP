@@ -28,7 +28,7 @@ function normalizeRating(r) {
 function avatarHtml(p, size = 'md') {
   const cls = size === 'sm' ? 'lb-avatar' : 'podium-avatar';
   if (p.photoUrl) {
-    return `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.innerHTML='${esc(initials(p.name))}'">`;
+    return `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.innerHTML='${jsq(initials(p.name))}'">`;
   }
   return initials(p.name);
 }
@@ -40,7 +40,7 @@ function renderLbRow(p, rank, showLevel) {
   const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
   const lvl = p.level || levelFromPoints(p.pts);
   const avatarContent = p.photoUrl
-    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
+    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
     : initials(p.name);
   const startDisp = p.startingPts ?? '—';
   const tp = p.tournamentPts;
@@ -74,7 +74,7 @@ function renderPodium(players) {
 
   document.getElementById('podium').innerHTML = podiumOrder.map((p, i) => {
     const avatarContent = p.photoUrl
-      ? `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
+      ? `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
       : initials(p.name);
     return `
       <div class="podium-place lb-row-tap" onclick="_lbRowTap('${p.id || ''}',${podiumRanks[i]})">
@@ -142,7 +142,8 @@ async function renderRatings() {
 
   const source = ratingsData || [];
 
-  if (!source.length && !apiAvailable) {
+  // Offline: bootstrap failed, or the ratings fetch itself failed
+  if (!source.length && (!apiAvailable || ratingsData === null)) {
     document.getElementById('podium').innerHTML = '';
     document.getElementById('leaderboard-rows').innerHTML =
       `<div class="tab-offline-state">
@@ -295,7 +296,7 @@ function relativeDateUa(iso) {
 
 function renderGuestRow(p) {
   const avatarContent = p.photoUrl
-    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${esc(initials(p.name))}'">`
+    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
     : initials(p.name);
   const linked = (p.startingPts || 0) > 0;
   const raketoTag = linked
@@ -365,7 +366,7 @@ async function openPlayerProfile(player, rank) {
     <div id="pp-panel-profile">
       <div class="pp-hero ${tier}">
         <div class="pp-avatar">${player.photoUrl
-          ? `<img src="${esc(player.photoUrl)}" alt="" onerror="this.parentNode.textContent='${esc(initials(player.name))}'">`
+          ? `<img src="${esc(player.photoUrl)}" alt="" onerror="this.parentNode.textContent='${jsq(initials(player.name))}'">`
           : initials(player.name)}</div>
         <div class="pp-info">
           <div class="pp-name">${esc(player.name)}</div>
@@ -465,8 +466,8 @@ async function openPlayerProfile(player, rank) {
             return `
               <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
                 <div class="history-row-info">
-                  <div class="history-row-name">${h.tournamentName}</div>
-                  <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
+                  <div class="history-row-name">${esc(h.tournamentName)}</div>
+                  <div class="history-row-meta">${esc(h.tournamentLevel)} · ${date}${avgInfo}</div>
                 </div>
                 <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
               </div>`;
@@ -562,8 +563,8 @@ function renderH2hStats(stats, player) {
         return `
           <div class="history-row">
             <div class="history-row-info">
-              <div class="history-row-name">${e.tournamentName}</div>
-              <div class="history-row-meta">${e.tournamentLevel} · ${date}${e.position ? ` · #${e.position} місце` : ''}</div>
+              <div class="history-row-name">${esc(e.tournamentName)}</div>
+              <div class="history-row-meta">${esc(e.tournamentLevel)} · ${date}${e.position ? ` · #${e.position} місце` : ''}</div>
             </div>
             ${badge}
           </div>`;
@@ -595,8 +596,8 @@ function renderH2hStats(stats, player) {
         return `
           <div class="history-row">
             <div class="history-row-info">
-              <div class="history-row-name">${e.tournamentName}</div>
-              <div class="history-row-meta">${e.tournamentLevel} · ${date}</div>
+              <div class="history-row-name">${esc(e.tournamentName)}</div>
+              <div class="history-row-meta">${esc(e.tournamentLevel)} · ${date}</div>
             </div>
             ${badge}
           </div>`;
@@ -639,22 +640,19 @@ async function ppGenerateH2hAnalysis(targetPlayerId) {
    MEMBER COUNT
 ════════════════════════════════════════════════════════════════ */
 async function updateMemberCount() {
-  let playerCount = RATINGS.length;
-  let tournamentCount = null;
-  if (apiAvailable) {
-    try {
-      const [users, tournaments] = await Promise.all([
-        API.users.list().catch(() => []),
-        API.tournaments.list().catch(() => []),
-      ]);
-      if (users.length) playerCount = users.length;
-      tournamentCount = tournaments.length;
-    } catch {}
-  }
-  document.getElementById('member-count').textContent = playerCount + '+';
-  if (tournamentCount !== null) {
-    document.getElementById('tournament-count').textContent = tournamentCount;
-  }
+  if (!apiAvailable) return; // keep the "—" placeholders; never show mock counts
+  try {
+    const [users, tournaments] = await Promise.all([
+      API.users.list().catch(() => []),
+      API.tournaments.list().catch(() => null),
+    ]);
+    if (users.length) {
+      document.getElementById('member-count').textContent = users.length + '+';
+    }
+    if (tournaments !== null) {
+      document.getElementById('tournament-count').textContent = tournaments.length;
+    }
+  } catch {}
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -725,7 +723,7 @@ async function renderActivityList() {
     }
 
     wrap.innerHTML = data.map(e => `
-      <div class="activity-row lb-row-tap" onclick="_actRowTap('${e.userId}','${esc(e.displayName)}')">
+      <div class="activity-row lb-row-tap" onclick="_actRowTap('${e.userId}','${jsq(e.displayName)}')">
         <div class="activity-rank ${e.rank === 1 ? 'top1' : e.rank === 2 ? 'top2' : e.rank === 3 ? 'top3' : ''}">
           ${e.rank === 1 ? '★' : e.rank}
         </div>
@@ -1079,12 +1077,12 @@ function openAchievementTournament(tid) {
   const d = new Date(t.date);
   const dateStr = `${d.getDate()} ${MONTHS_FULL[d.getMonth()]} ${d.getFullYear()}`;
   const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
-  const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : 'Парний';
+  const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
 
   const rowsHtml = results.map(r => {
     const rPlayers = r.players || r.pair.map(n => ({ name: n }));
     const medal = r.pos === 1 ? '🥇' : r.pos === 2 ? '🥈' : r.pos === 3 ? '🥉' : `<span class="ach-pos">${r.pos}</span>`;
-    const names = rPlayers.map(p => `<span class="ach-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${esc(p.name)}')">${esc(p.name)}</span>`).join('<span class="separator"> / </span>');
+    const names = rPlayers.map(p => `<span class="ach-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${esc(p.name)}</span>`).join('<span class="separator"> / </span>');
     const isWinner = r.pos === 1;
     return `<div class="ach-result-row${isWinner ? ' ach-result-winner' : ''}">
       <span class="ach-result-medal">${medal}</span>
@@ -1456,8 +1454,8 @@ async function loadHistory() {
       return `
         <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
           <div class="history-row-info">
-            <div class="history-row-name">${h.tournamentName}</div>
-            <div class="history-row-meta">${h.tournamentLevel} · ${date}${avgInfo}</div>
+            <div class="history-row-name">${esc(h.tournamentName)}</div>
+            <div class="history-row-meta">${esc(h.tournamentLevel)} · ${date}${avgInfo}</div>
           </div>
           <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
         </div>

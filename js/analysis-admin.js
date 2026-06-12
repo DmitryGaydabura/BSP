@@ -243,6 +243,14 @@ function escapeHtml(str) {
   return esc(str).replace(/\n/g, '<br>');
 }
 
+// For values placed inside single-quoted JS string literals in inline handlers
+// (onclick="fn('VALUE')"). esc() alone is not enough there: its &#39; entity is
+// decoded back to a raw quote by the HTML parser and breaks the JS string, so
+// backslash-escape for JS first, then HTML-encode.
+function jsq(str) {
+  return esc(String(str == null ? '' : str).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
 function fmtDatetime(isoStr) {
   if (!isoStr) return '';
   try {
@@ -652,7 +660,7 @@ async function openAchievementsModal() {
     const enabled = await API.achievements.getConfig();
     enabledSet = new Set(enabled);
   } catch (e) {
-    list.innerHTML = `<div style="color:var(--danger,#e74c3c);font-size:13px">Помилка: ${esc(e.message)}</div>`;
+    list.innerHTML = `<div style="color:var(--error);font-size:13px">Помилка: ${esc(e.message)}</div>`;
     return;
   }
 
@@ -953,14 +961,14 @@ async function loadTournamentLevels() {
     tournamentLevels = await API.tournaments.getLevels();
   } catch {
     tournamentLevels = [
-      { value:'D', label:'D', ratingCeiling:1499 },
-      { value:'D_PLUS', label:'D+', ratingCeiling:1749 },
-      { value:'C_MINUS', label:'C−', ratingCeiling:1999 },
-      { value:'C', label:'C', ratingCeiling:2249 },
-      { value:'C_PLUS', label:'C+', ratingCeiling:2749 },
-      { value:'B_MINUS', label:'B−', ratingCeiling:2999 },
-      { value:'B', label:'B', ratingCeiling:3249 },
-      { value:'B_PLUS', label:'B+', ratingCeiling:'—' },
+      { value:'D', label:'D', ratingCeiling:1499, startingPoints:1000 },
+      { value:'D_PLUS', label:'D+', ratingCeiling:1749, startingPoints:1250 },
+      { value:'C_MINUS', label:'C−', ratingCeiling:1999, startingPoints:1500 },
+      { value:'C', label:'C', ratingCeiling:2249, startingPoints:1750 },
+      { value:'C_PLUS', label:'C+', ratingCeiling:2749, startingPoints:2000 },
+      { value:'B_MINUS', label:'B−', ratingCeiling:2999, startingPoints:2500 },
+      { value:'B', label:'B', ratingCeiling:3249, startingPoints:2750 },
+      { value:'B_PLUS', label:'B+', ratingCeiling:'—', startingPoints:3000 },
     ];
   }
 }
@@ -972,6 +980,7 @@ async function openCreateTournament() {
   document.getElementById('ct-name').value = '';
   document.getElementById('ct-date').value = '';
   document.getElementById('ct-time').value = '';
+  document.getElementById('ct-type').value = 'PAIR';
   document.getElementById('ct-max-participants').value = '';
   document.getElementById('ct-min-rating').value = '';
   document.getElementById('ct-max-rating').value = '';
@@ -1021,7 +1030,7 @@ function updateLevelHint() {
   if (!tournamentLevels || !sel.value) { hint.textContent = ''; return; }
   const lvl = tournamentLevels.find(l => l.value === sel.value);
   if (!lvl) return;
-  hint.textContent = `Стартові бали: ${lvl.startingPoints}`;
+  hint.textContent = lvl.startingPoints != null ? `Стартові бали: ${lvl.startingPoints}` : '';
   const maxInput = document.getElementById('ct-max-rating');
   if (!maxInput.value && lvl.ratingCeiling !== '—') maxInput.value = lvl.ratingCeiling;
 }
@@ -1144,7 +1153,7 @@ async function showSrRaketoFinder(t) {
   const tid = String(t.id);
   const defaultDate = t.date || new Date().toISOString().slice(0, 10);
   section.innerHTML = `
-    <div style="border:1px solid var(--border-subtle);border-radius:10px;padding:8px">
+    <div style="border:1px solid var(--border-sub);border-radius:10px;padding:8px">
       <div style="font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:6px">Прив'язати турнір Raketo</div>
       <div style="display:flex;gap:6px;margin-bottom:4px">
         <input type="date" id="sr-rl-date" class="form-input" value="${defaultDate}" style="flex:1;font-size:13px">
@@ -1152,9 +1161,9 @@ async function showSrRaketoFinder(t) {
       </div>
       <div id="sr-rl-results"></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
-        <div style="flex:1;height:1px;background:var(--border-subtle)"></div>
+        <div style="flex:1;height:1px;background:var(--border-sub)"></div>
         <span style="font-size:10px;color:var(--text-dim)">або вставити ID напряму</span>
-        <div style="flex:1;height:1px;background:var(--border-subtle)"></div>
+        <div style="flex:1;height:1px;background:var(--border-sub)"></div>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <input type="text" id="sr-rl-direct-id" class="form-input" placeholder="ID або посилання з Raketo…" style="flex:1;font-size:12px">
@@ -1180,8 +1189,8 @@ async function showSrRaketoFinder(t) {
         return `<div class="sr-rl-pick" data-raketo-id="${r.id}"
           style="padding:6px 8px;border-radius:8px;background:var(--card-bg);margin-bottom:4px;cursor:pointer;font-size:12px">
           <div style="font-weight:600">${r.timeStr || r.dateStr}</div>
-          <div style="color:var(--text-muted);font-size:11px">${meta}</div>
-          <div style="color:var(--text-dim);font-size:11px;margin-top:2px">${r.players.join(', ')}</div>
+          <div style="color:var(--text-muted);font-size:11px">${esc(meta)}</div>
+          <div style="color:var(--text-dim);font-size:11px;margin-top:2px">${r.players.map(esc).join(', ')}</div>
         </div>`;
       }).join('');
       results.querySelectorAll('.sr-rl-pick').forEach(pick => {
@@ -1432,20 +1441,20 @@ async function openUsersModal() {
                   data-user-id="${u.id}" data-role="${u.role}" style="height:32px">
             ${u.role === 'ADMIN' ? 'Admin' : 'Player'}
           </button>
-          <button class="merge-user-btn" data-user-id="${u.id}" title="Об'єднати акаунти" style="height:32px;width:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-subtle);background:none;cursor:pointer;color:var(--text-muted)">
+          <button class="merge-user-btn" data-user-id="${u.id}" title="Об'єднати акаунти" style="height:32px;width:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid var(--border-sub);background:none;cursor:pointer;color:var(--text-muted)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
           </button>
           <button class="delete-user-btn" data-user-id="${u.id}" title="Видалити гравця">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
         </div>
-        <div class="user-merge-area" style="display:none;width:100%;padding-top:6px;border-top:1px solid var(--border-subtle);margin-top:2px">
+        <div class="user-merge-area" style="display:none;width:100%;padding-top:6px;border-top:1px solid var(--border-sub);margin-top:2px">
           <div style="font-size:11px;font-weight:600;color:var(--text-dim);margin-bottom:6px">Об'єднати — оберіть другий акаунт (він буде видалений):</div>
           <input class="form-input merge-search-input" placeholder="Пошук гравця..." style="width:100%;font-size:12px;padding:6px 10px;margin-bottom:6px">
           <div class="user-merge-candidates" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
           <button class="merge-cancel-btn" style="width:100%;font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:6px 0;margin-top:2px">Скасувати</button>
         </div>
-        <div class="user-raketo-link" style="width:100%;padding-top:4px;border-top:1px solid var(--border-subtle);margin-top:2px">
+        <div class="user-raketo-link" style="width:100%;padding-top:4px;border-top:1px solid var(--border-sub);margin-top:2px">
           ${u.raketoDocId
             ? `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -1580,7 +1589,7 @@ async function openUsersModal() {
 
           // Wire candidate clicks via event delegation
           candidatesEl.querySelectorAll('.merge-candidate').forEach(cand => {
-            cand.addEventListener('mouseenter', () => { cand.style.borderColor = 'var(--border-strong)'; });
+            cand.addEventListener('mouseenter', () => { cand.style.borderColor = 'var(--border-str)'; });
             cand.addEventListener('mouseleave', () => { cand.style.borderColor = 'transparent'; });
             cand.addEventListener('click', async () => {
               const targetId = cand.dataset.targetId;
