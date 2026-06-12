@@ -327,27 +327,72 @@ function _lbRowTap(id, rank) {
   if (player) openPlayerProfile(player, rank);
 }
 
+// Look up a player across cached tournament data (participants, pair
+// registrations, results) — used to enrich profiles of players who are
+// registered for a tournament but not yet in the rating.
+function _findTournamentPlayer(id) {
+  for (const t of tournamentsData || []) {
+    for (const pool of [t.participants, t.reserveParticipants]) {
+      const hit = (pool || []).find(p => String(p.id) === String(id));
+      if (hit) return hit;
+    }
+    for (const pr of [...(t.pairRegistrations || []), ...(t.pairReserveRegistrations || [])]) {
+      for (const pl of [pr.player1, pr.player2]) {
+        if (pl && String(pl.id) === String(id)) return pl;
+      }
+    }
+    for (const r of t.results || []) {
+      const hit = (r.players || []).find(p => p.id != null && String(p.id) === String(id));
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+
 function _tournamentPlayerTap(id, name) {
   const source = ratingsData || RATINGS;
-  const player = (id && source.find(p => String(p.id) === String(id)))
-    || source.find(p => p.name === name)
-    || { id, name, pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0 };
+  let player = (id && source.find(p => String(p.id) === String(id)))
+    || source.find(p => p.name === name);
+  if (!player) {
+    // Registered but hasn't played a tournament yet — show a guest profile
+    // instead of fake zero stats.
+    const known = id ? _findTournamentPlayer(id) : null;
+    player = {
+      id: id || null,
+      name: name || (known ? playerNameOf(known) : 'Гравець'),
+      photoUrl: known?.photoUrl || null,
+      notRated: true,
+      pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0,
+    };
+  }
   const rank = source.indexOf(player) + 1 || 0;
   openPlayerProfile(player, rank);
 }
 
 function _actRowTap(userId, displayName) {
   const source = ratingsData || RATINGS;
-  const player = source.find(p => String(p.id) === String(userId))
-    || { id: userId, name: displayName, pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0, change: '=' };
+  let player = source.find(p => String(p.id) === String(userId));
+  if (!player) {
+    const entry = (activityCache[activeActivityMonth] || []).find(e => String(e.userId) === String(userId));
+    player = {
+      id: userId, name: displayName,
+      photoUrl: entry?.photoUrl || null,
+      notRated: true,
+      pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0, change: '=',
+    };
+  }
   const rank = source.indexOf(player) + 1 || 0;
   openPlayerProfile(player, rank);
 }
 
 async function openPlayerProfile(player, rank) {
   const body = document.getElementById('player-profile-body');
-  const lvl = player.level || levelFromPoints(player.pts);
-  const lvlCls = levelClass(lvl);
+  // notRated = tapped from a tournament/activity list but absent from the
+  // rating (registered, hasn't played yet) — real numbers are unknown.
+  const isStub = !!player.notRated;
+  const inRating = rank > 0 && !isStub;
+  const lvl = isStub ? null : (player.level || levelFromPoints(player.pts));
+  const lvlCls = lvl ? levelClass(lvl) : '';
   const wins = player.wins || 0;
   const losses = player.losses || 0;
   const total = wins + losses;
@@ -370,21 +415,23 @@ async function openPlayerProfile(player, rank) {
           : initials(player.name)}</div>
         <div class="pp-info">
           <div class="pp-name">${esc(player.name)}</div>
-          <span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>
+          ${lvl ? `<span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>` : ''}
           <div class="pp-meta">
-            <span class="pp-rank-badge">#${rank} у рейтингу</span>
+            <span class="pp-rank-badge">${inRating ? `#${rank} у рейтингу` : 'Ще не в рейтингу'}</span>
           </div>
           <div class="pp-stats-compact">
             <div class="pp-stat-c">
-              <div class="pp-stat-val">${player.pts}</div>
+              <div class="pp-stat-val">${isStub ? '—' : player.pts}</div>
               <div class="pp-stat-lbl">Рейтинг</div>
             </div>
             <div class="pp-stat-c">
-              <div class="pp-stat-val">${player.startingPts}</div>
+              <div class="pp-stat-val">${isStub ? '—' : player.startingPts ?? '—'}</div>
               <div class="pp-stat-lbl">Старт</div>
             </div>
             <div class="pp-stat-c">
-              <div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>
+              ${isStub || player.tournamentPts == null
+                ? `<div class="pp-stat-val">—</div>`
+                : `<div class="pp-stat-val ${player.tournamentPts >= 0 ? 'clr-pos' : 'clr-neg'}">${player.tournamentPts >= 0 ? '+' : ''}${player.tournamentPts}</div>`}
               <div class="pp-stat-lbl">Турніри</div>
             </div>
             <div class="pp-stat-c" id="pp-act-stat">
@@ -482,7 +529,7 @@ async function openPlayerProfile(player, rank) {
     }
 
     if (activityResult.status === 'fulfilled') {
-      const entry = activityResult.value?.find(e => e.userId === player.id);
+      const entry = activityResult.value?.find(e => String(e.userId) === String(player.id));
       if (actVal) actVal.textContent = entry ? entry.activityPoints : '—';
       if (actLbl) actLbl.textContent = entry ? `Активність · #${entry.rank}` : 'Активність';
     }
@@ -497,6 +544,12 @@ async function openPlayerProfile(player, rank) {
         }
       }
     }
+  } else {
+    // No id (or offline) — nothing to fetch; replace the loading placeholders
+    const chartBody = document.getElementById('pp-chart-body');
+    const histList = document.getElementById('pp-history-list');
+    if (chartBody) chartBody.innerHTML = '<div class="history-empty">Немає турнірних результатів</div>';
+    if (histList) histList.innerHTML = '<div class="history-empty">Немає записів</div>';
   }
 }
 
