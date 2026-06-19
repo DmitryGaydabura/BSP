@@ -370,6 +370,14 @@ function renderCupModal() {
   if (status === 'PLAYOFF' || status === 'FINISHED') {
     html += `<div class="cup-section-title" style="margin-top:18px">Плей-офф</div>`;
 
+    // Explain the bye rule when the main bracket actually has byes (first-round match with
+    // a single real pair). Keeps it clear that the direct slot to the semifinal is earned.
+    const mainHasBye = (cupState.mainBracket || []).some(m =>
+      m.roundOrder === 1 && (!!m.pair1Name !== !!m.pair2Name));
+    if (mainHasBye) {
+      html += `<div class="cup-bracket-note">Найкращі переможці груп (за очками, потім різницею сетів) проходять одразу до півфіналу — без чвертьфіналу.</div>`;
+    }
+
     if (cupState.mainBracket && cupState.mainBracket.length > 0) {
       html += renderPlayoffBracket(cupState.mainBracket, isAdmin && status === 'PLAYOFF', false);
     }
@@ -400,17 +408,15 @@ function renderCupModal() {
   const confirmBtn = body.querySelector('.cup-confirm-groups-btn');
   if (confirmBtn) {
     confirmBtn.addEventListener('click', async () => {
+      // If group winners are tied so it's impossible to decide who earns the bye to the
+      // semifinal, let the admin choose. Otherwise seeding is automatic (best winners get byes).
+      const tie = detectWinnerByeTie();
+      if (tie) { openByeChoiceModal(tie); return; }
+
       if (!confirm('Підтвердити груповий етап і згенерувати плей-офф сітку?')) return;
       confirmBtn.disabled = true;
-      try {
-        cupState = await API.cup.confirmGroups(cupTournamentId);
-        tournamentsData = null; // refresh card list
-        renderCupModal();
-        showToast('Плей-офф сітка створена! 🏆');
-      } catch (e) {
-        showToast(e.data?.message || e.message || 'Помилка', 'error');
-        confirmBtn.disabled = false;
-      }
+      const ok = await cupConfirmGroups(null);
+      if (!ok) confirmBtn.disabled = false;
     });
   }
 
@@ -432,6 +438,91 @@ function renderCupModal() {
     });
   }
 }
+
+// ── Confirm groups / bye tie-break ────────────────────────────────
+
+let cupByeCtx = null; // { byeCount }
+
+/** POST confirm-groups (optionally with a bye tie-break override). Returns true on success. */
+async function cupConfirmGroups(payload) {
+  try {
+    cupState = await API.cup.confirmGroups(cupTournamentId, payload);
+    tournamentsData = null; // refresh card list
+    renderCupModal();
+    showToast('Плей-офф сітка створена! 🏆');
+    return true;
+  } catch (e) {
+    showToast(e.data?.message || e.message || 'Помилка', 'error');
+    return false;
+  }
+}
+
+function cupNextPow2(n) { let p = 1; while (p < n) p <<= 1; return Math.max(2, p); }
+
+/**
+ * Detect whether the group winners are tied at the bye cut-off, making it impossible to decide
+ * automatically which winners advance straight to the semifinal. Returns { winners, byeCount }
+ * when admin input is needed, otherwise null (seeding is unambiguous → fully automatic).
+ */
+function detectWinnerByeTie() {
+  if (!cupState || !cupState.groups || cupState.groups.length === 0) return null;
+  const advancing = cupState.pairsAdvancing || 1;
+
+  const winners = cupState.groups
+    .map(g => (g.standings && g.standings[0]) ? { ...g.standings[0], groupName: g.name } : null)
+    .filter(Boolean);
+  if (winners.length < 2) return null;
+
+  // Number of qualifiers feeding the main bracket, and how many byes its padding creates.
+  const mainSeedCount = cupState.groups.reduce(
+    (sum, g) => sum + Math.min(advancing, g.pairs ? g.pairs.length : 0), 0);
+  const byeCount = cupNextPow2(mainSeedCount) - mainSeedCount;
+  if (byeCount <= 0) return null;              // no byes at all
+  if (byeCount >= winners.length) return null; // every winner already gets a bye
+
+  const sorted = [...winners].sort((a, b) =>
+    b.points - a.points || b.setDiff - a.setDiff || b.setsWon - a.setsWon);
+
+  const lastBye  = sorted[byeCount - 1];
+  const firstOut = sorted[byeCount];
+  const tied = lastBye.points === firstOut.points
+    && lastBye.setDiff === firstOut.setDiff
+    && lastBye.setsWon === firstOut.setsWon;
+  if (!tied) return null;
+
+  return { winners: sorted, byeCount };
+}
+
+function openByeChoiceModal(tie) {
+  cupByeCtx = { byeCount: tie.byeCount };
+  document.getElementById('cup-bye-count').textContent = tie.byeCount;
+  document.getElementById('cup-bye-options').innerHTML = tie.winners.map((w, idx) => {
+    const checked = idx < tie.byeCount ? 'checked' : '';
+    const diff = `${w.setDiff >= 0 ? '+' : ''}${w.setDiff}`;
+    return `<label class="cup-bye-option">
+      <input type="checkbox" class="cup-bye-cb" value="${w.pairId}" ${checked}>
+      <span class="cup-bye-info">
+        <span class="cup-bye-name">Група ${esc(w.groupName)}: ${esc(w.pairName)}</span>
+        <span class="cup-bye-stats">${w.points} очк · різниця сетів ${diff}</span>
+      </span>
+    </label>`;
+  }).join('');
+  openModal('modal-cup-bye');
+}
+
+document.getElementById('cup-bye-confirm').addEventListener('click', async () => {
+  if (!cupByeCtx) return;
+  const chosen = [...document.querySelectorAll('.cup-bye-cb:checked')].map(cb => Number(cb.value));
+  if (chosen.length !== cupByeCtx.byeCount) {
+    showToast(`Оберіть рівно ${cupByeCtx.byeCount} пар(и), що проходять до півфіналу`, 'error');
+    return;
+  }
+  const btn = document.getElementById('cup-bye-confirm');
+  btn.disabled = true;
+  const ok = await cupConfirmGroups({ byeSeedPairIds: chosen });
+  btn.disabled = false;
+  if (ok) closeModal('modal-cup-bye');
+});
 
 // ── Render Group ─────────────────────────────────────────────────
 
@@ -566,6 +657,20 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
 }
 
 function renderBracketMatch(m, allowEntry, isFinalRound, isConsolation) {
+  // Single-place slot: a collapsed phantom match (e.g. lone 9th place with no real opponent).
+  // Just state the place and the team that holds it — no match box, no score entry.
+  const isSinglePlace = m.placeLabel && !m.placeLabel.includes('-');
+  if (isSinglePlace) {
+    const soleName = m.pair1Name || m.pair2Name || 'TBD';
+    const isTbd = !m.pair1Name && !m.pair2Name;
+    return `<div class="cup-bracket-match cup-bracket-match-place">
+      <div class="cup-bm-place">${placeLabelUa(m.placeLabel)}</div>
+      <div class="cup-bm-pair cup-bm-winner">
+        <span class="cup-bm-name${isTbd ? ' tbd' : ''}">${esc(soleName)}</span>
+      </div>
+    </div>`;
+  }
+
   const hasResult = m.score1 != null;
   const p1Win = hasResult && m.score1 > m.score2;
   const p2Win = hasResult && m.score2 > m.score1;
@@ -609,9 +714,12 @@ function renderBracketMatch(m, allowEntry, isFinalRound, isConsolation) {
 
 function placeLabelUa(label) {
   if (!label) return '';
-  const [p1, p2] = label.split('-').map(Number);
+  const parts = label.split('-').map(Number);
+  const p1 = parts[0];
   const medal = p1 === 1 ? '🥇 ' : p1 === 3 ? '🥉 ' : '';
-  return `${medal}${p1}–${p2} місце`;
+  // Single place (collapsed phantom match — no opponent exists for this slot)
+  if (parts.length === 1) return `${medal}${p1} місце`;
+  return `${medal}${p1}–${parts[1]} місце`;
 }
 
 // (legacy cup escaper removed — uses the strict shared esc() from analysis-admin.js)
