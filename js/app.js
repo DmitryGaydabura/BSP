@@ -378,8 +378,24 @@ function renderCupModal() {
       html += `<div class="cup-bracket-note">Найкращі переможці груп (за очками, потім різницею сетів) проходять одразу до півфіналу — без чвертьфіналу.</div>`;
     }
 
+    // Detect a same-group first-round match (e.g. two pairs from group A meeting in a semifinal).
+    const pairGroupName = cupPairGroupMap();
+    const sameGroupR1 = (cupState.mainBracket || []).some(m =>
+      m.roundOrder === 1 && m.pair1Id && m.pair2Id
+      && pairGroupName[m.pair1Id] && pairGroupName[m.pair1Id] === pairGroupName[m.pair2Id]);
+    const playoffStarted = [...(cupState.mainBracket || []), ...(cupState.consolationBracket || [])]
+      .some(m => m.score1 != null);
+
+    if (sameGroupR1 && isAdmin && status === 'PLAYOFF' && !playoffStarted) {
+      html += `<div class="cup-bracket-warn">⚠️ У першому раунді зустрічаються пари з однієї групи. Натисніть «Редагувати пари», щоб виправити.</div>`;
+    }
+
     if (cupState.mainBracket && cupState.mainBracket.length > 0) {
       html += renderPlayoffBracket(cupState.mainBracket, isAdmin && status === 'PLAYOFF', false);
+    }
+
+    if (isAdmin && status === 'PLAYOFF' && !playoffStarted) {
+      html += `<button class="btn-secondary cup-reseed-btn" style="width:100%;margin-top:8px">✏️ Редагувати пари</button>`;
     }
 
     if (cupState.consolationBracket && cupState.consolationBracket.length > 0) {
@@ -420,6 +436,12 @@ function renderCupModal() {
     });
   }
 
+  // Wire reseed (manual edit of playoff pairs)
+  const reseedBtn = body.querySelector('.cup-reseed-btn');
+  if (reseedBtn) {
+    reseedBtn.addEventListener('click', () => openReseedModal());
+  }
+
   // Wire finalize
   const finalizeBtn = body.querySelector('#cup-modal-finalize-btn');
   if (finalizeBtn) {
@@ -438,6 +460,108 @@ function renderCupModal() {
     });
   }
 }
+
+// ── Cup helpers ───────────────────────────────────────────────────
+
+/** Map of pairId → group display name, built from the current cup state. */
+function cupPairGroupMap() {
+  const map = {};
+  (cupState?.groups || []).forEach(g => (g.pairs || []).forEach(p => { map[p.id] = g.name; }));
+  return map;
+}
+
+// ── Manual reseed (edit playoff pairs) ────────────────────────────
+
+let cupReseedCtx = null; // { matchups: [[seed1,seed2],...], seedToPair: {seed:pairId}, sel: seedNum|null }
+
+/** Open the modal to manually rearrange the main-bracket first-round pairs. */
+function openReseedModal() {
+  const r1 = (cupState.mainBracket || [])
+    .filter(m => m.roundOrder === 1)
+    .sort((a, b) => a.matchOrder - b.matchOrder);
+
+  const seedToPair = {};
+  r1.forEach(m => {
+    if (m.pair1Id && m.seed1) seedToPair[m.seed1] = m.pair1Id;
+    if (m.pair2Id && m.seed2) seedToPair[m.seed2] = m.pair2Id;
+  });
+  const matchups = r1.map(m => [m.seed1, m.seed2]);
+
+  cupReseedCtx = { matchups, seedToPair, sel: null };
+  renderReseedModal();
+  openModal('modal-cup-reseed');
+}
+
+function renderReseedModal() {
+  const { matchups, seedToPair, sel } = cupReseedCtx;
+  const groupName = cupPairGroupMap();
+  const pairName = {};
+  (cupState.mainBracket || []).forEach(m => {
+    if (m.pair1Id) pairName[m.pair1Id] = m.pair1Name;
+    if (m.pair2Id) pairName[m.pair2Id] = m.pair2Name;
+  });
+
+  const chip = (seed) => {
+    const pid = seedToPair[seed];
+    if (!pid) return `<div class="rs-chip rs-bye">прохід</div>`;
+    const isSel = sel === seed;
+    return `<button class="rs-chip${isSel ? ' rs-chip-sel' : ''}" data-seed="${seed}">
+      <span class="rs-chip-name">${esc(pairName[pid] || '—')}</span>
+      <span class="rs-chip-grp">гр. ${esc(groupName[pid] || '?')}</span>
+    </button>`;
+  };
+
+  let html = '';
+  matchups.forEach(([s1, s2], i) => {
+    const pid1 = seedToPair[s1], pid2 = seedToPair[s2];
+    const same = pid1 && pid2 && groupName[pid1] && groupName[pid1] === groupName[pid2];
+    html += `<div class="rs-match${same ? ' rs-match-bad' : ''}">
+      <div class="rs-match-title">${i + 1}${same ? ' · ⚠️ одна група' : ''}</div>
+      <div class="rs-match-row">${chip(s1)}<span class="rs-vs">vs</span>${chip(s2)}</div>
+    </div>`;
+  });
+  document.getElementById('cup-reseed-body').innerHTML = html;
+
+  document.querySelectorAll('#cup-reseed-body .rs-chip[data-seed]').forEach(btn => {
+    btn.addEventListener('click', () => onReseedChipClick(Number(btn.dataset.seed)));
+  });
+}
+
+function onReseedChipClick(seed) {
+  if (cupReseedCtx.sel == null) {
+    cupReseedCtx.sel = seed;
+  } else if (cupReseedCtx.sel === seed) {
+    cupReseedCtx.sel = null; // deselect
+  } else {
+    // swap the two seeds' pairs
+    const stp = cupReseedCtx.seedToPair;
+    const a = cupReseedCtx.sel, b = seed;
+    const tmp = stp[a]; stp[a] = stp[b]; stp[b] = tmp;
+    cupReseedCtx.sel = null;
+  }
+  renderReseedModal();
+}
+
+async function submitReseed() {
+  const stp = cupReseedCtx.seedToPair;
+  // Seed order: ascending seed number over the real (non-bye) seeds
+  const seeds = Object.keys(stp).map(Number).filter(s => stp[s]).sort((a, b) => a - b);
+  const seedPairIds = seeds.map(s => stp[s]);
+  const btn = document.getElementById('cup-reseed-save');
+  btn.disabled = true;
+  try {
+    cupState = await API.cup.reseedPlayoff(cupTournamentId, { seedPairIds });
+    closeModal('modal-cup-reseed');
+    renderCupModal();
+    showToast('Сітку оновлено ✓');
+  } catch (e) {
+    showToast(e.data?.message || e.message || 'Помилка', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('cup-reseed-save').addEventListener('click', submitReseed);
 
 // ── Confirm groups / bye tie-break ────────────────────────────────
 

@@ -3432,6 +3432,59 @@
   padding: 8px 10px;
   margin: 8px 0 12px;
 }
+/* Bracket warning (same-group first-round) */
+.cup-bracket-warn {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #ffcf8a;
+  background: rgba(220,120,60,0.12);
+  border-left: 2px solid #d87a3c;
+  border-radius: 6px;
+  padding: 9px 11px;
+  margin: 8px 0 12px;
+}
+
+/* ── Reseed modal (manual playoff edit) ────────────────────────── */
+.rs-match {
+  border: 1px solid var(--border-def);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: var(--card-bg);
+}
+.rs-match-bad { border-color: #d87a3c; background: rgba(220,120,60,0.08); }
+.rs-match-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.rs-match-row { display: flex; align-items: center; gap: 8px; }
+.rs-vs { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.rs-chip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--border-def);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.rs-chip-sel { border-color: var(--gold); background: rgba(201,168,76,0.12); }
+.rs-chip-name { font-size: 12.5px; font-weight: 600; color: var(--text-bright);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-chip-grp { font-size: 10px; color: var(--text-muted); }
+.rs-bye {
+  flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px;
+  border: 1px dashed var(--border-def); color: var(--text-muted); font-size: 11px;
+}
 
 /* ── Solo match (not in a pair group, e.g., terminal round) ────── */
 .cup-bracket-solo {

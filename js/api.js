@@ -88,6 +88,7 @@ const API = (() => {
       submitGroupMatch: (id, matchId, s) => request('PUT', `/tournaments/${id}/cup/group-matches/${matchId}/result`, s),
       confirmGroups:    (id, payload)   => request('POST', `/tournaments/${id}/cup/confirm-groups`, payload || null),
       submitPlayoff:    (id, matchId, s) => request('PUT', `/tournaments/${id}/cup/playoff-matches/${matchId}/result`, s),
+      reseedPlayoff:    (id, payload)   => request('POST', `/tournaments/${id}/cup/playoff/reseed`, payload),
       finalize:         id              => request('POST', `/tournaments/${id}/cup/finalize`),
     },
 
