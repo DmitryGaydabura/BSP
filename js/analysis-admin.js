@@ -730,7 +730,9 @@ async function runMigrateV2() {
 /* ── Admin import from Raketo ───────────────────────────────────── */
 let adminImportModalInitialized = false;
 
-async function searchRaketoByName(query) {
+// One Firestore prefix range query on display_name (matches names that START WITH `query`).
+// String ranges are case-sensitive, so callers pass capitalized prefixes.
+async function raketoDisplayNamePrefix(query) {
   const url = 'https://firestore.googleapis.com/v1/projects/georgia-tennis/databases/(default)/documents:runQuery';
   const sentinel = query + '';
   const res = await fetch(url, {
@@ -770,6 +772,34 @@ async function searchRaketoByName(query) {
     if (!parsed) return null;
     return { ...parsed, docId: i.document.name?.split('/').pop() || null };
   }).filter(Boolean);
+}
+
+// Order-agnostic Raketo search: tokenize the query, run a prefix query for each token (so
+// either first OR last name finds the player), union the results, then keep only those whose
+// display name contains EVERY token — so "Петров Іван" finds "Іван Петров" and vice versa.
+async function searchRaketoByName(query) {
+  const tokens = (query || '').trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return [];
+
+  // Display names are stored capitalized; also try the raw token in case some are lowercase.
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const prefixes = [...new Set(tokens.flatMap(t => [cap(t), t]))].slice(0, 4);
+
+  const batches = await Promise.all(
+    prefixes.map(p => raketoDisplayNamePrefix(p).catch(() => []))
+  );
+
+  const byId = new Map();
+  for (const batch of batches) {
+    for (const u of batch) {
+      const key = u.docId || u.name;
+      if (key && !byId.has(key)) byId.set(key, u);
+    }
+  }
+
+  return [...byId.values()]
+    .filter(u => nameMatches(u.name, query))
+    .slice(0, 15);
 }
 
 function renderAdminRaketoResult(u, selected) {
@@ -979,6 +1009,7 @@ async function openCreateTournament() {
   document.getElementById('ct-submit').textContent = 'Створити';
   document.getElementById('ct-name').value = '';
   document.getElementById('ct-date').value = '';
+  populateTimeSelect();
   document.getElementById('ct-time').value = '';
   document.getElementById('ct-type').value = 'PAIR';
   document.getElementById('ct-max-participants').value = '';
@@ -1002,6 +1033,18 @@ function populateLevelSelects() {
   document.getElementById('ct-level-max').innerHTML = opts;
 }
 
+// Hour-only time picker (no minutes) — tournaments start on the hour.
+function populateTimeSelect() {
+  const sel = document.getElementById('ct-time');
+  if (!sel) return;
+  let opts = '<option value="">—</option>';
+  for (let h = 0; h < 24; h++) {
+    const hh = String(h).padStart(2, '0') + ':00';
+    opts += `<option value="${hh}">${hh}</option>`;
+  }
+  sel.innerHTML = opts;
+}
+
 async function openEditTournament(t) {
   editingTournamentId = t.id;
   document.querySelector('#modal-create-tournament .modal-title').textContent = 'Редагувати турнір';
@@ -1009,9 +1052,11 @@ async function openEditTournament(t) {
   openModal('modal-create-tournament');
   await loadTournamentLevels();
   populateLevelSelects();
+  populateTimeSelect();
   document.getElementById('ct-name').value = t.name || '';
   document.getElementById('ct-date').value = t.date || '';
-  document.getElementById('ct-time').value = t.time ? t.time.slice(0, 5) : '';
+  // Hour-only selector — snap any stored minutes to the hour so the value matches an option.
+  document.getElementById('ct-time').value = t.time ? t.time.slice(0, 2) + ':00' : '';
   document.getElementById('ct-level').value = t.level || '';
   document.getElementById('ct-level-max').value = t.levelMax || t.level || '';
   document.getElementById('ct-type').value = t.type || 'PAIR';
@@ -1409,9 +1454,7 @@ async function openUsersModal() {
     function renderUsers(query) {
       const q = (query || '').toLowerCase().trim();
       const visible = q
-        ? users.filter(u =>
-            (u.displayName || '').toLowerCase().includes(q) ||
-            (u.username || '').toLowerCase().includes(q))
+        ? users.filter(u => nameMatches(u.displayName, q) || nameMatches(u.username, q))
         : users;
 
       if (!visible.length) {
@@ -1424,7 +1467,7 @@ async function openUsersModal() {
         <div class="user-list-avatar">
           ${u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : initials(u.displayName)}
         </div>
-        <div class="user-list-info">
+        <div class="user-list-info user-profile-open" data-profile-id="${u.id}" style="cursor:pointer" title="Відкрити профіль">
           <div class="user-list-name">${esc(u.displayName)}${u.adminImported && !u.telegramId ? ' <span style="font-size:10px;color:var(--text-dim);font-weight:600">Raketo·не зареєстрований</span>' : ''}</div>
           <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.username ? ` · <span style="color:var(--gold)">@${u.username}</span>` : ''}${u.raketoTelegramUsername && u.raketoTelegramUsername !== u.username ? ` · Raketo:@${u.raketoTelegramUsername}` : ''}</div>
         </div>
@@ -1473,6 +1516,16 @@ async function openUsersModal() {
         </div>
       </div>
     `).join('');
+
+    // Tap a player's name/avatar to open their full profile (identify by ФІО etc.)
+    list.querySelectorAll('.user-profile-open').forEach(el => {
+      el.addEventListener('click', () => {
+        const u = users.find(x => String(x.id) === el.dataset.profileId);
+        if (u && typeof _tournamentPlayerTap === 'function') {
+          _tournamentPlayerTap(u.id, u.displayName);
+        }
+      });
+    });
 
     list.querySelectorAll('.rating-edit-input').forEach(inp => {
       inp.addEventListener('change', async () => {
@@ -1563,9 +1616,7 @@ async function openUsersModal() {
         function renderCandidates(query) {
           const q = query.toLowerCase();
           const visible = q
-            ? sortedCandidates.filter(u =>
-                u.displayName.toLowerCase().includes(q) ||
-                (u.username || '').toLowerCase().includes(q))
+            ? sortedCandidates.filter(u => nameMatches(u.displayName, q) || nameMatches(u.username, q))
             : sortedCandidates;
 
           if (!visible.length) {
@@ -1908,7 +1959,7 @@ function renderAddableList() {
 
   const available = pmAllUsers.filter(u =>
     !pmParticipantIds.has(u.id) &&
-    (!query || u.displayName.toLowerCase().includes(query))
+    (!query || nameMatches(u.displayName, query) || nameMatches(u.username, query))
   ).sort((a, b) => (a.displayName || '').localeCompare(b.displayName || ''));
 
   if (!available.length) {

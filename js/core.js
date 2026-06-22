@@ -206,6 +206,16 @@ function fmt(date) {
   return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Order-agnostic name matching: every whitespace-separated token in `query` must appear
+// somewhere in `name` (case-insensitive). So "Петров Іван" matches "Іван Петров" and vice
+// versa, and any single token (first OR last name) matches too.
+function nameMatches(name, query) {
+  const tokens = (query || '').toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const hay = (name || '').toLowerCase();
+  return tokens.every(t => hay.includes(t));
+}
+
 function ratioClass(wins, losses) {
   const total = wins + losses;
   if (!total) return 'ratio-mid';
