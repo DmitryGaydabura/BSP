@@ -961,6 +961,27 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
   });
 });
 
+// Keep modal forms scrollable while the on-screen keyboard is open: when a field inside a
+// modal sheet gets focus, the Telegram viewport shrinks and the focused input can end up
+// hidden behind the keyboard with no way to scroll to it. Re-center it once the keyboard
+// settles (Telegram fires viewportChanged / the browser resizes shortly after focus).
+document.addEventListener('focusin', e => {
+  const field = e.target.closest('.modal-sheet input, .modal-sheet select, .modal-sheet textarea');
+  if (!field) return;
+  setTimeout(() => {
+    if (document.activeElement === field) {
+      field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, 300);
+});
+
+// Desktop: a focused <input type="number"> swallows wheel events (changes the value instead
+// of scrolling the modal). Blur it so the wheel scrolls the sheet as expected.
+document.addEventListener('wheel', () => {
+  const ae = document.activeElement;
+  if (ae && ae.type === 'number' && ae.closest('.modal-sheet')) ae.blur();
+}, { passive: true });
+
 document.getElementById('btn-rating-info').addEventListener('click', () => openModal('modal-rating-guide'));
 
 function toggleRatingInfo() {
@@ -1497,6 +1518,11 @@ async function openUsersModal() {
           <div class="user-merge-candidates" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:3px"></div>
           <button class="merge-cancel-btn" style="width:100%;font-size:11px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:6px 0;margin-top:2px">Скасувати</button>
         </div>
+        <div class="user-contact-row" style="width:100%;padding-top:4px;border-top:1px solid var(--border-sub);margin-top:2px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
+          <span>📞</span>
+          <span class="user-contact-value" style="color:var(--text-dim)">${u.adminContact ? esc(u.adminContact) : '<i style="color:var(--text-muted)">контакт не вказано</i>'}</span>
+          <button class="contact-edit-btn" data-user-id="${u.id}" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
+        </div>
         <div class="user-raketo-link" style="width:100%;padding-top:4px;border-top:1px solid var(--border-sub);margin-top:2px">
           ${u.raketoDocId
             ? `<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)">
@@ -1516,6 +1542,30 @@ async function openUsersModal() {
         </div>
       </div>
     `).join('');
+
+    // Admin-only contact (TG nick / phone) — stored server-side, never shown to players
+    list.querySelectorAll('.contact-edit-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const u = users.find(x => String(x.id) === btn.dataset.userId);
+        if (!u) return;
+        const value = prompt('TG нік або телефон гравця (видно лише адмінам):', u.adminContact || '');
+        if (value === null) return;
+        btn.disabled = true;
+        try {
+          const updated = await API.users.setContact(u.id, value.trim());
+          u.adminContact = updated.adminContact || null;
+          const row = btn.closest('.user-contact-row');
+          const span = row && row.querySelector('.user-contact-value');
+          if (span) span.innerHTML = u.adminContact
+            ? esc(u.adminContact)
+            : '<i style="color:var(--text-muted)">контакт не вказано</i>';
+        } catch (e) {
+          alert('Помилка: ' + (e.message || 'unknown'));
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
 
     // Tap a player's name/avatar to open their full profile (identify by ФІО etc.)
     list.querySelectorAll('.user-profile-open').forEach(el => {
@@ -1817,8 +1867,15 @@ async function renderParticipantList(tournamentId) {
 
       updateSlotsIndicator(pairRegs.length, tournament?.maxParticipants, true);
 
+      // Solo players from BOTH pools: a confirmed solo may be merged with a reserve solo
+      // (the backend pulls the reserve player into the main roster — the confirmed solo
+      // already holds a full pair slot).
+      const allSolos = [
+        ...pairRegs.filter(pr => !pr.player2).map(pr => ({ reg: pr, fromReserve: false })),
+        ...pairResRegs.filter(pr => !pr.player2).map(pr => ({ reg: pr, fromReserve: true })),
+      ];
+
       const renderAdminPairRows = (regs, isReserve) => {
-        const solos = regs.filter(pr => !pr.player2);
         return regs.map(pr => {
           if (pr.player2) {
             const label = isReserve ? `<span class="pm-reserve-tag">резерв</span>` : '';
@@ -1835,10 +1892,10 @@ async function renderParticipantList(tournamentId) {
                       title="Видалити ${esc(pr.player1.displayName)}">✕</button>
             </div>`;
           }
-          // Solo player — show partner picker from same pool
-          const soloOptions = solos
-            .filter(s => s.player1.id !== pr.player1.id)
-            .map(s => `<option value="${s.player1.id}">${esc(s.player1.displayName)}</option>`)
+          // Solo player — show partner picker across both pools (main + reserve)
+          const soloOptions = allSolos
+            .filter(s => s.reg.player1.id !== pr.player1.id)
+            .map(s => `<option value="${s.reg.player1.id}">${esc(s.reg.player1.displayName)}${s.fromReserve ? ' (резерв)' : ''}</option>`)
             .join('');
           const hasSoloPartners = soloOptions.length > 0;
           const label = isReserve ? `<span class="pm-reserve-tag">резерв</span>` : '';

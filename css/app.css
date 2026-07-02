@@ -1749,7 +1749,10 @@
     }
     .modal-overlay.open { opacity: 1; pointer-events: all; }
     .modal-sheet {
-      width: 100%; max-height: 92vh; overflow-y: auto;
+      /* Telegram keeps --tg-viewport-stable-height in sync with the real visible area
+         (it shrinks when the on-screen keyboard opens) — using it instead of raw vh keeps
+         the sheet scrollable while typing into form fields. */
+      width: 100%; max-height: calc(var(--tg-viewport-stable-height, 100vh) * 0.92); overflow-y: auto;
       background: var(--navy-mid);
       border-radius: 20px 20px 0 0;
       border-top: 1px solid var(--border-def);
@@ -2370,6 +2373,13 @@
       font-size: 11px; font-weight: 600; color: var(--text-muted);
       background: var(--navy-light); border-radius: 20px; padding: 3px 10px;
     }
+    .pp-tg-btn {
+      font-size: 11px; font-weight: 600; color: var(--gold);
+      background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.35);
+      border-radius: 20px; padding: 3px 10px; cursor: pointer;
+      transition: background 180ms var(--ease);
+    }
+    .pp-tg-btn:active { background: rgba(201,168,76,0.25); }
     .pp-stat {
       background: var(--navy-mid); border: 1px solid var(--border-def);
       border-radius: 12px; padding: 10px 6px; text-align: center;
@@ -3163,7 +3173,7 @@
 
 /* ── Cup Modal — tall sheet ───────────────────────────────────── */
 .modal-sheet-tall {
-  max-height: 92vh;
+  max-height: calc(var(--tg-viewport-stable-height, 100vh) * 0.92);
 }
 
 /* Section titles */

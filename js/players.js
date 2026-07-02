@@ -14,6 +14,8 @@ function normalizeRating(r) {
   return {
     id: r.userId || r.id,
     name: r.name || r.displayName,
+    username: r.username || null,
+    raketoTelegramUsername: r.raketoTelegramUsername || null,
     photoUrl: r.photoUrl || null,
     pts: r.ratingPoints,
     startingPts,
@@ -360,6 +362,8 @@ function _tournamentPlayerTap(id, name) {
     player = {
       id: id || null,
       name: name || (known ? playerNameOf(known) : 'Гравець'),
+      username: known?.username || null,
+      raketoTelegramUsername: known?.raketoTelegramUsername || null,
       photoUrl: known?.photoUrl || null,
       notRated: true,
       pts: 0, startingPts: 0, tournamentPts: 0, wins: 0, losses: 0,
@@ -367,6 +371,17 @@ function _tournamentPlayerTap(id, name) {
   }
   const rank = source.indexOf(player) + 1 || 0;
   openPlayerProfile(player, rank);
+}
+
+// Open a player's Telegram profile (from the profile sheet / participants lists).
+// Inside the Mini App openTelegramLink keeps the app running; plain browsers get a new tab.
+function openTelegramProfile(handle) {
+  const url = 'https://t.me/' + String(handle).replace(/^@/, '');
+  if (window.Telegram?.WebApp?.openTelegramLink) {
+    Telegram.WebApp.openTelegramLink(url);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 function _actRowTap(userId, displayName) {
@@ -418,6 +433,12 @@ async function openPlayerProfile(player, rank) {
           ${lvl ? `<span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>` : ''}
           <div class="pp-meta">
             <span class="pp-rank-badge">${inRating ? `#${rank} у рейтингу` : 'Ще не в рейтингу'}</span>
+            ${(() => {
+              const handle = (player.username || player.raketoTelegramUsername || '').replace(/^@/, '');
+              return handle && String(player.id) !== String(currentUser?.id)
+                ? `<button class="pp-tg-btn" onclick="openTelegramProfile('${jsq(handle)}')">✈ Telegram</button>`
+                : '';
+            })()}
           </div>
           <div class="pp-stats-compact">
             <div class="pp-stat-c">
