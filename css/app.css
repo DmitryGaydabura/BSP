@@ -3695,3 +3695,236 @@
 .ach-toggle-btn.off { background: var(--navy-mid); color: var(--text-sec); border: 1px solid var(--border-sub); }
 .ach-toggle-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+
+/* ═══ AMERICANO ═════════════════════════════════════════════════ */
+
+/* Friendly tournaments are visually set apart from official ones */
+.tournament-card-friendly { border-left: 3px solid var(--sea-light); }
+
+.friendly-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  background: rgba(74,138,181,0.18);
+  color: var(--sea-light);
+  border: 1px solid rgba(74,138,181,0.4);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.friendly-badge.fb-private {
+  background: rgba(143,163,184,0.12);
+  color: var(--text-muted);
+  border-color: rgba(143,163,184,0.3);
+}
+.friendly-badge.fb-official {
+  background: rgba(201,168,76,0.15);
+  color: var(--gold);
+  border-color: var(--border-def);
+}
+
+.t-organizer { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.btn-americano-create {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(74,138,181,0.5);
+  background: rgba(74,138,181,0.08);
+  color: var(--sea-light);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+.btn-americano-create:active { background: rgba(74,138,181,0.18); }
+
+/* Detail modal: config chips */
+.am-config { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.am-config-chip {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: var(--navy-mid);
+  color: var(--text-sec);
+  border: 1px solid var(--border-sub);
+}
+
+/* Rounds and matches */
+.am-round {
+  background: var(--navy-mid);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.am-round-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+.am-match-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-sub);
+}
+.am-match-row:first-of-type { border-top: none; }
+.am-court {
+  flex: 0 0 52px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.am-teams { flex: 1; min-width: 0; }
+.am-team { font-size: 12.5px; color: var(--white-warm); line-height: 1.35; }
+.am-team-won { color: var(--gold-light); font-weight: 600; }
+.am-team-sep { color: var(--text-dim); }
+.am-vs {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 1px 0;
+}
+.am-match-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.am-score {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--white-warm);
+}
+.am-score-empty { color: var(--text-dim); }
+.am-enter-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-def);
+  background: rgba(201,168,76,0.12);
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.am-enter-btn:active { background: rgba(201,168,76,0.25); }
+
+/* Standings */
+.am-standings {
+  background: var(--navy-mid);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  padding: 6px 12px;
+}
+.am-st-head, .am-st-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 44px 48px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+.am-st-head {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-sub);
+}
+.am-st-row { border-top: 1px solid var(--border-sub); }
+.am-st-row:first-of-type { border-top: none; }
+.am-st-me { background: rgba(201,168,76,0.07); margin: 0 -12px; padding: 6px 12px; }
+.am-st-pos {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+}
+.am-st-pos.pos-1 { color: var(--gold); }
+.am-st-pos.pos-2 { color: #C0C8D4; }
+.am-st-pos.pos-3 { color: #B08050; }
+.am-st-name {
+  font-size: 12.5px;
+  color: var(--white-warm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.am-st-wl { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); text-align: center; }
+.am-st-pts { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--gold); text-align: right; }
+
+/* Roster management (DRAFT) */
+.am-participants {
+  background: var(--navy-mid);
+  border: 1px solid var(--border-sub);
+  border-radius: 12px;
+  padding: 4px 12px;
+}
+.am-part-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-sub);
+  font-size: 13px;
+  color: var(--white-warm);
+}
+.am-part-row:first-of-type { border-top: none; }
+.am-part-remove {
+  background: none;
+  border: none;
+  color: var(--error);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  opacity: 0.7;
+}
+.am-empty { font-size: 12px; color: var(--text-muted); padding: 10px 0; text-align: center; }
+
+/* Add-participant picker */
+.am-picker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--navy-mid);
+  border: 1px solid var(--border-sub);
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--white-warm);
+  cursor: pointer;
+}
+.am-picker-row:active { background: var(--navy-light); }
+.am-picker-pts { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+/* Create-modal checkbox rows */
+.am-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 0;
+  cursor: pointer;
+}
+.am-check-row input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+  flex-shrink: 0;
+}
+.am-check-row span { font-size: 13px; color: var(--white-warm); line-height: 1.3; }
+.am-check-row span small { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.am-check-official { border-top: 1px solid var(--border-sub); }
+#am-rating-row { display: flex; }

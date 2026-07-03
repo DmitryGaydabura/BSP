@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0D1B2E">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=13"></script>
+  <script src="js/api.js?v=14"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=28">
+  <link rel="stylesheet" href="css/app.css?v=29">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=1">
 </head>
 <body>
@@ -117,6 +117,7 @@
           <button class="filter-chip active" data-filter="all">Всі</button>
           <!-- month chips injected by renderResults() -->
         </div>
+        <button class="btn-americano-create" id="btn-create-americano" style="display:none">🎾 Створити американо</button>
       </div>
       <div class="results-list" id="results-list">
         <!-- rendered by JS -->
@@ -836,9 +837,160 @@
   </div>
 </div>
 
+<!-- Americano: create / edit modal (open to all users) -->
+<div class="modal-overlay" id="modal-create-americano">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Новий американо</span>
+      <button class="modal-close" data-close="modal-create-americano">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Назва турніру</label>
+        <input class="form-input" id="am-name" type="text" placeholder="Американо по п'ятницях">
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Дата</label>
+          <input class="form-input" id="am-date" type="date">
+        </div>
+        <div class="form-group" style="flex:0 0 110px">
+          <label class="form-label">Час</label>
+          <select class="form-select" id="am-time">
+            <option value="">—</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Гравців</label>
+          <select class="form-select" id="am-max-participants">
+            <option value="4">4 (1 корт)</option>
+            <option value="8" selected>8 (2 корти)</option>
+            <option value="12">12 (3 корти)</option>
+            <option value="16">16 (4 корти)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">Очок у матчі</label>
+          <select class="form-select" id="am-points">
+            <option value="16">16</option>
+            <option value="21">21</option>
+            <option value="24" selected>24</option>
+            <option value="32">32</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Кількість раундів</label>
+        <input class="form-input" type="number" id="am-rounds" min="1" max="30" placeholder="авто (7)">
+        <div id="am-rounds-hint" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
+      </div>
+      <div class="form-group">
+        <label class="am-check-row">
+          <input type="checkbox" id="am-private">
+          <span>Приватний турнір<small>Не видно у списку — учасників додає організатор</small></span>
+        </label>
+        <label class="am-check-row">
+          <input type="checkbox" id="am-entry-all">
+          <span>Рахунок вносять всі учасники<small>Інакше — лише організатор</small></span>
+        </label>
+      </div>
+      <div id="am-admin-section" style="display:none">
+        <label class="am-check-row am-check-official">
+          <input type="checkbox" id="am-official">
+          <span>Офіційний турнір<small>З нарахуванням рейтингу після завершення</small></span>
+        </label>
+        <div id="am-rating-row" style="display:none;gap:8px">
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Рейтинг від</label>
+            <input class="form-input" type="number" id="am-min-rating" placeholder="0" min="0">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label class="form-label">Рейтинг до</label>
+            <input class="form-input" type="number" id="am-max-rating" placeholder="без обм." min="0">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Локація</label>
+        <input class="form-input" id="am-location" type="text" placeholder="Адреса або назва корту">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Вартість участі (грн)</label>
+        <input class="form-input" type="number" id="am-price" min="0" placeholder="безкоштовно">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Опис / нотатки</label>
+        <textarea class="form-input form-textarea" id="am-description" rows="2" placeholder="Необов'язково"></textarea>
+      </div>
+      <button class="btn-primary" id="am-submit" style="width:100%;margin-top:4px">Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Americano: detail modal (rounds, score entry, standings) -->
+<div class="modal-overlay" id="modal-americano">
+  <div class="modal-sheet modal-sheet-tall">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="americano-modal-title">Американо</span>
+      <button class="modal-close" data-close="modal-americano">✕</button>
+    </div>
+    <div class="modal-body" id="americano-modal-body">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Americano: match score entry -->
+<div class="modal-overlay" id="modal-americano-score">
+  <div class="modal-sheet" style="max-height:340px">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Рахунок матчу</span>
+      <button class="modal-close" data-close="modal-americano-score">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+        <div style="text-align:center;flex:1">
+          <div id="am-score-teama" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="am-score-1" min="0" placeholder="0">
+        </div>
+        <div style="font-size:24px;font-weight:700;color:var(--text-muted)">:</div>
+        <div style="text-align:center;flex:1">
+          <div id="am-score-teamb" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="am-score-2" min="0" placeholder="0">
+        </div>
+      </div>
+      <div id="am-score-hint" style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px"></div>
+      <button class="btn-primary" id="am-score-submit" style="width:100%;margin-top:14px">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Americano: add-participant picker (creator-managed roster) -->
+<div class="modal-overlay" id="modal-americano-add">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Додати учасника</span>
+      <button class="modal-close" data-close="modal-americano-add">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <input class="form-input" id="am-picker-search" type="text" placeholder="Пошук гравця...">
+      </div>
+      <div id="am-picker-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=45" defer></script>
-<script src="js/tournaments.js?v=52" defer></script>
+<script src="js/tournaments.js?v=53" defer></script>
+<script src="js/americano.js?v=1" defer></script>
 <script src="js/bsp-crest.js?v=1" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
 <script src="js/players.js?v=60" defer></script>

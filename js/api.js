@@ -50,6 +50,7 @@ const API = (() => {
       setRaketoDocId:        (id, docId, raketoName) => request('PUT',  `/users/${id}/raketo-doc-id`, { raketoDocId: docId, ...(raketoName ? { raketoName } : {}) }),
       adminImportFromRaketo: (data)         => request('POST', '/users/import-from-raketo', data),
       mergeUsers:            (keepId, deleteId) => request('POST', `/users/${keepId}/merge/${deleteId}`),
+      directory:             ()                 => request('GET',  '/users/directory'),
       support:               (message)          => request('POST', '/users/me/support', { message }),
       h2h:                   (targetId)         => request('GET',  `/users/${targetId}/h2h`),
       h2hAnalysis:           (targetId)         => request('POST', `/users/${targetId}/h2h/analysis`),
@@ -81,6 +82,18 @@ const API = (() => {
       getAnalysis:      id             => request('GET',    `/tournaments/${id}/analysis`),
       generatePlayerAnalysis: id       => request('POST',   `/tournaments/${id}/player-analysis`),
       getPlayerAnalysis:      id       => request('GET',    `/tournaments/${id}/player-analysis`),
+    },
+
+    americano: {
+      get:               id             => request('GET',    `/tournaments/${id}/americano`),
+      create:            data           => request('POST',   '/tournaments/americano', data),
+      update:            (id, data)     => request('PUT',    `/tournaments/americano/${id}`, data),
+      start:             id             => request('POST',   `/tournaments/${id}/americano/start`),
+      submitMatch:       (id, matchId, s) => request('PUT',  `/tournaments/${id}/americano/matches/${matchId}/result`, s),
+      finalize:          id             => request('POST',   `/tournaments/${id}/americano/finalize`),
+      delete:            id             => request('DELETE', `/tournaments/${id}/americano`),
+      addParticipant:    (id, userId)   => request('POST',   `/tournaments/${id}/americano/participants/${userId}`),
+      removeParticipant: (id, userId)   => request('DELETE', `/tournaments/${id}/americano/participants/${userId}`),
     },
 
     cup: {

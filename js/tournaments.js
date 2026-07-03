@@ -40,6 +40,14 @@ function normalizeTournament(t) {
     raketoId: t.raketoId || null,
     hasAnalysis: t.hasAnalysis || false,
     analysisGeneratedAt: t.analysisGeneratedAt || null,
+    // Americano / friendly tournament fields
+    friendly: t.friendly || false,
+    isPrivate: t.isPrivate || false,
+    pointsPerMatch: t.pointsPerMatch || null,
+    roundsCount: t.roundsCount || null,
+    resultEntryMode: t.resultEntryMode || null,
+    createdById: t.createdById || null,
+    createdByName: t.createdByName || null,
     results: (t.pairs || [])
       .sort((a, b) => (a.position || 99) - (b.position || 99))
       .map(p => ({
@@ -92,6 +100,10 @@ async function renderResults() {
     </div>`;
     return;
   }
+
+  // The "create americano" button needs an authenticated user (known after bootstrap)
+  const camBtn = document.getElementById('btn-create-americano');
+  if (camBtn) camBtn.style.display = currentUser ? '' : 'none';
 
   if (activeResultsSubTab === 'upcoming') {
     const upcoming = source.filter(t => t.status !== 'FINISHED');
@@ -163,7 +175,7 @@ function renderUpcomingList(source, list) {
       : (t.maxParticipants
           ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
           : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : 'Парний';
     const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
     const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
@@ -208,13 +220,16 @@ function renderUpcomingList(source, list) {
       const enrolledBadge = isEnrolled
         ? `<span class="chip-btn ${isInReserve ? 'chip-reserve' : 'chip-join'}" style="pointer-events:none">${isInReserve ? 'Резерв' : 'Зареєстровано'}</span>`
         : '';
-      const leaveBtn = canLeave
+      // Friendly tournaments have a softer leave rule — no 24h cutoff
+      const friendlyCanLeave = isEnrolled && canJoin && t.friendly;
+      const leaveBtn = (canLeave || friendlyCanLeave)
         ? `<button class="chip-btn chip-leave sr-leave-btn" data-id="${t.id}">Відписатись</button>`
         : '';
       joinBtn = canJoin
         ? (isEnrolled
             ? enrolledBadge + leaveBtn
-            : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">${isFull ? 'У резерв' : 'Приєднатись'}</button>`)
+            // Private roster is creator-managed — no self-join button
+            : (t.isPrivate ? '' : `<button class="chip-btn chip-join sr-join-btn" data-id="${t.id}">${isFull ? 'У резерв' : 'Приєднатись'}</button>`))
         : '';
     }
 
@@ -251,12 +266,20 @@ function renderUpcomingList(source, list) {
       ? `<button class="t-admin-btn t-admin-cup-finalize-btn" data-id="${t.id}">✓ Фіналізувати кубок</button>`
       : '';
 
+    // Americano: creator of a friendly tournament manages it like an admin
+    const canManageT = currentUser && (currentUser.role === 'ADMIN'
+        || (t.friendly && t.createdById === currentUser.id));
+    const amViewBtn = (t.type === 'AMERICANO' && (t.status === 'ACTIVE' || (t.status === 'DRAFT' && canManageT)))
+      ? `<button class="chip-btn chip-cup-view am-view-btn" data-id="${t.id}">${t.status === 'DRAFT' ? '⚙ Керувати турніром' : 'Раунди та рахунок'}</button>`
+      : '';
+    const friendlyBadges = `${t.friendly ? '<span class="friendly-badge">Дружній</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}`;
+
     return `
-      <div class="tournament-card${t.type === 'CUP' ? ' tournament-card-cup' : ''}" data-tournament-id="${t.id}">
+      <div class="tournament-card${t.type === 'CUP' ? ' tournament-card-cup' : ''}${t.friendly ? ' tournament-card-friendly' : ''}" data-tournament-id="${t.id}">
         <div class="tournament-card-header">
           <div class="tournament-meta">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-              <div class="tournament-name">${esc(t.name)}${liveBadge}</div>
+              <div class="tournament-name">${esc(t.name)}${liveBadge}${friendlyBadges}</div>
               ${t.type !== 'CUP' ? joinBtn : ''}
             </div>
             <div class="tournament-date-cat">
@@ -275,11 +298,13 @@ function renderUpcomingList(source, list) {
               <span class="t-location-tag">💳 ${priceLabel}</span>
             </div>` : ''}
             ${t.description ? `<div class="t-description">${esc(t.description)}</div>` : ''}
+            ${t.friendly && t.createdByName ? `<div class="t-organizer">Організатор: ${esc(t.createdByName)}</div>` : ''}
             ${t.type === 'CUP' && t.status === 'DRAFT' ? (joinBtn || '') : ''}
             ${cupViewBtn}
-            ${currentUser?.role === 'ADMIN' ? `
+            ${amViewBtn}
+            ${canManageT ? `
             <div class="t-admin-actions">
-              <button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>
+              ${t.status === 'DRAFT' || currentUser?.role === 'ADMIN' ? `<button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>` : ''}
               ${adminCupBtn}
               ${adminCupFinalize}
               <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
@@ -293,14 +318,14 @@ function renderUpcomingList(source, list) {
 
   list.querySelectorAll('.sr-join-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      // Raketo-link is required for self-enrollment (admins bypass this)
-      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
+      const tid = parseInt(btn.dataset.id, 10);
+      const tournament = (tournamentsData || []).find(t => t.id === tid);
+      // Raketo-link is required for self-enrollment (admins bypass this; friendly tournaments are open to everyone)
+      if (!tournament?.friendly && currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
         showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
         switchTab('profile');
         return;
       }
-      const tid = parseInt(btn.dataset.id, 10);
-      const tournament = (tournamentsData || []).find(t => t.id === tid);
       if (tournament) showRegistrationConfirm(tournament);
     });
   });
@@ -430,7 +455,7 @@ function renderFinishedList(source, list) {
     const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
     const top3    = results.filter(r => r.pos >= 1 && r.pos <= 3);
     const rest    = results.filter(r => r.pos > 3);
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : 'Парний';
 
     const podiumConfig = [
       { pos: 2, cls: 'fp-2', blockCls: 'fp-b2', rankCls: 'fp-r2', crown: '' },
@@ -489,11 +514,14 @@ function renderFinishedList(source, list) {
 
     const cupViewBtn = t.type === 'CUP'
       ? `<button class="chip-btn chip-cup-view cup-view-btn" data-id="${t.id}">Переглянути Кубок</button>`
+      : t.type === 'AMERICANO'
+      ? `<button class="chip-btn chip-cup-view am-view-btn" data-id="${t.id}">Раунди та рахунок</button>`
       : '';
+    const friendlyBadges = `${t.friendly ? '<span class="friendly-badge">Дружній</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}`;
 
-    return `<div class="finished-card">
+    return `<div class="finished-card${t.friendly ? ' tournament-card-friendly' : ''}">
       <div class="finished-card-header">
-        <div class="finished-card-name">${esc(t.name)}</div>
+        <div class="finished-card-name">${esc(t.name)}${friendlyBadges}</div>
         <div class="finished-card-meta">
           <span class="tournament-date">${fmt(t.date)}</span>
           ${t.levelLabel ? `<span class="level-badge level-badge-lg ${levelClass(t.levelLabel)}">${t.levelRangeLabel || t.levelLabel}</span>` : ''}
@@ -520,22 +548,30 @@ function wireAdminTournamentBtns(container) {
   container.querySelectorAll('.t-admin-edit-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
-      if (t) await openEditTournament(t);
+      if (!t) return;
+      if (t.type === 'AMERICANO') openEditAmericano(t);
+      else await openEditTournament(t);
     });
   });
   container.querySelectorAll('.t-admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('Видалити цей турнір? Цю дію не можна скасувати.')) return;
+      const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
       btn.disabled = true;
       try {
-        await API.tournaments.delete(btn.dataset.id);
+        // Americano goes through its own endpoint — friendly creators may delete their own
+        if (t?.type === 'AMERICANO') await API.americano.delete(btn.dataset.id);
+        else await API.tournaments.delete(btn.dataset.id);
         tournamentsData = null;
         renderResults();
       } catch (e) {
-        alert('Помилка: ' + (e.message || 'unknown'));
+        alert('Помилка: ' + (e.data?.message || e.message || 'unknown'));
         btn.disabled = false;
       }
     });
+  });
+  container.querySelectorAll('.am-view-btn').forEach(btn => {
+    btn.addEventListener('click', () => openAmericanoModal(btn.dataset.id));
   });
   container.querySelectorAll('.t-admin-cup-start-btn').forEach(btn => {
     btn.addEventListener('click', () => openCupStartModal(btn.dataset.id));
