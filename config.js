@@ -8,4 +8,4 @@
  *      2. Copy the https URL, e.g. 'https://xxxx.ngrok-free.app/api'
  *  - Deployed server: 'https://your-server.com/api'
  */
-window.BSP_API_URL = 'http://localhost:8080/api';
+window.BSP_API_URL = 'https://bsp-backend-production.up.railway.app/api';
