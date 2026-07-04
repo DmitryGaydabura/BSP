@@ -441,6 +441,5 @@ function renderAmericanoPicker(query) {
 
 document.getElementById('am-picker-search').addEventListener('input', e => renderAmericanoPicker(e.target.value));
 
-/* ── Create button on the tournaments tab ────────────────────────── */
-
-document.getElementById('btn-create-americano').addEventListener('click', openCreateAmericano);
+/* The "create americano" button lives in the Profile tab (rendered by renderProfile,
+   wired via inline onclick="openCreateAmericano()"). */

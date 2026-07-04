@@ -101,19 +101,40 @@ async function renderResults() {
     return;
   }
 
-  // The "create americano" button needs an authenticated user (known after bootstrap)
-  const camBtn = document.getElementById('btn-create-americano');
-  if (camBtn) camBtn.style.display = currentUser ? '' : 'none';
-
+  // Friendly (user-created) tournaments live in their own subtab, not the official lists
   if (activeResultsSubTab === 'upcoming') {
-    const upcoming = source.filter(t => t.status !== 'FINISHED');
+    const upcoming = source.filter(t => t.status !== 'FINISHED' && !t.friendly);
     rebuildMonthChips(upcoming);
     renderUpcomingList(upcoming, list);
+  } else if (activeResultsSubTab === 'friendly') {
+    const friendly = source.filter(t => t.friendly);
+    rebuildMonthChips(friendly);
+    renderFriendlyList(friendly, list);
   } else {
-    const finished = source.filter(t => t.status === 'FINISHED');
+    const finished = source.filter(t => t.status === 'FINISHED' && !t.friendly);
     rebuildMonthChips(finished);
     renderFinishedList(finished, list);
   }
+}
+
+/** Friendly subtab: active friendly tournaments on top, finished ones below. */
+function renderFriendlyList(friendly, list) {
+  const active = applyResultFilter(friendly.filter(t => t.status !== 'FINISHED'));
+  const done   = applyResultFilter(friendly.filter(t => t.status === 'FINISHED'));
+
+  if (!active.length && !done.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎾</div>
+      <div class="empty-state-text">Немає дружніх турнірів<br>
+      <span style="font-size:12px;color:var(--text-muted)">Створіть американо у вкладці Профіль</span></div></div>`;
+    return;
+  }
+
+  list.innerHTML = `
+    <div id="friendly-active-list"></div>
+    ${active.length && done.length ? '<div class="cup-section-title" style="margin:16px 0 8px">Завершені</div>' : ''}
+    <div id="friendly-finished-list"></div>`;
+  if (active.length) renderUpcomingList(active, document.getElementById('friendly-active-list'));
+  if (done.length)   renderFinishedList(done, document.getElementById('friendly-finished-list'));
 }
 
 function applyResultFilter(source) {
@@ -466,8 +487,9 @@ function renderFinishedList(source, list) {
     const podiumHtml = top3.length > 0
       ? `<div class="finished-podium">
           ${podiumConfig.map(({ pos, cls, blockCls, rankCls, crown }) => {
-            const r = top3.find(r => r.pos === pos);
-            if (!r) return '';
+            // Legacy data may contain shared positions (e.g. 1,1,3) — render every entry
+            // for the slot so tied players never disappear from the podium.
+            return top3.filter(r => r.pos === pos).map(r => {
             const players = r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
             const avatarSection = players.length > 1
               ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar lb-row-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${fpAvatarHtml(p)}</div>`).join('')}</div>`
@@ -480,6 +502,7 @@ function renderFinishedList(source, list) {
               ${r.pts !== 0 ? `<div class="fp-pts ${r.pts > 0 ? '' : 'neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</div>` : ''}
               <div class="fp-block ${blockCls}"><span class="fp-rank ${rankCls}">${pos}</span></div>
             </div>`;
+            }).join('');
           }).join('')}
         </div>`
       : '';

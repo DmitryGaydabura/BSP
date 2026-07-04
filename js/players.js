@@ -932,6 +932,8 @@ function renderProfile() {
       </div>
     </div>
 
+    <button class="btn-americano-create" onclick="openCreateAmericano()">🎾 Створити американо</button>
+
     ${u.initialPointsClaimed ? `
       <div class="raketo-claimed-card">
         <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
