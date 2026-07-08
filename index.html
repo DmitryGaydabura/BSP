@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0D1B2E">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=14"></script>
+  <script src="js/api.js?v=16"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -466,6 +466,10 @@
           <select class="form-select" id="pm-tournament-select"></select>
         </div>
         <div id="pm-slots" style="margin:-4px 0 10px;font-size:12px;font-weight:600"></div>
+        <label id="pm-announce-wrap" style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="pm-announce" checked style="width:16px;height:16px;flex:0 0 auto;accent-color:var(--gold);cursor:pointer">
+          <span>Оголошувати додавання/видалення в Telegram</span>
+        </label>
         <div id="pm-participants-list" style="margin-bottom:12px">
           <!-- participant rows injected by JS -->
         </div>
@@ -994,7 +998,7 @@
 <script src="js/bsp-crest.js?v=1" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
 <script src="js/players.js?v=61" defer></script>
-<script src="js/analysis-admin.js?v=63" defer></script>
+<script src="js/analysis-admin.js?v=68" defer></script>
 <script src="js/app.js?v=63" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->

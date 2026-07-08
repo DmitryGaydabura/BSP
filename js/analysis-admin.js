@@ -1961,7 +1961,7 @@ async function renderParticipantList(tournamentId) {
           btn.addEventListener('click', async () => {
             btn.disabled = true;
             try {
-              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
+              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId, pmShouldAnnounce());
               await renderParticipantList(btn.dataset.tournamentId);
             } catch (e) {
               alert('Помилка: ' + (e.message || 'unknown'));
@@ -1992,7 +1992,7 @@ async function renderParticipantList(tournamentId) {
           btn.addEventListener('click', async () => {
             btn.disabled = true;
             try {
-              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId);
+              await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId, pmShouldAnnounce());
               await renderParticipantList(btn.dataset.tournamentId);
             } catch (e) {
               alert('Помилка: ' + (e.message || 'unknown'));
@@ -2007,6 +2007,13 @@ async function renderParticipantList(tournamentId) {
   } catch (e) {
     container.innerHTML = `<div style="color:var(--error);font-size:13px">${esc(e.message)}</div>`;
   }
+}
+
+// Whether admin add/remove should announce the change in Telegram (checkbox in the modal).
+// Defaults to true if the control is missing.
+function pmShouldAnnounce() {
+  const cb = document.getElementById('pm-announce');
+  return cb ? cb.checked : true;
 }
 
 function renderAddableList() {
@@ -2043,7 +2050,7 @@ function renderAddableList() {
       btn.disabled = true;
       btn.style.opacity = '0.5';
       try {
-        await API.tournaments.addParticipant(tournamentId, btn.dataset.userId);
+        await API.tournaments.addParticipant(tournamentId, btn.dataset.userId, pmShouldAnnounce());
         document.getElementById('pm-search').value = '';
         await renderParticipantList(tournamentId);
       } catch (e) {
