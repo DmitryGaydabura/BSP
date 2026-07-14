@@ -82,7 +82,7 @@
     var floorTop = locked ? '#26323f' : c.mid;
 
     var mark = glyph
-      ? '<text x="70" y="95" text-anchor="middle" font-family="\'Playfair Display\', serif" font-weight="900" font-size="38" fill="' + markCol + '">' + glyph + '</text>'
+      ? '<text x="70" y="95" text-anchor="middle" font-family="\'Unbounded\', \'Golos Text\', sans-serif" font-weight="700" font-size="34" fill="' + markCol + '">' + glyph + '</text>'
       : iconNode(icon, 70, 82, 46, markCol, 2);
 
     var top = locked

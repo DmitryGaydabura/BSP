@@ -1051,8 +1051,8 @@ function cupTierClass(levelLabel) {
 }
 
 function trophySvg(tier) {
-  const c = tier === 'cup-gold' ? '#C9A84C' : tier === 'cup-silver' ? '#B0C4D8' : '#B87333';
-  const glow = tier === 'cup-gold' ? 'filter:drop-shadow(0 0 4px rgba(201,168,76,0.9))' : '';
+  const c = tier === 'cup-gold' ? '#B8912F' : tier === 'cup-silver' ? '#8FA0AD' : '#B87333';
+  const glow = tier === 'cup-gold' ? 'filter:drop-shadow(0 0 4px rgba(184,145,47,0.55))' : '';
   return `<svg width="22" height="22" viewBox="0 0 24 24" style="${glow}" xmlns="http://www.w3.org/2000/svg">
     <path d="M7 2h10v5a5 5 0 01-10 0V2z" fill="${c}" fill-opacity="0.9"/>
     <path d="M7 4h-2a2 2 0 000 4h2M17 4h2a2 2 0 010 4h-2" stroke="${c}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
@@ -1460,8 +1460,8 @@ function buildRatingChart(history, startingPoints) {
 
   const gridVals = range > 0 ? [minV, Math.round((minV + maxV) / 2), maxV] : [minV];
   const grids = gridVals.map(v => `
-    <line x1="${pL}" y1="${yOf(v).toFixed(1)}" x2="${W - pR}" y2="${yOf(v).toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
-    <text x="${(pL - 6).toFixed(0)}" y="${(yOf(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${v}</text>
+    <line x1="${pL}" y1="${yOf(v).toFixed(1)}" x2="${W - pR}" y2="${yOf(v).toFixed(1)}" stroke="rgba(21,48,43,0.08)" stroke-width="1"/>
+    <text x="${(pL - 6).toFixed(0)}" y="${(yOf(v) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-dim)">${v}</text>
   `).join('');
 
   const dots = pts.map((p, i) => {
@@ -1485,8 +1485,8 @@ function buildRatingChart(history, startingPoints) {
   <path d="${areaD}" fill="url(#rg-fill)"/>
   <path d="${lineD}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   ${dots}
-  <text x="${pL}" y="${H - 5}" font-size="9" fill="rgba(255,255,255,0.3)">Старт: ${pts[0].value}</text>
-  <text x="${(W - pR).toFixed(0)}" y="${H - 5}" text-anchor="end" font-size="9" fill="rgba(255,255,255,0.3)">${fmtDate(pts[lastIdx].date)}</text>
+  <text x="${pL}" y="${H - 5}" font-size="9" fill="var(--text-dim)">Старт: ${pts[0].value}</text>
+  <text x="${(W - pR).toFixed(0)}" y="${H - 5}" text-anchor="end" font-size="9" fill="var(--text-dim)">${fmtDate(pts[lastIdx].date)}</text>
   <text x="${calloutX}" y="${calloutY}" text-anchor="${calloutAnchor}" font-size="13" font-weight="700" fill="var(--gold)">${pts[lastIdx].value}</text>
 </svg>`;
 }
@@ -1803,7 +1803,7 @@ function renderAdminPanel() {
   return `
     <div class="admin-panel">
       <div class="admin-panel-header">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7C5B" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
         <span class="admin-panel-title">Адмін панель</span>
       </div>
       <div class="admin-actions">

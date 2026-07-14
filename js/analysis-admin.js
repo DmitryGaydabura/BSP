@@ -9,9 +9,9 @@ function destroyCharts() {
 }
 
 const CHART_PALETTE = [
-  '#4fc3f7','#81c784','#ffb74d','#e57373','#ce93d8',
-  '#80cbc4','#fff176','#ff8a65','#90caf9','#a5d6a7',
-  '#f48fb1','#b0bec5','#80deea','#ffe082','#bcaaa4','#c5e1a5',
+  '#0E7C5B','#1D6E8C','#D14D32','#B8912F','#7A4FA3',
+  '#C2417E','#3E7D2E','#B26B1F','#2F5DA8','#5C8A3C',
+  '#A63D3D','#5B6B7A','#0F8A8A','#8A7420','#8C6A55','#6B8A20',
 ];
 
 async function openAnalysisModal(tournamentId) {
@@ -97,10 +97,10 @@ function renderTournamentChart(chartData) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0D1B2E',
-          titleColor: '#B8C8D8',
-          bodyColor: '#8FA3B8',
-          borderColor: 'rgba(201,168,76,0.25)',
+          backgroundColor: '#15302B',
+          titleColor: '#F4F2EA',
+          bodyColor: '#C8D4CE',
+          borderColor: 'rgba(217,239,85,0.4)',
           borderWidth: 1,
           callbacks: {
             title: items => 'Після ' + items[0].label,
@@ -110,14 +110,14 @@ function renderTournamentChart(chartData) {
       },
       scales: {
         x: {
-          ticks: { color: '#8FA3B8', font: { size: 10 } },
-          grid: { color: 'rgba(201,168,76,0.08)' },
-          border: { color: 'rgba(201,168,76,0.15)' },
+          ticks: { color: '#71827A', font: { size: 10 } },
+          grid: { color: 'rgba(21,48,43,0.07)' },
+          border: { color: 'rgba(21,48,43,0.18)' },
         },
         y: {
-          ticks: { color: '#8FA3B8', font: { size: 10 } },
-          grid: { color: 'rgba(201,168,76,0.08)' },
-          border: { color: 'rgba(201,168,76,0.15)' },
+          ticks: { color: '#71827A', font: { size: 10 } },
+          grid: { color: 'rgba(21,48,43,0.07)' },
+          border: { color: 'rgba(21,48,43,0.18)' },
           beginAtZero: true,
         },
       },
@@ -161,7 +161,7 @@ function buildSpiderSvg(radarData) {
   const py = (r, i) => (cy + r * Math.sin(ang(i))).toFixed(1);
 
   const axes = Array.from({length: n}, (_, i) =>
-    `<line x1="${cx}" y1="${cy}" x2="${px(R, i)}" y2="${py(R, i)}" stroke="rgba(201,168,76,0.15)" stroke-width="1"/>`
+    `<line x1="${cx}" y1="${cy}" x2="${px(R, i)}" y2="${py(R, i)}" stroke="rgba(21,48,43,0.12)" stroke-width="1"/>`
   ).join('');
 
   const dataPath = values.map((v, i) => {
@@ -173,7 +173,7 @@ function buildSpiderSvg(radarData) {
 
   const dots = values.map((v, i) => {
     const r = (Math.min(v, maxPts) / maxPts) * R;
-    return `<circle cx="${px(r, i)}" cy="${py(r, i)}" r="3.5" fill="#C9A84C" stroke="#0D1B2E" stroke-width="1.5"/>`;
+    return `<circle cx="${px(r, i)}" cy="${py(r, i)}" r="3.5" fill="#0E7C5B" stroke="#FFFFFF" stroke-width="1.5"/>`;
   }).join('');
 
   const labelPad = 24;
@@ -190,32 +190,32 @@ function buildSpiderSvg(radarData) {
       const l2 = parts[1].length > 10 ? parts[1].slice(0, 9) + '…' : parts[1];
       const base = parseFloat(ly);
       return `
-        <text x="${lx}" y="${(base - 11).toFixed(1)}" text-anchor="${anchor}" fill="#B8C8D8" font-size="9.5" font-family="system-ui,sans-serif">${l1}</text>
-        <text x="${lx}" y="${(base + 1).toFixed(1)}"  text-anchor="${anchor}" fill="#B8C8D8" font-size="9.5" font-family="system-ui,sans-serif">+ ${l2}</text>
-        <text x="${lx}" y="${(base + 14).toFixed(1)}" text-anchor="${anchor}" fill="#C9A84C" font-size="9" font-weight="600" font-family="system-ui,sans-serif">${values[i]}п</text>`;
+        <text x="${lx}" y="${(base - 11).toFixed(1)}" text-anchor="${anchor}" fill="#45594F" font-size="9.5" font-family="system-ui,sans-serif">${l1}</text>
+        <text x="${lx}" y="${(base + 1).toFixed(1)}"  text-anchor="${anchor}" fill="#45594F" font-size="9.5" font-family="system-ui,sans-serif">+ ${l2}</text>
+        <text x="${lx}" y="${(base + 14).toFixed(1)}" text-anchor="${anchor}" fill="#0A5C44" font-size="9" font-weight="700" font-family="system-ui,sans-serif">${values[i]}п</text>`;
     }
     const short = label.length > 9 ? label.slice(0, 8) + '…' : label;
     return `
-      <text x="${lx}" y="${(parseFloat(ly) - 4).toFixed(1)}" text-anchor="${anchor}" fill="#B8C8D8" font-size="10" font-family="system-ui,sans-serif">${short}</text>
-      <text x="${lx}" y="${(parseFloat(ly) + 9).toFixed(1)}" text-anchor="${anchor}" fill="#C9A84C" font-size="9" font-weight="600" font-family="system-ui,sans-serif">${values[i]}п</text>`;
+      <text x="${lx}" y="${(parseFloat(ly) - 4).toFixed(1)}" text-anchor="${anchor}" fill="#45594F" font-size="10" font-family="system-ui,sans-serif">${short}</text>
+      <text x="${lx}" y="${(parseFloat(ly) + 9).toFixed(1)}" text-anchor="${anchor}" fill="#0A5C44" font-size="9" font-weight="700" font-family="system-ui,sans-serif">${values[i]}п</text>`;
   }).join('');
 
   return `
     <svg viewBox="0 0 ${size} ${size}" style="width:100%;max-height:280px;overflow:visible;display:block;margin-top:18px">
       ${axes}
-      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(201,168,76,0.28)" stroke-width="1.5"/>
-      <circle cx="${cx}" cy="${cy}" r="${avgCircleR}" fill="none" stroke="rgba(201,168,76,0.55)" stroke-width="1.5" stroke-dasharray="5,3"/>
-      <path d="${dataPath}" fill="rgba(201,168,76,0.13)" stroke="#C9A84C" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="rgba(21,48,43,0.25)" stroke-width="1.5"/>
+      <circle cx="${cx}" cy="${cy}" r="${avgCircleR}" fill="none" stroke="rgba(14,124,91,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <path d="${dataPath}" fill="rgba(14,124,91,0.12)" stroke="#0E7C5B" stroke-width="2" stroke-linejoin="round"/>
       ${dots}
       ${labelEls}
     </svg>
     <div style="display:flex;gap:16px;margin-top:6px;font-size:10px;color:var(--text-muted);justify-content:center;flex-wrap:wrap">
       <span style="display:flex;align-items:center;gap:5px">
-        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(201,168,76,0.55)" stroke-width="1.5" stroke-dasharray="5,3"/></svg>
+        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(14,124,91,0.6)" stroke-width="1.5" stroke-dasharray="5,3"/></svg>
         середнє (${avg.toFixed(1)}п)
       </span>
       <span style="display:flex;align-items:center;gap:5px">
-        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(201,168,76,0.28)" stroke-width="1.5"/></svg>
+        <svg width="16" height="6" viewBox="0 0 16 6" style="flex-shrink:0"><line x1="0" y1="3" x2="16" y2="3" stroke="rgba(21,48,43,0.25)" stroke-width="1.5"/></svg>
         макс (${maxPts}п)
       </span>
     </div>`;

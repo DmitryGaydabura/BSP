@@ -88,7 +88,7 @@ security/     → JWT filter + Telegram initData HMAC-SHA256 validation
 
 ## Design system
 
-Navy/gold dark theme. Key tokens: `--navy-deep: #0D1B2E` (background), `--navy-mid: #1A2F4A` (cards), `--gold: #C9A84C` (accent). Fonts: Cinzel (brand name only), Playfair Display (headings), Montserrat (body), Courier Prime (scores/stats). Full design spec in `Blacksea Padel Design System/README.md`.
+«Court Paper» light theme. Key tokens: `--paper: #F4F2EA` (background), `--card: #FFFFFF` (cards), `--ink: #15302B` (text/borders), `--accent: #0E7C5B` (sea green, primary accent), `--lime: #D9EF55` (selection/#1 highlight). Legacy var names (`--gold`, `--navy-deep`, `--navy-mid`, …) are kept as aliases in `:root` because JS templates inline them — remap values there, never rename. Fonts: Unbounded (display/headings), Golos Text (body), JetBrains Mono (scores/ratings). The old navy/gold spec in `Blacksea Padel Design System/README.md` is superseded by `css/app.css` tokens.
 
 Content language is **Ukrainian** (Cyrillic). Player names and technical identifiers stay in English.
 

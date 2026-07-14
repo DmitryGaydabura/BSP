@@ -1,28 +1,26 @@
 /* ============================================================
-   BLACKSEA PADEL · Achievement grid styles
+   BLACKSEA PADEL · Achievement grid styles — «Court Paper»
    ------------------------------------------------------------
-   Self-contained & namespaced (.bsp-* / --bsp-*). Drop into any
-   dark/navy surface. Pairs with bsp-crest.js + bsp-achievements.js.
-   Fonts expected (loaded by host): Playfair Display, Montserrat,
-   Courier Prime. Falls back to system serif/sans/mono otherwise.
+   Self-contained & namespaced (.bsp-* / --bsp-*). Sits on the
+   light paper surface. Pairs with bsp-crest.js + bsp-achievements.js.
+   Fonts expected (loaded by host): Unbounded, Golos Text,
+   JetBrains Mono. Falls back to system sans/mono otherwise.
    ============================================================ */
 
 .bsp-achievements {
-  --bsp-navy-deep: #0D1B2E;
-  --bsp-navy-mid:  #1A2F4A;
-  --bsp-card-1:    #1A2F4A;
-  --bsp-card-2:    #16283f;
-  --bsp-gold-1:    #F4E4AE;
-  --bsp-gold-2:    #E8C97A;
-  --bsp-gold-3:    #C9A84C;
-  --bsp-gold-4:    #9B7A2E;
-  --bsp-text:      #F5F0E8;
-  --bsp-muted:     #8FA3B8;
-  --bsp-line:      rgba(201, 168, 76, 0.16);
-  --bsp-ease:      cubic-bezier(0.25, 0.46, 0.45, 0.94); /* @kind other */
-  --bsp-font-display: 'Playfair Display', Georgia, serif;
-  --bsp-font-body:    'Montserrat', system-ui, sans-serif;
-  --bsp-font-mono:    'Courier Prime', ui-monospace, monospace;
+  --bsp-ink:       #15302B;
+  --bsp-card-1:    #FFFFFF;
+  --bsp-card-2:    #FAFAF4;
+  --bsp-accent:    #0E7C5B;
+  --bsp-accent-2:  #0A5C44;
+  --bsp-lime:      #D9EF55;
+  --bsp-text:      #15302B;
+  --bsp-muted:     #71827A;
+  --bsp-line:      rgba(21, 48, 43, 0.14);
+  --bsp-ease:      cubic-bezier(0.22, 0.68, 0.32, 1);
+  --bsp-font-display: 'Unbounded', 'Golos Text', system-ui, sans-serif;
+  --bsp-font-body:    'Golos Text', system-ui, sans-serif;
+  --bsp-font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
   font-family: var(--bsp-font-body);
   color: var(--bsp-text);
@@ -30,49 +28,45 @@
 
 /* ---------- summary ---------- */
 .bsp-ach-summary {
-  display: flex; align-items: baseline; gap: 8px;
-  margin: 4px 0 26px;
+  display: flex; align-items: baseline; gap: 10px;
+  margin: 4px 0 22px;
 }
 .bsp-ach-summary-big {
-  font-family: var(--bsp-font-display); font-weight: 900; font-size: 40px; line-height: 1;
-  color: var(--bsp-gold-2);
+  font-family: var(--bsp-font-display); font-weight: 700; font-size: 36px; line-height: 1;
+  color: var(--bsp-accent);
 }
-.bsp-ach-summary-sub { font-family: var(--bsp-font-mono); font-size: 12px; letter-spacing: .08em; color: var(--bsp-muted); }
+.bsp-ach-summary-sub { font-family: var(--bsp-font-mono); font-size: 11px; letter-spacing: .06em; color: var(--bsp-muted); }
 
 /* ---------- section ---------- */
-.bsp-ach-section { margin-top: 30px; }
+.bsp-ach-section { margin-top: 26px; }
 .bsp-ach-section:first-of-type { margin-top: 0; }
-.bsp-ach-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
-.bsp-ach-num { font-family: var(--bsp-font-mono); font-size: 12px; color: var(--bsp-gold-4); }
-.bsp-ach-group { font-family: var(--bsp-font-display); font-weight: 700; font-size: 19px; margin: 0; }
+.bsp-ach-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.bsp-ach-num { font-family: var(--bsp-font-mono); font-size: 11px; font-weight: 700; color: var(--bsp-accent); }
+.bsp-ach-group { font-family: var(--bsp-font-display); font-weight: 700; font-size: 14px; margin: 0; letter-spacing: -0.01em; }
 .bsp-ach-count {
-  margin-left: auto; font-family: var(--bsp-font-mono); font-size: 11px; color: var(--bsp-muted);
-  border: 1px solid var(--bsp-line); border-radius: 9999px; padding: 2px 9px;
+  margin-left: auto; font-family: var(--bsp-font-mono); font-size: 11px; font-weight: 700; color: var(--bsp-muted);
+  border: 1.5px solid var(--bsp-line); border-radius: 9999px; padding: 2px 9px; background: #fff;
 }
-.bsp-ach-divider { height: 1px; background: linear-gradient(90deg, rgba(201,168,76,.45), transparent); margin-bottom: 16px; }
+.bsp-ach-divider { height: 1.5px; background: linear-gradient(90deg, var(--bsp-ink), transparent); opacity: .35; margin-bottom: 14px; }
 
 /* ---------- grid ---------- */
 .bsp-ach-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 /* ---------- card ---------- */
 .bsp-ach {
   position: relative;
-  display: flex; flex-direction: column; align-items: center; gap: 10px;
-  padding: 16px 12px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 9px;
+  padding: 15px 12px 13px;
   background: linear-gradient(180deg, var(--bsp-card-1), var(--bsp-card-2));
-  border: 1px solid var(--bsp-line);
+  border: 1.5px solid var(--bsp-line);
   border-radius: 16px;
   text-align: center;
-  /* visible by default — entrance is opt-in (see .bsp-stagger) so content
-     never depends on JS to become visible */
-  transition: transform .35s var(--bsp-ease), border-color .3s var(--bsp-ease);
+  transition: transform .35s var(--bsp-ease), border-color .3s var(--bsp-ease), box-shadow .3s var(--bsp-ease);
 }
-/* entrance: added by revealStagger(). Keyframe ends visible, so even a
-   frozen/throttled frame settles to the correct state. */
 .bsp-stagger .bsp-ach { animation: bspRise .5s var(--bsp-ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
 @keyframes bspRise {
   from { opacity: 0; transform: translateY(14px); }
@@ -81,55 +75,55 @@
 @media (prefers-reduced-motion: reduce) {
   .bsp-stagger .bsp-ach { animation: none; }
 }
-.bsp-ach.is-earned { border-color: rgba(201,168,76,.34); }
-.bsp-ach.is-earned:hover { border-color: rgba(201,168,76,.6); transform: translateY(-3px); }
-.bsp-ach.is-locked { opacity: .96; }
+.bsp-ach.is-earned { border-color: var(--bsp-ink); box-shadow: 0 2px 0 rgba(21,48,43,.14); }
+.bsp-ach.is-earned:hover { transform: translateY(-3px); box-shadow: 0 5px 0 rgba(21,48,43,.14); }
+.bsp-ach.is-locked { opacity: .92; }
 
 /* crest */
 .bsp-ach-crest {
-  position: relative; width: 92px; height: 110px;
+  position: relative; width: 90px; height: 108px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; border-radius: 12px;
   perspective: 700px;
 }
 .bsp-ach-crest .crest-svg {
   width: 100%; height: 100%; display: block;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,.5));
+  filter: drop-shadow(0 5px 10px rgba(21,48,43,.28));
   transition: transform .35s var(--bsp-ease);
   transform-style: preserve-3d;
 }
-.bsp-ach.is-locked .bsp-ach-crest .crest-svg { filter: drop-shadow(0 6px 14px rgba(0,0,0,.4)) saturate(.55); }
+.bsp-ach.is-locked .bsp-ach-crest .crest-svg { filter: drop-shadow(0 5px 10px rgba(21,48,43,.18)) saturate(.5) opacity(.85); }
 .bsp-ach.is-earned:hover .bsp-ach-crest .crest-svg { transform: translateY(-3px) scale(1.05); }
 
 /* caption */
 .bsp-ach-cap { display: flex; flex-direction: column; gap: 2px; }
-.bsp-ach-name { font-family: var(--bsp-font-display); font-weight: 700; font-size: 14.5px; color: var(--bsp-text); }
-.bsp-ach.is-locked .bsp-ach-name { color: #c2cfdc; }
-.bsp-ach-req  { font-family: var(--bsp-font-body); font-size: 11px; color: var(--bsp-muted); line-height: 1.45; }
+.bsp-ach-name { font-family: var(--bsp-font-body); font-weight: 800; font-size: 13px; color: var(--bsp-text); }
+.bsp-ach.is-locked .bsp-ach-name { color: var(--bsp-muted); }
+.bsp-ach-req  { font-family: var(--bsp-font-body); font-size: 10.5px; color: var(--bsp-muted); line-height: 1.45; }
 
 /* earned tag */
 .bsp-ach-done {
-  font-family: var(--bsp-font-mono); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
-  font-weight: 700; color: #0D1B2E; padding: 3px 11px; border-radius: 9999px;
-  background: linear-gradient(135deg, var(--bsp-gold-2), var(--bsp-gold-4));
+  font-family: var(--bsp-font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+  font-weight: 700; color: var(--bsp-ink); padding: 3px 11px; border-radius: 9999px;
+  background: var(--bsp-lime);
+  border: 1.5px solid var(--bsp-ink);
 }
 
 /* progress (locked, count-based) */
 .bsp-ach-prog { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0 4px; }
-.bsp-ach-prog-track { flex: 1; height: 5px; border-radius: 9999px; background: rgba(143,163,184,.2); overflow: hidden; }
+.bsp-ach-prog-track { flex: 1; height: 6px; border-radius: 9999px; background: rgba(21,48,43,.1); overflow: hidden; }
 .bsp-ach-prog-bar {
   display: block; height: 100%; border-radius: 9999px;
-  background: linear-gradient(90deg, var(--bsp-gold-4), var(--bsp-gold-2));
-  box-shadow: 0 0 6px rgba(201,168,76,.6);
+  background: linear-gradient(90deg, var(--bsp-accent-2), var(--bsp-accent));
   transition: width .8s var(--bsp-ease);
 }
-.bsp-ach-prog-num { font-family: var(--bsp-font-mono); font-size: 10px; color: var(--bsp-muted); white-space: nowrap; }
+.bsp-ach-prog-num { font-family: var(--bsp-font-mono); font-size: 10px; font-weight: 700; color: var(--bsp-muted); white-space: nowrap; }
 
 /* ---------- gleam sweep (hover earned + during unlock) ---------- */
 .bsp-ach-gleam {
   position: absolute; top: -40%; left: -130%; width: 50%; height: 200%;
   transform: rotate(20deg); pointer-events: none; z-index: 3;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent);
   transition: left .7s var(--bsp-ease);
 }
 .bsp-ach.is-earned:hover .bsp-ach-gleam,
@@ -140,7 +134,7 @@
 .bsp-ach.is-unlocking .bsp-ach-crest .crest-svg { animation: bspFlip .62s var(--bsp-ease) both; }
 .bsp-ach.is-unlocking::after {
   content: ""; position: absolute; inset: -2px; border-radius: 18px; pointer-events: none;
-  box-shadow: 0 0 0 0 rgba(201,168,76,.55);
+  box-shadow: 0 0 0 0 rgba(217,239,85,.9);
   animation: bspRing .9s var(--bsp-ease) both;
 }
 @keyframes bspFlip {
@@ -150,15 +144,15 @@
   100% { transform: rotateY(0deg)   scale(1.06); }
 }
 @keyframes bspRing {
-  0%   { box-shadow: 0 0 0 0 rgba(201,168,76,.55); }
-  100% { box-shadow: 0 0 0 16px rgba(201,168,76,0); }
+  0%   { box-shadow: 0 0 0 0 rgba(217,239,85,.9); }
+  100% { box-shadow: 0 0 0 16px rgba(217,239,85,0); }
 }
 
 /* particles (appended to <body>) */
 .bsp-ach-particle {
   position: fixed; z-index: 9999; pointer-events: none;
-  font-size: 13px; color: var(--bsp-gold-2, #E8C97A);
-  text-shadow: 0 0 6px rgba(201,168,76,.7);
+  font-size: 13px; color: var(--bsp-accent, #0E7C5B);
+  text-shadow: 0 0 6px rgba(217,239,85,.9);
   transform: translate(-50%, -50%);
   animation: bspParticle .72s var(--bsp-ease, ease-out) forwards;
 }
@@ -174,6 +168,6 @@
 }
 
 @media (max-width: 380px) {
-  .bsp-ach-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-  .bsp-ach-crest { width: 82px; height: 98px; }
+  .bsp-ach-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 9px; }
+  .bsp-ach-crest { width: 80px; height: 96px; }
 }

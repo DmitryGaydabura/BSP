@@ -40,12 +40,9 @@ function switchTab(tab) {
 }
 
 function updateNavIcons() {
-  document.querySelectorAll('.nav-tab').forEach(btn => {
-    const active = btn.classList.contains('active');
-    btn.querySelectorAll('svg').forEach(svg => {
-      svg.style.stroke = active ? '#C9A84C' : '#4A6070';
-    });
-  });
+  // Icon colors are fully CSS-driven (stroke: currentColor on .nav-icon);
+  // clear any inline strokes left from earlier renders.
+  document.querySelectorAll('.nav-tab svg').forEach(svg => { svg.style.stroke = ''; });
 }
 
 document.querySelectorAll('.nav-tab').forEach(btn => {

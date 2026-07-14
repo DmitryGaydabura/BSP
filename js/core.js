@@ -65,8 +65,8 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor('#0D1B2E');
-  tg.setBackgroundColor('#0D1B2E');
+  tg.setHeaderColor('#F4F2EA');
+  tg.setBackgroundColor('#F4F2EA');
 }
 
 /* ── App state ─────────────────────────────────────────────────── */
