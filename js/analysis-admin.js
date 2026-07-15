@@ -284,17 +284,19 @@ async function openAdminAnalysisModal() {
 
     list.innerHTML = finished.map(t => {
       const isCup = t.type === 'CUP';
-      const canGenerate = isCup || !!t.raketoId;
+      const isAmericanoFamily = t.type === 'AMERICANO' || t.type === 'WINNERS_COURT';
+      const isNative = isCup || isAmericanoFamily;
+      const canGenerate = isNative || !!t.raketoId;
       return `
       <div class="aa-item" data-id="${t.id}" data-date="${t.date}">
         <div class="aa-item-header">
           <div class="aa-item-name">${esc(t.name)}</div>
           <div class="aa-item-date">${fmt(t.date)}</div>
         </div>
-        ${isCup
+        ${isNative
           ? `<div class="aa-linked">
                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-               Кубок — аналіз з даних BSP
+               ${isCup ? 'Кубок' : t.type === 'WINNERS_COURT' ? "Winner's Court" : 'Американо'} — аналіз з даних BSP
              </div>`
           : t.raketoId
             ? `<div class="aa-linked">
@@ -303,7 +305,7 @@ async function openAdminAnalysisModal() {
                  <button class="aa-unlink-btn" style="margin-left:auto;font-size:10px;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:0">Змінити</button>
                </div>`
             : ''}
-        ${!isCup ? `
+        ${!isNative ? `
         <div class="aa-picker" style="display:none">
           <div class="aa-date-row">
             <input type="date" class="form-input aa-date-input" value="${t.date}" style="flex:1;font-size:13px">

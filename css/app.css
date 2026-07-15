@@ -3157,6 +3157,73 @@ button.pf-stat:active { background: var(--surface); }
 .am-picker-row:active { background: var(--lime-soft); border-color: var(--ink); }
 .am-picker-pts { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
 
+.am-format-toggle { display: flex; gap: 6px; }
+.am-format-btn {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sec);
+  background: var(--surface);
+  border: 1.5px solid var(--border-def);
+  border-radius: var(--r-sm);
+  padding: 9px 6px;
+  text-align: center;
+}
+.am-format-btn.am-format-active {
+  color: var(--accent-deep);
+  background: var(--accent-soft);
+  border-color: rgba(14,124,91,0.4);
+}
+.am-format-btn:disabled { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════
+   WINNER'S COURT — round-by-round ladder
+   ═══════════════════════════════════════════════════════════════ */
+.wc-ladder { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.wc-ladder-court {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--border-def);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+}
+.wc-ladder-rank {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--on-ink);
+  background: var(--ink-fill);
+  border-radius: 50%;
+}
+.wc-ladder-rank.rank-1 { background: var(--accent); color: var(--on-accent); }
+.wc-ladder-pts {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+.wc-round-history { opacity: 0.72; }
+.wc-round-history .am-round-title { background: var(--surface); color: var(--text-muted); }
+.wc-advance-btn, .wc-finalize-btn { width: 100%; margin-top: 8px; }
+.wc-current-round-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin: 14px 0 6px;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    AI ANALYSIS
    ═══════════════════════════════════════════════════════════════ */

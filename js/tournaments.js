@@ -166,11 +166,14 @@ function renderUpcomingList(source, list) {
   wireTournamentRows(list);
 }
 
+/** AMERICANO and WINNERS_COURT share the app-user-created, self-managed format bucket. */
+const AM_FAMILY_TYPES = new Set(['AMERICANO', 'WINNERS_COURT']);
+
 /** Club (classic/cup) tournaments first, americano-format ones in their own
     section below — official americanos must not blend into the club list. */
 function splitByFormatHtml(items) {
-  const classic = items.filter(t => t.type !== 'AMERICANO');
-  const amer    = items.filter(t => t.type === 'AMERICANO');
+  const classic = items.filter(t => !AM_FAMILY_TYPES.has(t.type));
+  const amer    = items.filter(t => AM_FAMILY_TYPES.has(t.type));
   let html = classic.map(buildTournamentRow).join('');
   if (amer.length) {
     if (classic.length) html += `<div class="t-list-sep">🎾 Американо</div>`;
@@ -228,7 +231,7 @@ function buildTournamentDetailCard(t) {
       : (t.maxParticipants
           ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
           : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
     const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
     const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
@@ -319,10 +322,10 @@ function buildTournamentDetailCard(t) {
       ? `<button class="t-admin-btn t-admin-cup-finalize-btn" data-id="${t.id}">✓ Фіналізувати кубок</button>`
       : '';
 
-    // Americano: creator of a friendly tournament manages it like an admin
+    // Americano / Winner's Court: the creator manages their own tournament like an admin
     const canManageT = currentUser && (currentUser.role === 'ADMIN'
-        || (t.friendly && t.createdById === currentUser.id));
-    const amViewBtn = (t.type === 'AMERICANO' && (t.status === 'ACTIVE' || (t.status === 'DRAFT' && canManageT)))
+        || t.createdById === currentUser.id);
+    const amViewBtn = (AM_FAMILY_TYPES.has(t.type) && (t.status === 'ACTIVE' || (t.status === 'DRAFT' && canManageT)))
       ? `<button class="chip-btn chip-cup-view am-view-btn" data-id="${t.id}">${t.status === 'DRAFT' ? '⚙ Керувати турніром' : 'Раунди та рахунок'}</button>`
       : '';
     const friendlyBadges = `${t.friendly ? '<span class="friendly-badge">Дружній</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}`;
@@ -487,8 +490,8 @@ function renderFinishedList(source, list) {
     return;
   }
 
-  const classic = filtered.filter(t => t.type !== 'AMERICANO');
-  const amer    = filtered.filter(t => t.type === 'AMERICANO');
+  const classic = filtered.filter(t => !AM_FAMILY_TYPES.has(t.type));
+  const amer    = filtered.filter(t => AM_FAMILY_TYPES.has(t.type));
   let html = classic.map(buildFinishedRow).join('');
   if (amer.length) {
     if (classic.length) html += `<div class="t-list-sep">🎾 Американо</div>`;
@@ -503,7 +506,7 @@ function buildFinishedDetailCard(t) {
     const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
     const top3    = results.filter(r => r.pos >= 1 && r.pos <= 3);
     const rest    = results.filter(r => r.pos > 3);
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
 
     const podiumConfig = [
       { pos: 2, cls: 'fp-2', blockCls: 'fp-b2', rankCls: 'fp-r2', crown: '' },
@@ -564,7 +567,7 @@ function buildFinishedDetailCard(t) {
 
     const cupViewBtn = t.type === 'CUP'
       ? `<button class="chip-btn chip-cup-view cup-view-btn" data-id="${t.id}">Переглянути Кубок</button>`
-      : t.type === 'AMERICANO'
+      : AM_FAMILY_TYPES.has(t.type)
       ? `<button class="chip-btn chip-cup-view am-view-btn" data-id="${t.id}">Раунди та рахунок</button>`
       : '';
     const friendlyBadges = `${t.friendly ? '<span class="friendly-badge">Дружній</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}`;
@@ -596,7 +599,7 @@ function wireAdminTournamentBtns(container) {
     btn.addEventListener('click', async () => {
       const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
       if (!t) return;
-      if (t.type === 'AMERICANO') openEditAmericano(t);
+      if (AM_FAMILY_TYPES.has(t.type)) openEditAmericano(t);
       else await openEditTournament(t);
     });
   });
@@ -606,8 +609,9 @@ function wireAdminTournamentBtns(container) {
       const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
       btn.disabled = true;
       try {
-        // Americano goes through its own endpoint — friendly creators may delete their own
+        // Americano / Winner's Court go through their own endpoints — creators may delete their own
         if (t?.type === 'AMERICANO') await API.americano.delete(btn.dataset.id);
+        else if (t?.type === 'WINNERS_COURT') await API.winnersCourt.delete(btn.dataset.id);
         else await API.tournaments.delete(btn.dataset.id);
         tournamentsData = null;
         renderResults();
@@ -618,7 +622,11 @@ function wireAdminTournamentBtns(container) {
     });
   });
   container.querySelectorAll('.am-view-btn').forEach(btn => {
-    btn.addEventListener('click', () => openAmericanoModal(btn.dataset.id));
+    btn.addEventListener('click', () => {
+      const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
+      if (t?.type === 'WINNERS_COURT') openWinnersCourtModal(btn.dataset.id);
+      else openAmericanoModal(btn.dataset.id);
+    });
   });
   container.querySelectorAll('.t-admin-cup-start-btn').forEach(btn => {
     btn.addEventListener('click', () => openCupStartModal(btn.dataset.id));
@@ -727,6 +735,7 @@ function tTypeLabel(t) {
   return t.type === 'SINGLE' ? 'Одиночний'
        : t.type === 'CUP' ? '🏆 Кубок'
        : t.type === 'AMERICANO' ? '🎾 Американо'
+       : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court"
        : 'Парний';
 }
 
@@ -749,7 +758,7 @@ function buildTournamentRow(t) {
     cnt,
   ].filter(Boolean).join(' · ');
   return `
-    <button class="t-row${t.friendly ? ' t-row-friendly' : ''}${t.type === 'AMERICANO' ? ' t-row-am' : ''}" data-id="${t.id}">
+    <button class="t-row${t.friendly ? ' t-row-friendly' : ''}${AM_FAMILY_TYPES.has(t.type) ? ' t-row-am' : ''}" data-id="${t.id}">
       ${tRowDateBlock(t)}
       <div class="t-row-main">
         <div class="t-row-name">${esc(t.name)}${isLive ? '<span class="live-badge">● LIVE</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}</div>
@@ -770,7 +779,7 @@ function buildFinishedRow(t) {
     ? results.find(r => (r.players || []).some(p => p.id != null && String(p.id) === String(currentUser.id)))
     : null;
   return `
-    <button class="t-row t-row-done${t.friendly ? ' t-row-friendly' : ''}${t.type === 'AMERICANO' ? ' t-row-am' : ''}" data-id="${t.id}">
+    <button class="t-row t-row-done${t.friendly ? ' t-row-friendly' : ''}${AM_FAMILY_TYPES.has(t.type) ? ' t-row-am' : ''}" data-id="${t.id}">
       ${tRowDateBlock(t)}
       <div class="t-row-main">
         <div class="t-row-name">${esc(t.name)}</div>

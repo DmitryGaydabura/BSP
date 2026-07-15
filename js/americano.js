@@ -7,13 +7,14 @@ let americanoState = null;        // AmericanoDto from the backend
 let americanoTournamentId = null;
 let editingAmericanoId = null;
 let americanoDirectory = null;    // cached /users/directory for the add-picker
+let amSelectedFormat = 'CLASSIC'; // 'CLASSIC' | 'WINNERS_COURT' — selected in the shared create/edit modal
 
 const AM_SIZES  = [4, 8, 12, 16];
 const AM_POINTS = [16, 21, 24, 32];
 
 function isAmericanoManager(t) {
   return !!(currentUser && (currentUser.role === 'ADMIN'
-      || (t.friendly && t.createdById === currentUser.id)));
+      || t.createdById === currentUser.id));
 }
 
 /* ── Create / edit modal ─────────────────────────────────────────── */
@@ -30,24 +31,49 @@ function populateAmTimeSelect() {
 }
 
 function amToggleAdminSection() {
-  const isAdmin = currentUser?.role === 'ADMIN';
-  document.getElementById('am-admin-section').style.display = isAdmin ? '' : 'none';
+  document.getElementById('am-admin-section').style.display = '';
   amToggleRatingInputs();
 }
 
 function amToggleRatingInputs() {
   const official = document.getElementById('am-official').checked;
-  document.getElementById('am-rating-row').style.display =
-      (currentUser?.role === 'ADMIN' && official) ? 'flex' : 'none';
+  document.getElementById('am-rating-row').style.display = official ? 'flex' : 'none';
 }
 
 function amUpdateRoundsHint() {
   const n = parseInt(document.getElementById('am-max-participants').value, 10);
   const input = document.getElementById('am-rounds');
-  input.placeholder = `авто (${n - 1})`;
-  document.getElementById('am-rounds-hint').textContent =
-      `За замовчуванням ${n - 1} раундів — кожен гравець у парі з кожним рівно 1 раз.`;
+  const hint = document.getElementById('am-rounds-hint');
+  if (amSelectedFormat === 'WINNERS_COURT') {
+    const courts = n / 4;
+    input.placeholder = "обов'язково";
+    hint.textContent = `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — переможці підіймаються на вищий корт, переможені опускаються.`;
+  } else {
+    input.placeholder = `авто (${n - 1})`;
+    hint.textContent = `За замовчуванням ${n - 1} раундів — кожен гравець у парі з кожним рівно 1 раз.`;
+  }
 }
+
+/** Switch the shared create/edit modal between classic Americano and Winner's Court. */
+function amSetFormat(format) {
+  amSelectedFormat = format;
+  document.getElementById('am-format-classic').classList.toggle('am-format-active', format === 'CLASSIC');
+  document.getElementById('am-format-wc').classList.toggle('am-format-active', format === 'WINNERS_COURT');
+  document.getElementById('am-format-hint').textContent = format === 'WINNERS_COURT'
+      ? "Winner's Court: переможці рухаються на вищий корт, переможені — на нижчий; партнер попереднього раунду стає суперником."
+      : 'Класичний американо: кожен гравець грає в парі з кожним іншим рівно по одному разу.';
+  amUpdateRoundsHint();
+}
+
+/** Format can't change once a tournament exists — lock the toggle while editing. */
+function amLockFormatToggle(locked) {
+  document.getElementById('am-format-classic').disabled = locked;
+  document.getElementById('am-format-wc').disabled = locked;
+  document.getElementById('am-format-row').style.opacity = locked ? '0.55' : '';
+}
+
+document.getElementById('am-format-classic').addEventListener('click', () => amSetFormat('CLASSIC'));
+document.getElementById('am-format-wc').addEventListener('click', () => amSetFormat('WINNERS_COURT'));
 
 // Fill the americano level selects from the shared levels cache (analysis-admin.js)
 async function amPopulateLevelSelects() {
@@ -61,6 +87,8 @@ async function amPopulateLevelSelects() {
 async function openCreateAmericano() {
   if (!currentUser) { showToast('Увійдіть через Telegram, щоб створити турнір', 'error'); return; }
   editingAmericanoId = null;
+  amLockFormatToggle(false);
+  amSetFormat('CLASSIC');
   document.querySelector('#modal-create-americano .modal-title').textContent = 'Новий американо';
   document.getElementById('am-submit').textContent = 'Створити';
   document.getElementById('am-name').value = '';
@@ -88,7 +116,11 @@ async function openCreateAmericano() {
 
 async function openEditAmericano(t) {
   editingAmericanoId = t.id;
-  document.querySelector('#modal-create-americano .modal-title').textContent = 'Редагувати американо';
+  const isWc = t.type === 'WINNERS_COURT';
+  amSetFormat(isWc ? 'WINNERS_COURT' : 'CLASSIC');
+  amLockFormatToggle(true);
+  document.querySelector('#modal-create-americano .modal-title').textContent =
+      isWc ? "Редагувати Winner's Court" : 'Редагувати американо';
   document.getElementById('am-submit').textContent = 'Зберегти';
   populateAmTimeSelect();
   document.getElementById('am-name').value = t.name || '';
@@ -121,8 +153,14 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const date = document.getElementById('am-date').value;
   if (!name || !date) { showToast('Вкажіть назву та дату', 'error'); return; }
 
-  const isAdmin  = currentUser?.role === 'ADMIN';
-  const official = isAdmin && document.getElementById('am-official').checked;
+  const isWc = amSelectedFormat === 'WINNERS_COURT';
+  const roundsCount = parseInt(document.getElementById('am-rounds').value) || null;
+  if (isWc && !roundsCount) {
+    showToast("Вкажіть кількість раундів для Winner's Court", 'error');
+    return;
+  }
+
+  const official = document.getElementById('am-official').checked;
   const payload = {
     name, date,
     level:           document.getElementById('am-level').value || null,
@@ -133,7 +171,7 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     price:           parseInt(document.getElementById('am-price').value) || null,
     maxParticipants: parseInt(document.getElementById('am-max-participants').value, 10),
     pointsPerMatch:  parseInt(document.getElementById('am-points').value, 10),
-    roundsCount:     parseInt(document.getElementById('am-rounds').value) || null,
+    roundsCount,
     isPrivate:       document.getElementById('am-private').checked,
     resultEntryMode: document.getElementById('am-entry-all').checked ? 'ALL_PARTICIPANTS' : 'CREATOR_ONLY',
     friendly:        !official,
@@ -142,15 +180,16 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     description:     document.getElementById('am-description').value.trim() || null,
   };
 
+  const api = isWc ? API.winnersCourt : API.americano;
   const btn = document.getElementById('am-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
     if (editingAmericanoId) {
-      await API.americano.update(editingAmericanoId, payload);
+      await api.update(editingAmericanoId, payload);
       showToast('Турнір оновлено', 'success');
     } else {
-      await API.americano.create(payload);
-      showToast('Американо створено! 🎾', 'success');
+      await api.create(payload);
+      showToast(isWc ? "Winner's Court створено! 🎾" : 'Американо створено! 🎾', 'success');
     }
     tournamentsData = null;
     closeModal('modal-create-americano');

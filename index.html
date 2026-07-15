@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#F4F2EA">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=16"></script>
+  <script src="js/api.js?v=17"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=61">
+  <link rel="stylesheet" href="css/app.css?v=62">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=4">
 </head>
 <body>
@@ -951,6 +951,14 @@
       <button class="modal-close" data-close="modal-create-americano">✕</button>
     </div>
     <div class="modal-body">
+      <div class="form-group" id="am-format-row">
+        <label class="form-label">Формат</label>
+        <div class="am-format-toggle">
+          <button type="button" class="am-format-btn am-format-active" id="am-format-classic" data-format="CLASSIC">Класичний</button>
+          <button type="button" class="am-format-btn" id="am-format-wc" data-format="WINNERS_COURT">Winner's Court</button>
+        </div>
+        <small id="am-format-hint" style="display:block;margin-top:4px;color:var(--text-muted);font-size:11px"></small>
+      </div>
       <div class="form-group">
         <label class="form-label">Назва турніру</label>
         <input class="form-input" id="am-name" type="text" placeholder="Американо по п'ятницях">
@@ -1104,14 +1112,72 @@
   </div>
 </div>
 
+<!-- Winner's Court: detail modal (ladder, round history, score entry, standings) -->
+<div class="modal-overlay" id="modal-winners-court">
+  <div class="modal-sheet modal-sheet-tall">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="wc-modal-title">Winner's Court</span>
+      <button class="modal-close" data-close="modal-winners-court">✕</button>
+    </div>
+    <div class="modal-body" id="wc-modal-body">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Winner's Court: match score entry -->
+<div class="modal-overlay" id="modal-winners-court-score">
+  <div class="modal-sheet" style="max-height:340px">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Рахунок матчу</span>
+      <button class="modal-close" data-close="modal-winners-court-score">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+        <div style="text-align:center;flex:1">
+          <div id="wc-score-teama" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="wc-score-1" min="0" placeholder="0">
+        </div>
+        <div style="font-size:24px;font-weight:700;color:var(--text-muted)">:</div>
+        <div style="text-align:center;flex:1">
+          <div id="wc-score-teamb" style="font-size:11px;color:var(--text-muted);margin-bottom:4px"></div>
+          <input class="form-input cup-score-input" type="number" id="wc-score-2" min="0" placeholder="0">
+        </div>
+      </div>
+      <div id="wc-score-hint" style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:8px"></div>
+      <button class="btn-primary" id="wc-score-submit" style="width:100%;margin-top:14px">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Winner's Court: add-participant picker (creator-managed roster) -->
+<div class="modal-overlay" id="modal-winners-court-add">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Додати учасника</span>
+      <button class="modal-close" data-close="modal-winners-court-add">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <input class="form-input" id="wc-picker-search" type="text" placeholder="Пошук гравця...">
+      </div>
+      <div id="wc-picker-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=48" defer></script>
-<script src="js/tournaments.js?v=67" defer></script>
-<script src="js/americano.js?v=6" defer></script>
+<script src="js/tournaments.js?v=80" defer></script>
+<script src="js/americano.js?v=14" defer></script>
+<script src="js/winners-court.js?v=2" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
 <script src="js/players.js?v=71" defer></script>
-<script src="js/analysis-admin.js?v=79" defer></script>
+<script src="js/analysis-admin.js?v=80" defer></script>
 <script src="js/home.js?v=1" defer></script>
 <script src="js/app.js?v=72" defer></script>
   <!-- Home screen banner -->

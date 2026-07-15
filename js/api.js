@@ -96,6 +96,19 @@ const API = (() => {
       removeParticipant: (id, userId)   => request('DELETE', `/tournaments/${id}/americano/participants/${userId}`),
     },
 
+    winnersCourt: {
+      get:               id             => request('GET',    `/tournaments/${id}/winners-court`),
+      create:            data           => request('POST',   '/tournaments/winners-court', data),
+      update:            (id, data)     => request('PUT',    `/tournaments/winners-court/${id}`, data),
+      start:             id             => request('POST',   `/tournaments/${id}/winners-court/start`),
+      submitMatch:       (id, matchId, s) => request('PUT',  `/tournaments/${id}/winners-court/matches/${matchId}/result`, s),
+      advanceRound:      id             => request('POST',   `/tournaments/${id}/winners-court/advance-round`),
+      finalize:          id             => request('POST',   `/tournaments/${id}/winners-court/finalize`),
+      delete:            id             => request('DELETE', `/tournaments/${id}/winners-court`),
+      addParticipant:    (id, userId)   => request('POST',   `/tournaments/${id}/winners-court/participants/${userId}`),
+      removeParticipant: (id, userId)   => request('DELETE', `/tournaments/${id}/winners-court/participants/${userId}`),
+    },
+
     cup: {
       get:              id              => request('GET',  `/tournaments/${id}/cup`),
       start:            (id, payload)   => request('POST', `/tournaments/${id}/cup/start`, payload),
