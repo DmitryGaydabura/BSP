@@ -115,6 +115,9 @@ async function renderResults() {
     rebuildMonthChips(finished);
     renderFinishedList(finished, list);
   }
+
+  // Keep an open tournament detail page in sync with freshly fetched data
+  refreshOpenTournamentPage();
 }
 
 /** Friendly subtab: active friendly tournaments on top, finished ones below. */
@@ -150,10 +153,17 @@ function renderUpcomingList(source, list) {
     return;
   }
 
-  const statusLabel = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено', GROUP_STAGE: 'Груповий етап', PLAYOFF: 'Плей-офф' };
-  const statusCls   = { DRAFT: 't-status-draft', ACTIVE: 't-status-active', FINISHED: 't-status-done', GROUP_STAGE: 't-status-live', PLAYOFF: 't-status-live' };
+  list.innerHTML = filtered.map(buildTournamentRow).join('');
+  wireTournamentRows(list);
+}
 
-  list.innerHTML = filtered.map(t => {
+const T_STATUS_LABEL = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено', GROUP_STAGE: 'Груповий етап', PLAYOFF: 'Плей-офф' };
+const T_STATUS_CLS   = { DRAFT: 't-status-draft', ACTIVE: 't-status-active', FINISHED: 't-status-done', GROUP_STAGE: 't-status-live', PLAYOFF: 't-status-live' };
+
+/** Full interactive tournament view — the body of the tournament detail page. */
+function buildTournamentDetailCard(t) {
+  const statusLabel = T_STATUS_LABEL;
+  const statusCls   = T_STATUS_CLS;
     const confirmed     = t.participants || [];
     const reserve       = t.reserveParticipants || [];
     const pairRegs      = t.pairRegistrations || [];
@@ -335,20 +345,12 @@ function renderUpcomingList(source, list) {
         ${participantsList}
         ${reserveList}
       </div>`;
-  }).join('');
+}
 
+/** Wire join/leave/pair/admin actions inside a rendered tournament detail card. */
+function wireTournamentCardActions(list) {
   list.querySelectorAll('.sr-join-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tid = parseInt(btn.dataset.id, 10);
-      const tournament = (tournamentsData || []).find(t => t.id === tid);
-      // Raketo-link is required for self-enrollment (admins bypass this; friendly tournaments are open to everyone)
-      if (!tournament?.friendly && currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
-        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
-        switchTab('profile');
-        return;
-      }
-      if (tournament) showRegistrationConfirm(tournament);
-    });
+    btn.addEventListener('click', () => attemptJoinTournament(parseInt(btn.dataset.id, 10)));
   });
 
   list.querySelectorAll('.sr-leave-btn').forEach(btn => {
@@ -389,16 +391,7 @@ function renderUpcomingList(source, list) {
   });
 
   list.querySelectorAll('.sr-join-reserve-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
-        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
-        switchTab('profile');
-        return;
-      }
-      const tid = parseInt(btn.dataset.id, 10);
-      const tournament = (tournamentsData || []).find(x => x.id === tid);
-      if (tournament) showRegistrationConfirm(tournament, false, true);
-    });
+    btn.addEventListener('click', () => attemptJoinTournament(parseInt(btn.dataset.id, 10), true));
   });
 
   list.querySelectorAll('.sr-pair-cancel-btn').forEach(btn => {
@@ -472,7 +465,12 @@ function renderFinishedList(source, list) {
     return;
   }
 
-  list.innerHTML = filtered.map(t => {
+  list.innerHTML = filtered.map(buildFinishedRow).join('');
+  wireTournamentRows(list);
+}
+
+/** Finished tournament full view (podium + results table) — detail page body. */
+function buildFinishedDetailCard(t) {
     const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
     const top3    = results.filter(r => r.pos >= 1 && r.pos <= 3);
     const rest    = results.filter(r => r.pos > 3);
@@ -562,9 +560,6 @@ function renderFinishedList(source, list) {
       ${restHtml}
       ${analysisBtn}
     </div>`;
-  }).join('');
-
-  wireAdminTournamentBtns(list);
 }
 
 function wireAdminTournamentBtns(container) {
@@ -663,4 +658,170 @@ document.getElementById('results-filter').addEventListener('click', e => {
   activeResultFilter = chip.dataset.filter;
   renderResults();
 });
+
+/* ════════════════════════════════════════════════════════════════
+   COMPACT LIST ROWS + FULL-SCREEN TOURNAMENT PAGE
+   Lists show scannable rows; tapping one opens the detail page,
+   whose body is the full interactive card (buildTournamentDetailCard
+   / buildFinishedDetailCard) with all join/pair/admin actions.
+════════════════════════════════════════════════════════════════ */
+
+function tRowDateBlock(t) {
+  const d = new Date(t.date);
+  return `<div class="t-row-date"><span class="t-row-day">${d.getDate()}</span><span class="t-row-mon">${UA_MONTHS[d.getMonth()]}</span></div>`;
+}
+
+/** The current user's relation to a tournament, or null when not enrolled. */
+function myEnrollmentState(t) {
+  if (!currentUser) return null;
+  const isPairReg = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+  if (isPairReg) {
+    const inEntry = pool => (pool || []).find(pr =>
+      pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id);
+    const main = inEntry(t.pairRegistrations);
+    const res  = inEntry(t.pairReserveRegistrations);
+    if (!main && !res && t.myPendingPairRequestId) return { label: '⏳ Заявка надіслана', cls: 'wait' };
+    if (main && main.player2) return { label: '✓ У парі', cls: 'ok' };
+    if (main)                 return { label: '🔍 Шукаєте пару', cls: 'warn' };
+    if (res && res.player2)   return { label: '⏳ Резерв · у парі', cls: 'wait' };
+    if (res)                  return { label: '⏳ Резерв', cls: 'wait' };
+    return null;
+  }
+  const inMain = (t.participants || []).some(p => p.id === currentUser.id);
+  const inRes  = (t.reserveParticipants || []).some(p => p.id === currentUser.id);
+  if (inMain) return { label: '✓ Зареєстровано', cls: 'ok' };
+  if (inRes)  return { label: '⏳ Резерв', cls: 'wait' };
+  return null;
+}
+
+function tTypeLabel(t) {
+  return t.type === 'SINGLE' ? 'Одиночний'
+       : t.type === 'CUP' ? '🏆 Кубок'
+       : t.type === 'AMERICANO' ? '🎾 Американо'
+       : 'Парний';
+}
+
+function buildTournamentRow(t) {
+  const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
+  const isPairReg = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+  const pairRegs = t.pairRegistrations || [];
+  const cnt = isPairReg
+    ? (t.maxParticipants
+        ? `${pairRegs.length}/${Math.floor(t.maxParticipants / 2)} пар`
+        : (pairRegs.length ? `${pairRegs.length} пар` : ''))
+    : (t.maxParticipants
+        ? `${t.participantCount || 0}/${t.maxParticipants} уч.`
+        : (t.participantCount ? `${t.participantCount} уч.` : ''));
+  const st = myEnrollmentState(t);
+  const meta = [
+    t.time ? t.time.slice(0, 5) : null,
+    t.levelRangeLabel || t.levelLabel,
+    tTypeLabel(t),
+    cnt,
+  ].filter(Boolean).join(' · ');
+  return `
+    <button class="t-row${t.friendly ? ' t-row-friendly' : ''}" data-id="${t.id}">
+      ${tRowDateBlock(t)}
+      <div class="t-row-main">
+        <div class="t-row-name">${esc(t.name)}${isLive ? '<span class="live-badge">● LIVE</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}</div>
+        <div class="t-row-meta">${esc(meta)}</div>
+        <div class="t-row-tags">
+          <span class="${T_STATUS_CLS[t.status] || 't-status-done'}">${T_STATUS_LABEL[t.status] || esc(t.status)}</span>
+          ${st ? `<span class="t-row-state st-${st.cls}">${st.label}</span>` : ''}
+        </div>
+      </div>
+      <span class="t-row-chev">›</span>
+    </button>`;
+}
+
+function buildFinishedRow(t) {
+  const results = t.results || [];
+  const win = results.find(r => r.pos === 1);
+  const my = currentUser
+    ? results.find(r => (r.players || []).some(p => p.id != null && String(p.id) === String(currentUser.id)))
+    : null;
+  return `
+    <button class="t-row t-row-done${t.friendly ? ' t-row-friendly' : ''}" data-id="${t.id}">
+      ${tRowDateBlock(t)}
+      <div class="t-row-main">
+        <div class="t-row-name">${esc(t.name)}</div>
+        <div class="t-row-meta">${win ? `🥇 ${esc(win.pair.join(' / '))}` : tTypeLabel(t)}</div>
+        <div class="t-row-tags">
+          ${t.levelLabel ? `<span class="level-badge level-badge-sm ${levelClass(t.levelLabel)}">${t.levelRangeLabel || t.levelLabel}</span>` : ''}
+          ${my ? `<span class="t-row-state ${my.pts >= 0 ? 'st-ok' : 'st-neg'}">Ви: #${my.pos} · ${my.pts > 0 ? '+' : ''}${my.pts}</span>` : ''}
+          ${t.hasAnalysis ? '<span class="t-row-state st-wait">AI аналіз</span>' : ''}
+        </div>
+      </div>
+      <span class="t-row-chev">›</span>
+    </button>`;
+}
+
+function wireTournamentRows(list) {
+  list.querySelectorAll('.t-row').forEach(row => {
+    row.addEventListener('click', () => openTournamentPage(parseInt(row.dataset.id, 10)));
+  });
+}
+
+/* ── Tournament detail page ─────────────────────────────────────── */
+let tPageId = null;
+
+async function openTournamentPage(tid) {
+  tPageId = tid;
+  const page = document.getElementById('t-page');
+  const body = document.getElementById('t-page-body');
+  page.classList.add('t-page-visible');
+  if (tg) tg.BackButton.show();
+
+  let t = (tournamentsData || []).find(x => String(x.id) === String(tid));
+  if (!t) {
+    body.innerHTML = '<div class="history-loading">Завантаження...</div>';
+    try {
+      t = normalizeTournament(await API.tournaments.get(tid));
+    } catch {
+      body.innerHTML = `<div class="tab-offline-state"><div class="tab-offline-icon">📡</div><div class="tab-offline-text">Не вдалося завантажити турнір</div></div>`;
+      return;
+    }
+    if (tPageId !== tid) return; // page changed while loading
+  }
+  renderTournamentPage(t);
+}
+
+function renderTournamentPage(t) {
+  document.getElementById('t-page-title').textContent = t.name;
+  const body = document.getElementById('t-page-body');
+  body.innerHTML = t.status === 'FINISHED'
+    ? buildFinishedDetailCard(t)
+    : buildTournamentDetailCard(t);
+  wireTournamentCardActions(body);
+  body.scrollTop = 0;
+}
+
+function closeTournamentPage() {
+  tPageId = null;
+  document.getElementById('t-page').classList.remove('t-page-visible');
+  if (tg && currentTab === 'home') tg.BackButton.hide();
+}
+
+/** Re-render the open detail page after tournamentsData was refetched. */
+function refreshOpenTournamentPage() {
+  if (!tPageId) return;
+  const t = (tournamentsData || []).find(x => String(x.id) === String(tPageId));
+  if (t) renderTournamentPage(t);
+}
+
+document.getElementById('t-page-back').addEventListener('click', closeTournamentPage);
+
+/** Registration entry point shared by list, detail page and Home hero. */
+function attemptJoinTournament(tid, asReserve = false) {
+  const tournament = (tournamentsData || []).find(t => t.id === tid);
+  if (!tournament) return;
+  // Raketo link is required for self-enrollment (admins bypass this;
+  // friendly tournaments are open to everyone)
+  if (!tournament.friendly && currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
+    showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+    switchTab('profile');
+    return;
+  }
+  showRegistrationConfirm(tournament, false, asReserve);
+}
 

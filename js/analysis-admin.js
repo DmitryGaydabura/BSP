@@ -940,8 +940,9 @@ function openAdminImportModal() {
 /* ── Modal helpers ──────────────────────────────────────────────── */
 function openModal(id) {
   const el = document.getElementById(id);
-  const topZ = Math.max(100, ...[...document.querySelectorAll('.modal-overlay.open')]
-    .map(m => parseInt(m.style.zIndex) || 100));
+  // Baseline 200 keeps modals above the tournament detail page (z 150)
+  const topZ = Math.max(200, ...[...document.querySelectorAll('.modal-overlay.open')]
+    .map(m => parseInt(m.style.zIndex) || 200));
   el.style.zIndex = topZ + 10;
   el.classList.add('open');
 }

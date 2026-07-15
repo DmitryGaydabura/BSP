@@ -3,13 +3,17 @@
 ════════════════════════════════════════════════════════════════ */
 
 const TABS = {
+  home:     'tab-home',
   results:  'tab-results',
   ratings:  'tab-ratings',
   profile:  'tab-profile',
   activity: 'tab-activity',
 };
-let currentTab = 'ratings';
-let rendered = { results: false, ratings: true, profile: false, activity: false };
+// Activity lives inside the Ratings screen (segment toggle) — highlight the
+// ratings nav button while it is open.
+const NAV_KEY = { activity: 'ratings' };
+let currentTab = 'home';
+let rendered = { home: true, results: false, ratings: false, profile: false, activity: false };
 
 function switchTab(tab) {
   if (tab === currentTab) return;
@@ -18,16 +22,19 @@ function switchTab(tab) {
   document.getElementById(TABS[tab]).classList.add('active');
 
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.nav-tab[data-tab="${tab}"]`).classList.add('active');
+  document.querySelector(`.nav-tab[data-tab="${NAV_KEY[tab] || tab}"]`)?.classList.add('active');
 
   document.getElementById('content').scrollTop = 0;
 
   if (!rendered[tab]) {
+    if (tab === 'home')     renderHome();
     if (tab === 'results')  renderResults();
     if (tab === 'ratings')  renderRatings();
     if (tab === 'profile')  renderProfile();
     if (tab === 'activity') renderActivity();
     rendered[tab] = true;
+  } else if (tab === 'home') {
+    renderHome(); // cheap: uses cached data, keeps «next game» fresh
   } else if (tab === 'profile') {
     renderProfile();
   } else if (tab === 'results') {
@@ -56,8 +63,14 @@ updateNavIcons();
 ════════════════════════════════════════════════════════════════ */
 if (tg) {
   tg.BackButton.onClick(() => {
-    if (currentTab !== 'ratings') {
-      switchTab('ratings');
+    // Back navigation: tournament page → home tab → close app
+    if (typeof tPageId !== 'undefined' && tPageId) {
+      closeTournamentPage();
+      if (currentTab !== 'home') tg.BackButton.show();
+      return;
+    }
+    if (currentTab !== 'home') {
+      switchTab('home');
       tg.BackButton.hide();
     } else {
       tg.close();
@@ -66,11 +79,16 @@ if (tg) {
 
   document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.tab !== 'ratings') tg.BackButton.show();
+      if (btn.dataset.tab !== 'home') tg.BackButton.show();
       else tg.BackButton.hide();
     });
   });
 }
+
+/* Segment toggles (Рейтинг ↔ Активність inside the ratings screen) */
+document.querySelectorAll('.seg-btn[data-seg]').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.seg));
+});
 
 /* ════════════════════════════════════════════════════════════════
    REGISTRATION CONFIRM SCREEN
@@ -1119,7 +1137,7 @@ async function handleTournamentDeepLink(tournamentId) {
     showRegistrationConfirm(tournament, alreadyEnrolled);
   } catch {
     showToast('Не вдалося завантажити турнір', 'error');
-    renderRatings();
+    renderHome();
   }
 }
 
@@ -1241,7 +1259,7 @@ function initHomescreenBanner() {
   }
 }
 
-renderRatings();
+renderHome();
 
 apiBootstrap().then(async () => {
   apiLoading = false;
@@ -1252,9 +1270,10 @@ apiBootstrap().then(async () => {
   } else {
     achievementsConfig = [];
   }
-  renderRatings(); // replace skeleton with real data or offline state
+  renderHome(); // replace skeleton with real data or offline state
 
-  // Re-render results if visible (bootstrap may have completed while user was on that tab)
+  // Re-render other tabs if the user navigated there before bootstrap finished
+  if (currentTab === 'ratings') renderRatings();
   if (currentTab === 'results') {
     tournamentsData = null;
     renderResults();

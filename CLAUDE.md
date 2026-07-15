@@ -37,13 +37,16 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 | File | Responsibility |
 |---|---|
 | `js/core.js` | App-state globals (`currentUser`, `apiAvailable`, `apiLoading`), Telegram WebApp init, `apiBootstrap()`, fallback data arrays, shared helpers (`fmt`, `ratioClass`) |
-| `js/tournaments.js` | Results tab rendering (`renderResults`, `renderUpcomingList`, `renderFinishedList`), `normalizeTournament`, pair participants list |
-| `js/players.js` | Ratings tab (`renderRatings`, `renderRatingsSkeleton`), player profile sheet, H2H modal, activity tab, `updateMemberCount` |
-| `js/analysis-admin.js` | All admin modals: create/edit tournament, submit results, cup start, admin user management, analysis, Raketo import. Tournament levels cache. |
-| `js/app.js` | Tab navigation, registration confirm screen, toast, cup detail modal + score entry, bootstrap `.then()` handler |
+| `js/tournaments.js` | Tournaments tab: compact rows (`buildTournamentRow`/`buildFinishedRow`) + full-screen detail page `#t-page` (`openTournamentPage`, `buildTournamentDetailCard`, `buildFinishedDetailCard`, `wireTournamentCardActions`), `normalizeTournament`, `myEnrollmentState`, `attemptJoinTournament` |
+| `js/home.js` | Home tab (`renderHome`) — default screen: next-game hero, rank/activity tiles, live banner, last result |
+| `js/players.js` | Ratings screen (`renderRatings`, `renderRatingsSkeleton`), player profile sheet, H2H modal, activity screen, `updateMemberCount` |
+| `js/analysis-admin.js` | All admin modals: create/edit tournament, submit results, cup start, admin user management, analysis, Raketo import. Tournament levels cache. `openModal` z-baseline is 200 (above `#t-page` at 150). |
+| `js/app.js` | Tab navigation (home-first; `NAV_KEY` maps activity→ratings nav highlight), Рейтинг↔Активність segment toggle, Telegram BackButton (page → home → close), registration confirm screen, toast, cup detail modal + score entry, bootstrap `.then()` handler |
 | `js/api.js` | Thin REST client — all `fetch` calls live here. Reads `window.BSP_API_URL` from `config.js`. |
-| `css/app.css` | All styles — single file, ~3500 lines |
+| `css/app.css` | All styles — single file |
 | `config.js` | Sets `window.BSP_API_URL` — the only file that changes between local/prod |
+
+**Navigation model:** bottom tabs Головна · Турніри · Рейтинг · Профіль (Головна is default; Активність is not a tab — it's a segment inside Рейтинг). Tournament lists render compact `.t-row` rows; tapping opens the full-screen `#t-page` detail (z-index 150) whose body is the old interactive card with all join/pair/admin actions. After any data mutation `renderResults()` refetches and `refreshOpenTournamentPage()` re-renders an open detail page.
 
 **Cache-busting:** all `<script>` and `<link>` tags in `index.html` use `?v=N`. Bump the version whenever you change a file.
 

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=36">
+  <link rel="stylesheet" href="css/app.css?v=38">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=2">
 </head>
 <body>
@@ -89,6 +89,15 @@
   </div>
 </div>
 
+<!-- Tournament detail page — full-screen, stacked over the tabs -->
+<div id="t-page">
+  <div class="t-page-header">
+    <button class="t-page-back" id="t-page-back">&#8592;</button>
+    <span class="t-page-title" id="t-page-title">Турнір</span>
+  </div>
+  <div class="t-page-body" id="t-page-body"></div>
+</div>
+
 <div id="app">
 
   <!-- Header -->
@@ -103,6 +112,17 @@
 
   <!-- Content -->
   <main id="content">
+
+    <!-- ═══ TAB: ГОЛОВНА ══════════════════════════════════════════ -->
+    <div id="tab-home" class="tab-panel active">
+      <div class="results-header">
+        <div class="section-eyebrow">Blacksea Padel · Odesa</div>
+        <div class="section-title" id="home-greeting">Привіт! 👋</div>
+      </div>
+      <div id="home-body">
+        <!-- rendered by renderHome() -->
+      </div>
+    </div>
 
     <!-- ═══ TAB: РЕЗУЛЬТАТИ ═══════════════════════════════════════ -->
     <div id="tab-results" class="tab-panel">
@@ -125,7 +145,7 @@
     </div>
 
     <!-- ═══ TAB: РЕЙТИНГ ══════════════════════════════════════════ -->
-    <div id="tab-ratings" class="tab-panel active">
+    <div id="tab-ratings" class="tab-panel">
       <div class="ratings-header">
         <div class="section-eyebrow">Blacksea Padel</div>
         <div class="ratings-header-top">
@@ -144,6 +164,10 @@
         </div>
         <div class="ratings-updated" id="ratings-updated"></div>
         <div class="rating-breakdown" id="rating-breakdown" style="display:none"></div>
+        <div class="seg">
+          <button class="seg-btn active" data-seg="ratings">Рейтинг</button>
+          <button class="seg-btn" data-seg="activity">Активність</button>
+        </div>
         <div class="ratings-filter-row" id="ratings-filter">
           <button class="filter-chip active" data-level="all">Всі</button>
           <button class="filter-chip" data-level="D">D</button>
@@ -218,6 +242,10 @@
       <div class="activity-header">
         <div class="section-eyebrow">Blacksea Padel</div>
         <div class="section-title">Активність</div>
+        <div class="seg">
+          <button class="seg-btn" data-seg="ratings">Рейтинг</button>
+          <button class="seg-btn active" data-seg="activity">Активність</button>
+        </div>
         <div class="activity-reset-badge">↻ Скидається щомісяця</div>
         <div class="filter-row" id="activity-filter">
           <!-- month chips injected by JS -->
@@ -486,18 +514,12 @@
 
   <!-- Bottom Navigation -->
   <nav id="bottom-nav">
-    <button class="nav-tab active" data-tab="ratings">
+    <button class="nav-tab active" data-tab="home">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-        <polyline points="17 6 23 6 23 12"/>
+        <path d="M3 10.5 12 3l9 7.5"/>
+        <path d="M5 9.5V21h5v-6h4v6h5V9.5"/>
       </svg>
-      <span class="nav-label">Рейтинг</span>
-    </button>
-    <button class="nav-tab" data-tab="activity">
-      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-      <span class="nav-label">Активність</span>
+      <span class="nav-label">Головна</span>
     </button>
     <button class="nav-tab" data-tab="results">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -507,6 +529,13 @@
         <path d="M16.5 18l1 1 2-2" stroke-width="1.5" stroke="var(--navy-deep)" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="nav-label">Турніри</span>
+    </button>
+    <button class="nav-tab" data-tab="ratings">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </svg>
+      <span class="nav-label">Рейтинг</span>
     </button>
     <button class="nav-tab" data-tab="profile">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -993,13 +1022,14 @@
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=46" defer></script>
-<script src="js/tournaments.js?v=54" defer></script>
+<script src="js/tournaments.js?v=61" defer></script>
 <script src="js/americano.js?v=2" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
 <script src="js/players.js?v=65" defer></script>
-<script src="js/analysis-admin.js?v=75" defer></script>
-<script src="js/app.js?v=64" defer></script>
+<script src="js/analysis-admin.js?v=76" defer></script>
+<script src="js/home.js?v=1" defer></script>
+<script src="js/app.js?v=68" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">
