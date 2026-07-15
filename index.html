@@ -947,7 +947,7 @@
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-header">
-      <span class="modal-title">Новий американо</span>
+      <span class="modal-title">Новий турнір</span>
       <button class="modal-close" data-close="modal-create-americano">✕</button>
     </div>
     <div class="modal-body">
@@ -1022,10 +1022,14 @@
           <span>Рахунок вносять всі учасники<small>Інакше — лише організатор</small></span>
         </label>
       </div>
+      <label class="am-check-row" id="am-rating-toggle-row">
+        <input type="checkbox" id="am-rating-enabled">
+        <span>Врахувати результат у рейтингу<small>Рейтинг учасників зміниться після завершення</small></span>
+      </label>
       <div id="am-admin-section" style="display:none">
         <label class="am-check-row am-check-official">
           <input type="checkbox" id="am-official">
-          <span>Офіційний турнір<small>З нарахуванням рейтингу після завершення</small></span>
+          <span>Офіційний турнір<small>Організовує клуб · завжди з рейтингом</small></span>
         </label>
         <div id="am-rating-row" style="display:none;gap:8px">
           <div class="form-group" style="flex:1">
@@ -1171,9 +1175,9 @@
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=48" defer></script>
-<script src="js/tournaments.js?v=80" defer></script>
-<script src="js/americano.js?v=14" defer></script>
-<script src="js/winners-court.js?v=2" defer></script>
+<script src="js/tournaments.js?v=83" defer></script>
+<script src="js/americano.js?v=23" defer></script>
+<script src="js/winners-court.js?v=5" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
 <script src="js/players.js?v=71" defer></script>

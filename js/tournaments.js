@@ -101,9 +101,9 @@ async function renderResults() {
     return;
   }
 
-  // Friendly (user-created) tournaments live in their own subtab, not the official lists
   if (activeResultsSubTab === 'upcoming') {
-    const upcoming = source.filter(t => t.status !== 'FINISHED' && !t.friendly);
+    // Friendly tournaments also show here (below official ones) — renderUpcomingList sections them
+    const upcoming = source.filter(t => t.status !== 'FINISHED');
     rebuildMonthChips(upcoming);
     renderUpcomingList(upcoming, list);
   } else if (activeResultsSubTab === 'friendly') {
@@ -129,7 +129,7 @@ function renderFriendlyList(friendly, list) {
     <button class="t-create-row" onclick="openCreateAmericano()">
       <span class="t-create-plus">＋</span>
       <span class="t-create-text">
-        <strong>Створити американо</strong>
+        <strong>Створити турнір</strong>
         <span>Дружній турнір — створити може будь-хто</span>
       </span>
     </button>`;
@@ -154,6 +154,8 @@ function applyResultFilter(source) {
   return source.filter(t => String(t.date).slice(0, 7) === activeResultFilter);
 }
 
+/** Official tournaments first (classic/americano-format split), friendly ones below —
+    used for both the main "Майбутні" tab and the "Дружні" subtab's active list. */
 function renderUpcomingList(source, list) {
   const filtered = applyResultFilter(source);
 
@@ -162,7 +164,14 @@ function renderUpcomingList(source, list) {
     return;
   }
 
-  list.innerHTML = splitByFormatHtml(filtered);
+  const official = filtered.filter(t => !t.friendly);
+  const friendly = filtered.filter(t => t.friendly);
+  let html = splitByFormatHtml(official);
+  if (friendly.length) {
+    if (official.length) html += `<div class="t-list-sep">🎾 Дружні</div>`;
+    html += friendly.map(buildTournamentRow).join('');
+  }
+  list.innerHTML = html;
   wireTournamentRows(list);
 }
 

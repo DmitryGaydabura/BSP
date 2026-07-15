@@ -42,7 +42,9 @@ function renderWinnersCourtModal() {
 
   // Config summary
   html += `<div class="am-config">
-    ${st.friendly ? '<span class="friendly-badge">Дружній · без рейтингу</span>' : '<span class="friendly-badge fb-official">Офіційний · з рейтингом</span>'}
+    ${!st.friendly ? '<span class="friendly-badge fb-official">Офіційний · з рейтингом</span>'
+        : st.ratingEnabled ? '<span class="friendly-badge">Дружній · з рейтингом</span>'
+        : '<span class="friendly-badge">Дружній · без рейтингу</span>'}
     ${st.isPrivate ? '<span class="friendly-badge fb-private">🔒 Приватний</span>' : ''}
     <span class="am-config-chip">🎯 ${st.pointsPerMatch} очок/матч</span>
     <span class="am-config-chip">🪜 раунд ${st.currentRound || 0}/${st.roundsCount}</span>
@@ -130,7 +132,7 @@ function renderWinnersCourtModal() {
     }
     if (st.canFinalize) {
       html += `<button class="btn-primary wc-finalize-btn" id="wc-finalize-btn" style="background:linear-gradient(135deg,var(--success),#2a8a55)">
-        ✓ ${st.friendly ? 'Завершити турнір' : 'Завершити та нарахувати рейтинг'}
+        ✓ ${st.ratingEnabled ? 'Завершити та нарахувати рейтинг' : 'Завершити турнір'}
       </button>`;
     }
   }
@@ -180,16 +182,16 @@ function renderWinnersCourtModal() {
   // Wire finalize
   const finalizeBtn = body.querySelector('#wc-finalize-btn');
   if (finalizeBtn) finalizeBtn.addEventListener('click', async () => {
-    const msg = wcState.friendly
-        ? 'Завершити турнір? Результати буде зафіксовано (рейтинг не зміниться).'
-        : 'Завершити турнір та нарахувати рейтинг?';
+    const msg = wcState.ratingEnabled
+        ? 'Завершити турнір та нарахувати рейтинг?'
+        : 'Завершити турнір? Результати буде зафіксовано (рейтинг не зміниться).';
     if (!(await uiConfirm(msg))) return;
     finalizeBtn.disabled = true;
     try {
       wcState = await API.winnersCourt.finalize(wcTournamentId);
       tournamentsData = null;
       renderWinnersCourtModal();
-      showToast(wcState.friendly ? 'Турнір завершено! 🎾' : 'Турнір завершено! Рейтинг нараховано 🏆', 'success');
+      showToast(wcState.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
     } catch (e) {
       showToast(e.data?.message || e.message || 'Помилка', 'error');
       finalizeBtn.disabled = false;

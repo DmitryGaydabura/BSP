@@ -10,7 +10,9 @@ let americanoDirectory = null;    // cached /users/directory for the add-picker
 let amSelectedFormat = 'CLASSIC'; // 'CLASSIC' | 'WINNERS_COURT' — selected in the shared create/edit modal
 
 const AM_SIZES  = [4, 8, 12, 16];
-const AM_POINTS = [16, 21, 24, 32];
+const AM_POINTS_CLASSIC = [16, 21, 24, 32];
+// Winner's Court needs a decisive winner every match — an even total allows an exact-half tie.
+const AM_POINTS_WC = [15, 21, 25, 31];
 
 function isAmericanoManager(t) {
   return !!(currentUser && (currentUser.role === 'ADMIN'
@@ -31,13 +33,27 @@ function populateAmTimeSelect() {
 }
 
 function amToggleAdminSection() {
-  document.getElementById('am-admin-section').style.display = '';
+  const isAdmin = currentUser?.role === 'ADMIN';
+  document.getElementById('am-admin-section').style.display = isAdmin ? '' : 'none';
   amToggleRatingInputs();
 }
 
+/** "Official" (admin-only) and "affects rating" are independent — official always affects
+    rating, so the separate rating-choice checkbox only makes sense for friendly tournaments. */
 function amToggleRatingInputs() {
-  const official = document.getElementById('am-official').checked;
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const official = isAdmin && document.getElementById('am-official').checked;
   document.getElementById('am-rating-row').style.display = official ? 'flex' : 'none';
+  document.getElementById('am-rating-toggle-row').style.display = official ? 'none' : '';
+}
+
+/** Winner's Court needs an odd points-per-match total so an exact-half tie is impossible. */
+function amPopulatePointsOptions() {
+  const sel = document.getElementById('am-points');
+  const opts = amSelectedFormat === 'WINNERS_COURT' ? AM_POINTS_WC : AM_POINTS_CLASSIC;
+  const current = parseInt(sel.value, 10);
+  sel.innerHTML = opts.map(p => `<option value="${p}">${p}</option>`).join('');
+  sel.value = opts.includes(current) ? String(current) : String(opts[1]);
 }
 
 function amUpdateRoundsHint() {
@@ -62,6 +78,7 @@ function amSetFormat(format) {
   document.getElementById('am-format-hint').textContent = format === 'WINNERS_COURT'
       ? "Winner's Court: переможці рухаються на вищий корт, переможені — на нижчий; партнер попереднього раунду стає суперником."
       : 'Класичний американо: кожен гравець грає в парі з кожним іншим рівно по одному разу.';
+  amPopulatePointsOptions();
   amUpdateRoundsHint();
 }
 
@@ -89,7 +106,7 @@ async function openCreateAmericano() {
   editingAmericanoId = null;
   amLockFormatToggle(false);
   amSetFormat('CLASSIC');
-  document.querySelector('#modal-create-americano .modal-title').textContent = 'Новий американо';
+  document.querySelector('#modal-create-americano .modal-title').textContent = 'Новий турнір';
   document.getElementById('am-submit').textContent = 'Створити';
   document.getElementById('am-name').value = '';
   document.getElementById('am-date').value = '';
@@ -102,6 +119,7 @@ async function openCreateAmericano() {
   document.getElementById('am-rounds').value = '';
   document.getElementById('am-private').checked = false;
   document.getElementById('am-entry-all').checked = false;
+  document.getElementById('am-rating-enabled').checked = false;
   document.getElementById('am-official').checked = false;
   document.getElementById('am-min-rating').value = '';
   document.getElementById('am-max-rating').value = '';
@@ -133,6 +151,7 @@ async function openEditAmericano(t) {
   document.getElementById('am-rounds').value = t.roundsCount || '';
   document.getElementById('am-private').checked = !!t.isPrivate;
   document.getElementById('am-entry-all').checked = t.resultEntryMode === 'ALL_PARTICIPANTS';
+  document.getElementById('am-rating-enabled').checked = !!t.ratingEnabled;
   document.getElementById('am-official').checked = !t.friendly;
   document.getElementById('am-min-rating').value = t.minRating || '';
   document.getElementById('am-max-rating').value = t.maxRating || '';
@@ -160,7 +179,8 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     return;
   }
 
-  const official = document.getElementById('am-official').checked;
+  const isAdmin  = currentUser?.role === 'ADMIN';
+  const official = isAdmin && document.getElementById('am-official').checked;
   const payload = {
     name, date,
     level:           document.getElementById('am-level').value || null,
@@ -175,6 +195,7 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     isPrivate:       document.getElementById('am-private').checked,
     resultEntryMode: document.getElementById('am-entry-all').checked ? 'ALL_PARTICIPANTS' : 'CREATOR_ONLY',
     friendly:        !official,
+    ratingEnabled:   official || document.getElementById('am-rating-enabled').checked,
     minRating:       official ? (parseInt(document.getElementById('am-min-rating').value) || null) : null,
     maxRating:       official ? (parseInt(document.getElementById('am-max-rating').value) || null) : null,
     description:     document.getElementById('am-description').value.trim() || null,
@@ -237,7 +258,9 @@ function renderAmericanoModal() {
 
   // Config summary
   html += `<div class="am-config">
-    ${st.friendly ? '<span class="friendly-badge">Дружній · без рейтингу</span>' : '<span class="friendly-badge fb-official">Офіційний · з рейтингом</span>'}
+    ${!st.friendly ? '<span class="friendly-badge fb-official">Офіційний · з рейтингом</span>'
+        : st.ratingEnabled ? '<span class="friendly-badge">Дружній · з рейтингом</span>'
+        : '<span class="friendly-badge">Дружній · без рейтингу</span>'}
     ${st.isPrivate ? '<span class="friendly-badge fb-private">🔒 Приватний</span>' : ''}
     <span class="am-config-chip">🎯 ${st.pointsPerMatch} очок/матч</span>
     ${st.roundsCount ? `<span class="am-config-chip">🔄 ${st.roundsCount} раундів</span>` : ''}
@@ -321,7 +344,7 @@ function renderAmericanoModal() {
       html += `<button class="btn-secondary" id="am-restart-btn" style="width:100%;margin-top:12px">🔄 Перегенерувати розклад</button>`;
     }
     html += `<button class="btn-primary" id="am-finalize-btn" style="width:100%;margin-top:8px;background:linear-gradient(135deg,var(--success),#2a8a55)" ${allPlayed ? '' : 'disabled'}>
-      ✓ ${st.friendly ? 'Завершити турнір' : 'Завершити та нарахувати рейтинг'}${allPlayed ? '' : ' (не всі матчі зіграні)'}
+      ✓ ${st.ratingEnabled ? 'Завершити та нарахувати рейтинг' : 'Завершити турнір'}${allPlayed ? '' : ' (не всі матчі зіграні)'}
     </button>`;
   }
 
@@ -358,16 +381,16 @@ function renderAmericanoModal() {
   // Wire finalize
   const finalizeBtn = body.querySelector('#am-finalize-btn');
   if (finalizeBtn) finalizeBtn.addEventListener('click', async () => {
-    const msg = americanoState.friendly
-        ? 'Завершити турнір? Результати буде зафіксовано (рейтинг не зміниться).'
-        : 'Завершити турнір та нарахувати рейтинг?';
+    const msg = americanoState.ratingEnabled
+        ? 'Завершити турнір та нарахувати рейтинг?'
+        : 'Завершити турнір? Результати буде зафіксовано (рейтинг не зміниться).';
     if (!(await uiConfirm(msg))) return;
     finalizeBtn.disabled = true;
     try {
       americanoState = await API.americano.finalize(americanoTournamentId);
       tournamentsData = null;
       renderAmericanoModal();
-      showToast(americanoState.friendly ? 'Турнір завершено! 🎾' : 'Турнір завершено! Рейтинг нараховано 🏆', 'success');
+      showToast(americanoState.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
     } catch (e) {
       showToast(e.data?.message || e.message || 'Помилка', 'error');
       finalizeBtn.disabled = false;
