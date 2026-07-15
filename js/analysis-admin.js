@@ -623,6 +623,7 @@ function wireAdminPanel() {
   document.getElementById('btn-admin-achievements').addEventListener('click', openAchievementsModal);
   document.getElementById('btn-admin-analysis').addEventListener('click', openAdminAnalysisModal);
   document.getElementById('btn-migrate-v2').addEventListener('click', runMigrateV2);
+  document.getElementById('btn-admin-announcements').addEventListener('click', openAnnouncementsAdminModal);
   initAdminImportModal();
 }
 

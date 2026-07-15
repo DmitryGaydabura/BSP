@@ -134,5 +134,17 @@ const API = (() => {
       getConfig: ()             => request('GET', '/achievements/config'),
       setEnabled: (id, enabled) => request('PUT', `/achievements/config/${id}`, { enabled }),
     },
+
+    announcements: {
+      unseen:    ()             => request('GET',    '/announcements/unseen'),
+      active:    ()             => request('GET',    '/announcements/active'),
+      markSeen:  (ids)          => request('POST',   '/announcements/seen', { ids }),
+      adminList: ()             => request('GET',    '/announcements/admin'),
+      create:    (data)         => request('POST',   '/announcements', data),
+      update:    (id, data)     => request('PUT',    `/announcements/${id}`, data),
+      setActive: (id, active)   => request('PATCH',  `/announcements/${id}/active`, { active }),
+      reorder:   (orderedIds)   => request('PUT',    '/announcements/reorder', { orderedIds }),
+      delete:    (id)           => request('DELETE', `/announcements/${id}`),
+    },
   };
 })();

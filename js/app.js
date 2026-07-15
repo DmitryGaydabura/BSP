@@ -1309,6 +1309,10 @@ apiBootstrap().then(async () => {
 
   if (!localStorage.getItem('bsp_intro_seen')) {
     initOnboarding();
+  } else if (apiAvailable) {
+    // Skip on first run — onboarding already owns the screen this session;
+    // unseen announcements stay unseen and surface on the next app open.
+    checkUnseenAnnouncements();
   }
   // Show Raketo link banner on every app open until the user links their account
   initRaketoLinkBanner();

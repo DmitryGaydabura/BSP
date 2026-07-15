@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#F4F2EA">
   <title>Blacksea Padel</title>
   <script src="config.js"></script>
-  <script src="js/api.js?v=17"></script>
+  <script src="js/api.js?v=19"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=62">
+  <link rel="stylesheet" href="css/app.css?v=64">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=4">
 </head>
 <body>
@@ -75,6 +75,13 @@
     </div>
     <span class="ob-skip" id="ob-skip">Пропустити</span>
   </div>
+</div>
+
+<!-- Announcements slideshow — admin-managed slides, shown once per user + replayable via "Що нового?" -->
+<div id="announce-overlay" class="an-hidden" aria-modal="true" role="dialog">
+  <button class="an-close" id="announce-close">&times;</button>
+  <div class="an-slides" id="announce-slides"></div>
+  <div class="an-dots" id="announce-dots"></div>
 </div>
 
 <!-- Registration confirmation screen -->
@@ -529,7 +536,60 @@
             <span class="admin-action-label">Перерахувати рейтинг v2</span>
             <span class="admin-action-arrow">›</span>
           </button>
+          <button class="admin-action-btn" id="btn-admin-announcements">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11 12.5v5.5a2 2 0 002 2"/></svg>
+            <span class="admin-action-label">Оголошення</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcements admin — list, reorder, enable/disable -->
+  <div class="modal-overlay" id="modal-announcements-admin">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Оголошення</span>
+        <button class="modal-close" data-close="modal-announcements-admin">✕</button>
+      </div>
+      <div class="modal-body">
+        <button class="btn-secondary" id="ann-create-btn" style="width:100%;margin-bottom:14px">+ Створити оголошення</button>
+        <div id="ann-admin-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcement create/edit form -->
+  <div class="modal-overlay" id="modal-announcement-form">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="ann-form-title">Нове оголошення</span>
+        <button class="modal-close" data-close="modal-announcement-form">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Заголовок</label>
+          <input class="form-input" id="ann-title" type="text" placeholder="Наприклад, Новий турнір!">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Опис</label>
+          <textarea class="form-input" id="ann-description" rows="4" maxlength="600" placeholder="Короткий опис новини"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Фото</label>
+          <div class="ann-photo-picker">
+            <img id="ann-photo-preview" class="ann-photo-preview hidden" alt="">
+            <div style="display:flex;gap:8px">
+              <label class="btn-secondary ann-photo-pick-btn" for="ann-photo-input">Обрати фото</label>
+              <button class="btn-secondary" id="ann-photo-remove" style="display:none">Прибрати фото</button>
+            </div>
+            <input type="file" id="ann-photo-input" accept="image/*" class="hidden">
+          </div>
+        </div>
+        <button class="btn-primary" id="ann-submit" style="width:100%;margin-top:6px">Зберегти</button>
       </div>
     </div>
   </div>
@@ -1180,10 +1240,11 @@
 <script src="js/winners-court.js?v=5" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
-<script src="js/players.js?v=71" defer></script>
-<script src="js/analysis-admin.js?v=80" defer></script>
+<script src="js/players.js?v=73" defer></script>
+<script src="js/analysis-admin.js?v=82" defer></script>
 <script src="js/home.js?v=1" defer></script>
-<script src="js/app.js?v=72" defer></script>
+<script src="js/announcements.js?v=2" defer></script>
+<script src="js/app.js?v=74" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->
   <div id="raketo-link-banner" aria-hidden="true">

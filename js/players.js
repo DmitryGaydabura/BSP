@@ -991,7 +991,8 @@ function renderProfile() {
       <div id="history-list"><div class="history-loading">Завантаження...</div></div>
     </div>
 
-    <button class="btn-secondary" id="btn-support" style="width:100%;margin-top:8px">Написати підтримці</button>
+    <button class="btn-secondary" id="btn-whats-new" style="width:100%;margin-top:8px">Що нового?</button>
+    <button class="btn-secondary" id="btn-support" style="width:100%;margin-top:4px">Написати підтримці</button>
     <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
   `;
 
@@ -1001,6 +1002,7 @@ function renderProfile() {
     renderProfile();
   });
 
+  document.getElementById('btn-whats-new').addEventListener('click', openWhatsNew);
   document.getElementById('btn-support').addEventListener('click', openSupportModal);
 
   if (!u.initialPointsClaimed) {

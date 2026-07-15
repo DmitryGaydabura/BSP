@@ -3777,6 +3777,158 @@ button.pf-stat:active { background: var(--surface); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   ANNOUNCEMENTS SLIDESHOW
+   ═══════════════════════════════════════════════════════════════ */
+#announce-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ink-fill);
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+#announce-overlay.an-hidden { opacity: 0; pointer-events: none; }
+#announce-overlay.an-hidden * { pointer-events: none; }
+.an-slides { flex: 1; position: relative; overflow: hidden; }
+.an-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.3s, transform 0.3s var(--ease);
+  pointer-events: none;
+}
+.an-slide.an-active { opacity: 1; transform: none; pointer-events: auto; }
+.an-slide.an-prev { opacity: 0; transform: translateX(-40px); }
+.an-slide-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.an-slide-card {
+  position: relative;
+  z-index: 1;
+  padding: 32px 26px calc(40px + env(safe-area-inset-bottom, 0px));
+}
+.an-slide-card-photo {
+  background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 55%, transparent 100%);
+  color: #F4F2EA;
+}
+.an-slide-card-solid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  color: var(--on-ink);
+}
+.an-slide-title {
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+.an-slide-desc {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.6;
+  opacity: 0.92;
+}
+.an-close {
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  right: 18px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0,0,0,0.4);
+  border-radius: 999px;
+}
+.an-dots {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  pointer-events: none;
+}
+.an-dot {
+  width: 8px; height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.35);
+  transition: all 0.25s var(--ease);
+}
+.an-dot-active { width: 22px; background: #fff; }
+
+/* Admin: announcements list + photo picker */
+.ann-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-sub);
+}
+.ann-row:last-child { border-bottom: none; }
+.ann-row-thumb {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+}
+.ann-row-placeholder {
+  flex-shrink: 0;
+  width: 44px; height: 44px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.ann-row-body { flex: 1; min-width: 0; }
+.ann-row-title { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ann-row-desc { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ann-row-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.ann-icon-btn {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm);
+  color: var(--text-sec);
+  font-size: 15px;
+  transition: background 0.15s;
+}
+.ann-icon-btn:active { background: var(--paper-deep); }
+.ann-photo-picker { display: flex; flex-direction: column; gap: 10px; }
+.ann-photo-preview {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-sub);
+}
+.ann-photo-pick-btn { display: inline-flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; }
+
+/* ═══════════════════════════════════════════════════════════════
    RAKETO LINK FULL-SCREEN BANNER
    ═══════════════════════════════════════════════════════════════ */
 #raketo-link-banner {
