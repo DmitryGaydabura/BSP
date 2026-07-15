@@ -296,7 +296,7 @@ function renderAmericanoModal() {
   // Wire roster management
   body.querySelectorAll('.am-part-remove').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Прибрати гравця з турніру?')) return;
+      if (!(await uiConfirm('Прибрати гравця з турніру?'))) return;
       btn.disabled = true;
       try {
         await API.americano.removeParticipant(americanoTournamentId, btn.dataset.uid);
@@ -322,7 +322,7 @@ function renderAmericanoModal() {
     const msg = americanoState.friendly
         ? 'Завершити турнір? Результати буде зафіксовано (рейтинг не зміниться).'
         : 'Завершити турнір та нарахувати рейтинг?';
-    if (!confirm(msg)) return;
+    if (!(await uiConfirm(msg))) return;
     finalizeBtn.disabled = true;
     try {
       americanoState = await API.americano.finalize(americanoTournamentId);
@@ -337,7 +337,7 @@ function renderAmericanoModal() {
 }
 
 async function amStart(btn, isRestart) {
-  if (isRestart && !confirm('Перегенерувати розклад раундів?')) return;
+  if (isRestart && !(await uiConfirm('Перегенерувати розклад раундів?'))) return;
   btn.disabled = true;
   try {
     americanoState = await API.americano.start(americanoTournamentId);

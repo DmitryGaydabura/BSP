@@ -380,7 +380,7 @@ function wireTournamentCardActions(list) {
       const tid = parseInt(btn.dataset.id, 10);
       const t = (tournamentsData || []).find(x => x.id === tid);
       const name = t ? t.name : 'турнір';
-      if (!confirm(`Відписатись від «${name}»?`)) return;
+      if (!(await uiConfirm(`Відписатись від «${name}»?`))) return;
       btn.disabled = true;
       try {
         await API.tournaments.leave(tid);
@@ -419,7 +419,7 @@ function wireTournamentCardActions(list) {
   list.querySelectorAll('.sr-pair-cancel-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const tid = parseInt(btn.dataset.id, 10);
-      if (!confirm('Скасувати заявку?')) return;
+      if (!(await uiConfirm('Скасувати заявку?'))) return;
       btn.disabled = true;
       try {
         await API.tournaments.cancelPairRequest(tid);
@@ -602,7 +602,7 @@ function wireAdminTournamentBtns(container) {
   });
   container.querySelectorAll('.t-admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Видалити цей турнір? Цю дію не можна скасувати.')) return;
+      if (!(await uiConfirm('Видалити цей турнір? Цю дію не можна скасувати.'))) return;
       const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
       btn.disabled = true;
       try {
@@ -612,7 +612,7 @@ function wireAdminTournamentBtns(container) {
         tournamentsData = null;
         renderResults();
       } catch (e) {
-        alert('Помилка: ' + (e.data?.message || e.message || 'unknown'));
+        showToast('Помилка: ' + (e.data?.message || e.message || 'unknown'), 'error');
         btn.disabled = false;
       }
     });
@@ -625,7 +625,7 @@ function wireAdminTournamentBtns(container) {
   });
   container.querySelectorAll('.t-admin-cup-finalize-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (!confirm('Фіналізувати кубок та нарахувати рейтинг?')) return;
+      if (!(await uiConfirm('Фіналізувати кубок та нарахувати рейтинг?'))) return;
       btn.disabled = true;
       try {
         await API.cup.finalize(btn.dataset.id);
@@ -633,7 +633,7 @@ function wireAdminTournamentBtns(container) {
         renderResults();
         showToast('Кубок завершено! Рейтинг нараховано 🏆');
       } catch (e) {
-        alert('Помилка: ' + (e.data?.message || e.message || 'unknown'));
+        showToast('Помилка: ' + (e.data?.message || e.message || 'unknown'), 'error');
         btn.disabled = false;
       }
     });
@@ -839,6 +839,24 @@ function refreshOpenTournamentPage() {
 }
 
 document.getElementById('t-page-back').addEventListener('click', closeTournamentPage);
+
+/* Stale-while-revalidate: refetch the tournament list in the background and
+   re-render only when something actually changed — no skeleton flash. */
+let _tFetchSeq = 0;
+async function refreshTournamentsSilently() {
+  if (!apiAvailable) return;
+  const seq = ++_tFetchSeq;
+  try {
+    const fresh = (await API.tournaments.list()).map(normalizeTournament);
+    if (seq !== _tFetchSeq) return; // a newer refresh finished first
+    const changed = JSON.stringify(fresh) !== JSON.stringify(tournamentsData);
+    tournamentsData = fresh;
+    if (changed) {
+      if (currentTab === 'results') renderResults();
+      else refreshOpenTournamentPage();
+    }
+  } catch { /* offline — keep showing the cached data */ }
+}
 
 /** Registration entry point shared by list, detail page and Home hero. */
 function attemptJoinTournament(tid, asReserve = false) {

@@ -370,7 +370,7 @@ async function openAdminAnalysisModal() {
                       </div>`);
                     item.querySelector('.aa-unlink-btn')?.addEventListener('click', openPicker);
                   }
-                } catch (e) { alert('Помилка: ' + (e.message || 'unknown')); }
+                } catch (e) { showToast('Помилка: ' + (e.message || 'unknown'), 'error'); }
               });
             });
           }
@@ -395,7 +395,7 @@ async function openAdminAnalysisModal() {
           else item.insertAdjacentHTML('beforeend', `<div class="aa-status">Аналіз готовий · щойно</div>`);
           generateBtn.textContent = 'Перегенерувати аналіз';
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
           generateBtn.textContent = generateBtn.textContent === 'Генерую...' ? 'Згенерувати аналіз' : generateBtn.textContent;
         } finally {
           generateBtn.disabled = false;
@@ -720,16 +720,16 @@ async function runMigrateV2() {
   const btn = document.getElementById('btn-migrate-v2');
   const label = btn.querySelector('.admin-action-label');
   const original = label.textContent;
-  if (!confirm('Це перерахує всі стартові бали та турнірні очки по новій формулі. Продовжити?')) return;
+  if (!(await uiConfirm('Це перерахує всі стартові бали та турнірні очки по новій формулі. Продовжити?'))) return;
   label.textContent = 'Виконується...';
   btn.disabled = true;
   try {
     const result = await API.ratings.migrateV2();
-    alert(`Міграція завершена!\nГравців: ${result.usersProcessed}\nТурнірів: ${result.tournamentsProcessed}`);
+    showToast(`Міграція завершена: гравців ${result.usersProcessed}, турнірів ${result.tournamentsProcessed} ✓`, 'success');
     ratingsData = null;
     await renderRatings();
   } catch (e) {
-    alert('Помилка міграції: ' + (e.message || 'невідома'));
+    showToast('Помилка міграції: ' + (e.message || 'невідома'), 'error');
   } finally {
     label.textContent = original;
     btn.disabled = false;
@@ -925,9 +925,9 @@ function initAdminImportModal() {
         photoUrl:               aiSelectedUser.photoUrl || null,
       });
       closeModal('modal-admin-import');
-      alert(`Гравця "${aiSelectedUser.name}" успішно додано!`);
+      showToast(`Гравця «${aiSelectedUser.name}» додано ✓`, 'success');
     } catch (e) {
-      alert('Помилка: ' + (e.message || 'unknown'));
+      showToast('Помилка: ' + (e.message || 'unknown'), 'error');
       importBtn.disabled = false;
       importBtn.textContent = 'Додати гравця';
     }
@@ -1118,7 +1118,7 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   const date = document.getElementById('ct-date').value;
   const level = document.getElementById('ct-level').value;
   const type = document.getElementById('ct-type').value;
-  if (!name || !date || !level) { alert('Заповніть всі поля'); return; }
+  if (!name || !date || !level) { showToast('Заповніть всі поля', 'error'); return; }
   // Informational level range: clamp max to be >= min (BE clamps too).
   let levelMax = document.getElementById('ct-level-max').value || level;
   const minIdx = tournamentLevels.findIndex(l => l.value === level);
@@ -1138,16 +1138,16 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   try {
     if (editingTournamentId) {
       await API.tournaments.update(editingTournamentId, payload);
-      alert('Турнір оновлено!');
+      showToast('Турнір оновлено ✓', 'success');
     } else {
       await API.tournaments.create(payload);
-      alert('Турнір створено!');
+      showToast('Турнір створено! 🏆', 'success');
     }
     tournamentsData = null;
     closeModal('modal-create-tournament');
     renderResults();
   } catch (e) {
-    alert('Помилка: ' + (e.message || 'unknown'));
+    showToast('Помилка: ' + (e.message || 'unknown'), 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = editingTournamentId ? 'Зберегти' : 'Створити';
@@ -1278,7 +1278,7 @@ async function showSrRaketoFinder(t) {
             if (idx >= 0) srTournamentsAll[idx] = { ...srTournamentsAll[idx], raketoId: pick.dataset.raketoId };
             renderSrRaketoSection({ ...t, raketoId: pick.dataset.raketoId });
           } catch (e) {
-            alert('Помилка: ' + (e.message || 'unknown'));
+            showToast('Помилка: ' + (e.message || 'unknown'), 'error');
             pick.style.opacity = '1';
           }
         });
@@ -1309,7 +1309,7 @@ async function showSrRaketoFinder(t) {
       if (idx >= 0) srTournamentsAll[idx] = { ...srTournamentsAll[idx], raketoId: docId };
       renderSrRaketoSection({ ...t, raketoId: docId });
     } catch (e) {
-      alert('Помилка: ' + (e.message || 'unknown'));
+      showToast('Помилка: ' + (e.message || 'unknown'), 'error');
       btn.disabled = false; btn.textContent = 'Прив\'язати';
     }
   };
@@ -1346,7 +1346,7 @@ async function doSrImportFromRaketo(tournamentId) {
     tournamentsData = null;
     showToast('Результати з Raketo імпортовано', 'success');
   } catch (e) {
-    alert('Помилка імпорту: ' + (e.message || 'unknown'));
+    showToast('Помилка імпорту: ' + (e.message || 'unknown'), 'error');
   } finally {
     if (document.getElementById('sr-do-import-btn')) {
       document.getElementById('sr-do-import-btn').disabled = false;
@@ -1422,9 +1422,9 @@ document.getElementById('sr-submit').addEventListener('click', async () => {
     await API.tournaments.submitResults(tournamentId, { pairs });
     tournamentsData = null;
     closeModal('modal-submit-results');
-    alert('Результати збережено!');
+    showToast('Результати збережено ✓', 'success');
   } catch (e) {
-    alert('Помилка: ' + (e.message || 'unknown'));
+    showToast('Помилка: ' + (e.message || 'unknown'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Зберегти';
   }
@@ -1433,7 +1433,7 @@ document.getElementById('sr-submit').addEventListener('click', async () => {
 document.getElementById('sr-finalize').addEventListener('click', async () => {
   const tournamentId = document.getElementById('sr-tournament-select').value;
   if (!tournamentId) return;
-  if (!confirm('Завершити турнір і нарахувати рейтинг? Цю дію не можна скасувати.')) return;
+  if (!(await uiConfirm('Завершити турнір і нарахувати рейтинг? Цю дію не можна скасувати.'))) return;
   const btn = document.getElementById('sr-finalize');
   btn.disabled = true; btn.textContent = '...';
   try {
@@ -1443,9 +1443,9 @@ document.getElementById('sr-finalize').addEventListener('click', async () => {
     tournamentsData = null;
     ratingsData = null;
     closeModal('modal-submit-results');
-    alert('Турнір завершено! Рейтинги оновлено.');
+    showToast('Турнір завершено! Рейтинги оновлено 🏆', 'success');
   } catch (e) {
-    alert('Помилка: ' + (e.message || 'unknown'));
+    showToast('Помилка: ' + (e.message || 'unknown'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Завершити та нарахувати рейтинг';
   }
@@ -1570,7 +1570,7 @@ async function openUsersModal() {
             ? esc(u.adminContact)
             : '<i style="color:var(--text-muted)">контакт не вказано</i>';
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
         } finally {
           btn.disabled = false;
         }
@@ -1595,7 +1595,7 @@ async function openUsersModal() {
         try {
           await API.users.setRatingPoints(inp.dataset.userId, pts);
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
         } finally {
           inp.disabled = false;
         }
@@ -1614,7 +1614,7 @@ async function openUsersModal() {
           const row = list.querySelector(`.rating-edit-input[data-user-id="${sel.dataset.userId}"]`);
           if (row && levelPts[level]) row.value = levelPts[level];
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
         } finally {
           sel.disabled = false;
         }
@@ -1632,7 +1632,7 @@ async function openUsersModal() {
           btn.textContent = newRole === 'ADMIN' ? 'Admin' : 'Player';
           btn.className = `role-toggle ${newRole === 'ADMIN' ? 'is-admin' : 'is-player'}`;
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
         } finally {
           btn.disabled = false;
         }
@@ -1643,13 +1643,13 @@ async function openUsersModal() {
       btn.addEventListener('click', async () => {
         const row = list.querySelector(`.user-list-item[data-user-id="${btn.dataset.userId}"]`);
         const name = row?.querySelector('.user-list-name')?.textContent?.trim() || 'цього гравця';
-        if (!confirm(`Видалити ${name}? Цю дію не можна скасувати.`)) return;
+        if (!(await uiConfirm(`Видалити ${name}? Цю дію не можна скасувати.`))) return;
         btn.disabled = true;
         try {
           await API.users.delete(btn.dataset.userId);
           row?.remove();
         } catch (e) {
-          alert('Помилка: ' + (e.message || 'unknown'));
+          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
           btn.disabled = false;
         }
       });
@@ -1706,7 +1706,7 @@ async function openUsersModal() {
               const targetId = cand.dataset.targetId;
               const keepUser = users.find(u => String(u.id) === userId);
               const delUser  = sortedCandidates.find(u => String(u.id) === targetId);
-              if (!confirm(`Об'єднати акаунти?\n\n"${delUser.displayName}" буде видалено.\nВсі матчі та рейтинг перенесуться до "${keepUser.displayName}".`)) return;
+              if (!(await uiConfirm(`Об'єднати акаунти?\n\n"${delUser.displayName}" буде видалено.\nВсі матчі та рейтинг перенесуться до "${keepUser.displayName}".`))) return;
 
               cand.style.opacity = '0.5';
               try {
@@ -1714,7 +1714,7 @@ async function openUsersModal() {
                 showToast(`Акаунти об'єднано`, 'success');
                 openUsersModal();
               } catch (e) {
-                alert('Помилка: ' + (e.message || 'unknown'));
+                showToast('Помилка: ' + (e.message || 'unknown'), 'error');
                 cand.style.opacity = '1';
               }
             });
@@ -1774,7 +1774,7 @@ async function openUsersModal() {
                   Raketo: <span style="font-family:monospace;color:var(--text-dim)">${pick.dataset.docId.slice(0,10)}…</span>
                 </div>`;
               } catch (e) {
-                alert('Помилка: ' + (e.message || 'unknown'));
+                showToast('Помилка: ' + (e.message || 'unknown'), 'error');
                 pick.style.opacity = '1';
               }
             });
@@ -1943,7 +1943,7 @@ async function renderParticipantList(tournamentId) {
               await API.tournaments.adminUnpair(btn.dataset.tid, btn.dataset.uid);
               await renderParticipantList(btn.dataset.tid);
             } catch (e) {
-              alert('Помилка: ' + (e.message || 'unknown'));
+              showToast('Помилка: ' + (e.message || 'unknown'), 'error');
               btn.disabled = false;
             }
           });
@@ -1959,7 +1959,7 @@ async function renderParticipantList(tournamentId) {
               await API.tournaments.adminPair(sel.dataset.tid, sel.dataset.uid, partnerId);
               await renderParticipantList(sel.dataset.tid);
             } catch (e) {
-              alert('Помилка: ' + (e.message || 'unknown'));
+              showToast('Помилка: ' + (e.message || 'unknown'), 'error');
               sel.disabled = false;
               sel.value = '';
             }
@@ -1974,7 +1974,7 @@ async function renderParticipantList(tournamentId) {
               await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId, pmShouldAnnounce());
               await renderParticipantList(btn.dataset.tournamentId);
             } catch (e) {
-              alert('Помилка: ' + (e.message || 'unknown'));
+              showToast('Помилка: ' + (e.message || 'unknown'), 'error');
               btn.disabled = false;
             }
           });
@@ -2005,7 +2005,7 @@ async function renderParticipantList(tournamentId) {
               await API.tournaments.removeParticipant(btn.dataset.tournamentId, btn.dataset.userId, pmShouldAnnounce());
               await renderParticipantList(btn.dataset.tournamentId);
             } catch (e) {
-              alert('Помилка: ' + (e.message || 'unknown'));
+              showToast('Помилка: ' + (e.message || 'unknown'), 'error');
               btn.disabled = false;
             }
           });
@@ -2064,7 +2064,7 @@ function renderAddableList() {
         document.getElementById('pm-search').value = '';
         await renderParticipantList(tournamentId);
       } catch (e) {
-        alert('Помилка: ' + (e.message || 'unknown'));
+        showToast('Помилка: ' + (e.message || 'unknown'), 'error');
         btn.style.opacity = '';
         btn.disabled = false;
       }

@@ -218,6 +218,39 @@ async function apiBootstrap() {
    HELPERS
 ════════════════════════════════════════════════════════════════ */
 
+/* Native-feeling dialogs: Telegram popups (Bot API 6.2+) with browser
+   fallback. Always await these — they resolve like confirm()/alert(). */
+function uiConfirm(message) {
+  return new Promise(resolve => {
+    if (tg?.showConfirm && tg.isVersionAtLeast?.('6.2')) {
+      try { tg.showConfirm(message, ok => resolve(!!ok)); return; } catch { /* old client */ }
+    }
+    resolve(window.confirm(message));
+  });
+}
+
+function uiAlert(message) {
+  return new Promise(resolve => {
+    if (tg?.showAlert && tg.isVersionAtLeast?.('6.2')) {
+      try { tg.showAlert(message, () => resolve()); return; } catch { /* old client */ }
+    }
+    window.alert(message);
+    resolve();
+  });
+}
+
+/* Relative «updated N ago» label (uk) */
+function fmtAgo(ts) {
+  if (!ts) return '';
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if (s < 60) return 'щойно';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} хв тому`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} год тому`;
+  return new Date(ts).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+}
+
 function fmt(date) {
   const d = new Date(date);
   return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });

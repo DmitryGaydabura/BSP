@@ -60,6 +60,8 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 
 **Global functions in templates:** inline `onclick="globalFn()"` handlers work because all top-level functions stay global. This is intentional.
 
+**Dialogs & feedback:** never use native `alert()`/`confirm()` — use `await uiConfirm(msg)` / `await uiAlert(msg)` from `core.js` (Telegram popups with browser fallback) and `showToast(msg, 'success'|'error'|'info')` for outcomes. **Data freshness:** tab revisits use stale-while-revalidate — `refreshTournamentsSilently()` / `refreshRatingsSilently()` refetch in the background and re-render only on change (never flash a skeleton over cached data); `ratingsFetchedAt` feeds the honest «Оновлено N тому» label via `fmtAgo()`.
+
 **Admin UI:** most admin controls render conditionally on `currentUser?.role === 'ADMIN'` checks inline in the template strings.
 
 ## Backend architecture

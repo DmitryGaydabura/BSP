@@ -3,9 +3,32 @@
 ════════════════════════════════════════════════════════════════ */
 
 let ratingsData = null;
+let ratingsFetchedAt = null;  // for the honest «оновлено N тому» label
 let guestsData = null;        // admin-only: registered users who haven't played yet
 let activeRatingFilter = 'all';
 const playerHistoryCache = new Map();
+
+/* Stale-while-revalidate for the leaderboard: refetch silently, re-render
+   only on actual change — revisiting the tab never flashes a skeleton. */
+let _rFetchSeq = 0;
+async function refreshRatingsSilently() {
+  if (!apiAvailable) return;
+  const seq = ++_rFetchSeq;
+  try {
+    const fresh = (await API.ratings.list()).map(normalizeRating);
+    if (seq !== _rFetchSeq) return;
+    const changed = JSON.stringify(fresh) !== JSON.stringify(ratingsData);
+    ratingsData = fresh;
+    ratingsFetchedAt = Date.now();
+    if (currentTab !== 'ratings') return;
+    if (changed) {
+      renderRatings();
+    } else {
+      const el = document.getElementById('ratings-updated');
+      if (el) el.textContent = 'Оновлено ' + fmtAgo(ratingsFetchedAt);
+    }
+  } catch { /* offline — keep showing the cached data */ }
+}
 
 const LEVELS_ORDER = ['D−','D','D+','C−','C','C+','B−','B','B+'];
 
@@ -139,6 +162,7 @@ async function renderRatings() {
     renderRatingsSkeleton();
     try {
       ratingsData = (await API.ratings.list()).map(normalizeRating);
+      ratingsFetchedAt = Date.now();
     } catch { /* offline */ }
   }
 
@@ -194,9 +218,9 @@ async function renderRatings() {
     }
   }
 
-  /* Updated date */
+  /* Honest freshness label — actual fetch time, not render time */
   document.getElementById('ratings-updated').textContent =
-    'Оновлено: ' + new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+    ratingsFetchedAt ? 'Оновлено ' + fmtAgo(ratingsFetchedAt) : '';
 
   /* Personal banner for a logged-in user who hasn't entered the rating yet */
   renderGuestSelfBanner();
@@ -875,7 +899,7 @@ function renderProfile() {
         renderProfile();
       } catch (e) {
         btn.disabled = false; btn.textContent = 'Ввійти через Telegram';
-        alert('Помилка входу: ' + (e.message || 'невідома'));
+        showToast('Помилка входу: ' + (e.message || 'невідома'), 'error');
       }
     });
     return;
@@ -1774,7 +1798,7 @@ function openClaimPointsModal() {
       closeModal('modal-claim-points');
       renderProfile();
     } catch (e) {
-      alert('Помилка: ' + (e.message || 'unknown'));
+      showToast('Помилка: ' + (e.message || 'unknown'), 'error');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Підтвердити імпорт';
     }

@@ -15,8 +15,13 @@ const NAV_KEY = { activity: 'ratings' };
 let currentTab = 'home';
 let rendered = { home: true, results: false, ratings: false, profile: false, activity: false };
 
+const tabScroll = {}; // remembered scroll position per tab
+
 function switchTab(tab) {
   if (tab === currentTab) return;
+
+  const content = document.getElementById('content');
+  tabScroll[currentTab] = content.scrollTop;
 
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(TABS[tab]).classList.add('active');
@@ -24,7 +29,7 @@ function switchTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelector(`.nav-tab[data-tab="${NAV_KEY[tab] || tab}"]`)?.classList.add('active');
 
-  document.getElementById('content').scrollTop = 0;
+  content.scrollTop = tabScroll[tab] || 0;
 
   if (!rendered[tab]) {
     if (tab === 'home')     renderHome();
@@ -38,8 +43,12 @@ function switchTab(tab) {
   } else if (tab === 'profile') {
     renderProfile();
   } else if (tab === 'results') {
-    tournamentsData = null; // always re-fetch so pair changes from bot are visible
+    // Stale-while-revalidate: show the cached list instantly, refetch silently
+    // (so pair changes from the bot still appear — without a skeleton flash)
     renderResults();
+    refreshTournamentsSilently();
+  } else if (tab === 'ratings') {
+    refreshRatingsSilently();
   }
 
   currentTab = tab;
@@ -425,6 +434,15 @@ function renderCupModal() {
 
   body.innerHTML = html;
 
+  // Right-edge fade hints that the bracket scrolls; hidden once fully scrolled
+  body.querySelectorAll('.cup-bracket-wrap').forEach(wrap => {
+    const sc = wrap.querySelector('.cup-bracket');
+    const upd = () => wrap.classList.toggle('bracket-at-end',
+      sc.scrollLeft + sc.clientWidth >= sc.scrollWidth - 8);
+    sc.addEventListener('scroll', upd, { passive: true });
+    upd();
+  });
+
   // Wire group match buttons
   body.querySelectorAll('.cup-group-match-enter').forEach(btn => {
     btn.addEventListener('click', () => openCupScoreModal('group', btn.dataset));
@@ -444,7 +462,7 @@ function renderCupModal() {
       const tie = detectWinnerByeTie();
       if (tie) { openByeChoiceModal(tie); return; }
 
-      if (!confirm('Підтвердити груповий етап і згенерувати плей-офф сітку?')) return;
+      if (!(await uiConfirm('Підтвердити груповий етап і згенерувати плей-офф сітку?'))) return;
       confirmBtn.disabled = true;
       const ok = await cupConfirmGroups(null);
       if (!ok) confirmBtn.disabled = false;
@@ -461,7 +479,7 @@ function renderCupModal() {
   const finalizeBtn = body.querySelector('#cup-modal-finalize-btn');
   if (finalizeBtn) {
     finalizeBtn.addEventListener('click', async () => {
-      if (!confirm('Завершити кубок та нарахувати рейтинг?')) return;
+      if (!(await uiConfirm('Завершити кубок та нарахувати рейтинг?'))) return;
       finalizeBtn.disabled = true;
       try {
         cupState = await API.cup.finalize(cupTournamentId);
@@ -741,7 +759,7 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
   const sortedRounds = Object.keys(rounds).map(Number).sort((a, b) => a - b);
   const totalRounds  = sortedRounds.length;
 
-  let html = `<div class="cup-bracket">`;
+  let html = `<div class="cup-bracket-wrap"><div class="cup-bracket">`;
 
   sortedRounds.forEach((r, roundIdx) => {
     const roundMatches = rounds[r].sort((a, b) => a.matchOrder - b.matchOrder);
@@ -791,7 +809,7 @@ function renderPlayoffBracket(matches, allowEntry, isConsolation) {
     html += `</div>`;
   });
 
-  html += `</div>`;
+  html += `</div></div>`;
   return html;
 }
 
