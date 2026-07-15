@@ -48,6 +48,8 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 
 **Navigation model:** bottom tabs Головна · Турніри · Рейтинг · Профіль (Головна is default; Активність is not a tab — it's a segment inside Рейтинг). Tournament lists render compact `.t-row` rows; tapping opens the full-screen `#t-page` detail (z-index 150) whose body is the old interactive card with all join/pair/admin actions. After any data mutation `renderResults()` refetches and `refreshOpenTournamentPage()` re-renders an open detail page.
 
+**Profile model:** one identity card (`.pf-card`: hero + Рейтинг/Старт/Активність stat strip), Raketo status, achievements, chart, history, quiet support/logout. Admin actions are NOT inline — a single «Адмін-панель» entry opens the static `#modal-admin-console` sheet (grouped Турніри/Гравці/Система; `wireAdminPanel` wires its buttons once via `adminConsoleWired`). «Створити американо» lives at the top of the Дружні subtab (`.t-create-row` in `renderFriendlyList`), not in the profile.
+
 **Cache-busting:** all `<script>` and `<link>` tags in `index.html` use `?v=N`. Bump the version whenever you change a file.
 
 ## Key patterns

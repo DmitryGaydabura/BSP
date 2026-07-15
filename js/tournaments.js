@@ -120,19 +120,28 @@ async function renderResults() {
   refreshOpenTournamentPage();
 }
 
-/** Friendly subtab: active friendly tournaments on top, finished ones below. */
+/** Friendly subtab: create CTA on top, then active tournaments, finished below. */
 function renderFriendlyList(friendly, list) {
   const active = applyResultFilter(friendly.filter(t => t.status !== 'FINISHED'));
   const done   = applyResultFilter(friendly.filter(t => t.status === 'FINISHED'));
 
+  const createRow = `
+    <button class="t-create-row" onclick="openCreateAmericano()">
+      <span class="t-create-plus">＋</span>
+      <span class="t-create-text">
+        <strong>Створити американо</strong>
+        <span>Дружній турнір — створити може будь-хто</span>
+      </span>
+    </button>`;
+
   if (!active.length && !done.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎾</div>
-      <div class="empty-state-text">Немає дружніх турнірів<br>
-      <span style="font-size:12px;color:var(--text-muted)">Створіть американо у вкладці Профіль</span></div></div>`;
+    list.innerHTML = createRow + `<div class="empty-state"><div class="empty-state-icon">🎾</div>
+      <div class="empty-state-text">Дружніх турнірів ще немає<br>
+      <span style="font-size:12px;color:var(--text-muted)">Станьте першим організатором</span></div></div>`;
     return;
   }
 
-  list.innerHTML = `
+  list.innerHTML = createRow + `
     <div id="friendly-active-list"></div>
     ${active.length && done.length ? '<div class="cup-section-title" style="margin:16px 0 8px">Завершені</div>' : ''}
     <div id="friendly-finished-list"></div>`;

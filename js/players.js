@@ -891,48 +891,38 @@ function renderProfile() {
   const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
 
   container.innerHTML = `
-    <div class="profile-hero ${tier}">
-      <div class="profile-avatar">
-        ${u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : initials(u.displayName)}
-      </div>
-      <div class="profile-info">
-        <div class="profile-name">${esc(u.displayName)}</div>
-        ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
-        <span class="level-badge level-badge-hero ${levelClass(level)}">${level}</span>
-        <div class="profile-hero-meta">
-          <span class="profile-role-badge ${isAdmin ? '' : 'player'}">${isAdmin ? 'Admin' : 'Player'}</span>
-          ${globalRank > 0 ? `<span class="profile-hero-rank">#${globalRank} у рейтингу</span>` : ''}
+    <div class="profile-hero ${tier} pf-card">
+      <div class="pf-top">
+        <div class="profile-avatar">
+          ${u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : initials(u.displayName)}
+        </div>
+        <div class="profile-info">
+          <div class="profile-name">${esc(u.displayName)}</div>
+          ${u.username ? `<div class="profile-username">@${u.username}</div>` : ''}
+          <div class="profile-hero-meta">
+            <span class="level-badge level-badge-hero ${levelClass(level)}">${level}</span>
+            ${isAdmin ? '<span class="profile-role-badge">Admin</span>' : ''}
+            ${globalRank > 0 ? `<span class="profile-hero-rank">#${globalRank} у рейтингу</span>` : ''}
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="profile-stats">
-      <div class="profile-stat">
-        <div class="profile-stat-value">${u.ratingPoints}</div>
-        <div class="profile-stat-label" style="display:flex;align-items:center;justify-content:center;gap:4px">
-          Бали <button class="rating-info-btn" onclick="openModal('modal-rating-guide')">?</button>
+      <div class="pf-stats">
+        <button class="pf-stat" onclick="openModal('modal-rating-guide')" title="Як рахується рейтинг">
+          <span class="pf-stat-val">${u.ratingPoints}</span>
+          <span class="pf-stat-lbl">Рейтинг ⓘ</span>
+        </button>
+        <div class="pf-stat">
+          <span class="pf-stat-val">${u.startingPoints || 0}</span>
+          <span class="pf-stat-lbl">Старт</span>
         </div>
-      </div>
-      <div class="profile-stat">
-        <div class="profile-stat-value">${u.startingPoints || 0}</div>
-        <div class="profile-stat-label">Стартові</div>
+        <button class="pf-stat" onclick="switchTab('activity')">
+          <span class="pf-stat-val" id="pf-act-val">—</span>
+          <span class="pf-stat-lbl" id="pf-act-lbl">Активність</span>
+        </button>
       </div>
     </div>
 
     <div id="profile-achievements"></div>
-
-    <div class="profile-activity-card" id="profile-activity-card">
-      <div class="pac-left">
-        <div class="pac-label">Активність</div>
-        <div class="pac-month">${activityMonthLabel(currentYearMonth())}</div>
-      </div>
-      <div class="pac-right">
-        <div class="pac-pts" id="pac-pts">—</div>
-        <div class="pac-rank" id="pac-rank">балів · завантаження...</div>
-      </div>
-    </div>
-
-    <button class="btn-americano-create" onclick="openCreateAmericano()">🎾 Створити американо</button>
 
     ${u.initialPointsClaimed ? `
       <div class="raketo-claimed-card">
@@ -996,24 +986,16 @@ function renderProfile() {
   if (isAdmin) wireAdminPanel();
   loadHistory();
 
-  // Load current-month activity for this user
+  // Current-month activity → identity-card stat
   const actMonth = currentYearMonth();
   API.activity.monthly(actMonth).then(data => {
     const me = data.find(e => e.userId === u.id);
-    const ptsEl  = document.getElementById('pac-pts');
-    const rankEl = document.getElementById('pac-rank');
-    if (!ptsEl) return;
-    if (me) {
-      ptsEl.textContent  = me.activityPoints;
-      rankEl.textContent = `балів · #${me.rank} місце`;
-    } else {
-      ptsEl.textContent  = '0';
-      rankEl.textContent = 'балів · немає участі';
-    }
-  }).catch(() => {
-    const rankEl = document.getElementById('pac-rank');
-    if (rankEl) rankEl.textContent = 'балів';
-  });
+    const valEl = document.getElementById('pf-act-val');
+    const lblEl = document.getElementById('pf-act-lbl');
+    if (!valEl) return;
+    valEl.textContent = me ? me.activityPoints : '0';
+    if (lblEl && me) lblEl.textContent = `Активність · #${me.rank}`;
+  }).catch(() => {});
 }
 
 function levelFromPoints(pts) {
@@ -1800,55 +1782,18 @@ function openClaimPointsModal() {
 }
 
 function renderAdminPanel() {
+  // Single entry point — the grouped action list lives in #modal-admin-console
   return `
-    <div class="admin-panel">
-      <div class="admin-panel-header">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7C5B" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-        <span class="admin-panel-title">Адмін панель</span>
-      </div>
-      <div class="admin-actions">
-        <button class="admin-action-btn" id="btn-create-tournament">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
-          <span class="admin-action-label">Створити турнір</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-submit-results">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-          <span class="admin-action-label">Внести результати</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-manage-participants">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 9h6M9 13h4M8 4V2M16 4V2"/></svg>
-          <span class="admin-action-label">Учасники турніру</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-users">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          <span class="admin-action-label">Гравці</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-admin-import">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span class="admin-action-label">Імпорт з Raketo</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-admin-achievements">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-          <span class="admin-action-label">Досягнення</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-admin-analysis">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          <span class="admin-action-label">AI Аналіз турнірів</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-        <button class="admin-action-btn" id="btn-migrate-v2">
-          <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-          <span class="admin-action-label">Перерахувати рейтинг v2</span>
-          <span class="admin-action-arrow">›</span>
-        </button>
-      </div>
-    </div>
+    <button class="admin-entry" id="btn-admin-console">
+      <span class="admin-entry-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+      </span>
+      <span class="admin-entry-text">
+        <span class="admin-entry-title">Адмін-панель</span>
+        <span class="admin-entry-sub">Турніри · гравці · аналіз · рейтинг</span>
+      </span>
+      <span class="admin-action-arrow">›</span>
+    </button>
   `;
 }
 

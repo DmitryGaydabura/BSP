@@ -603,7 +603,16 @@ function fsRefId(fields, key) {
    ADMIN — WIRE ACTIONS
 ════════════════════════════════════════════════════════════════ */
 
+let adminConsoleWired = false;
+
 function wireAdminPanel() {
+  // The profile entry is re-rendered on each renderProfile — wire it every time.
+  document.getElementById('btn-admin-console')
+    .addEventListener('click', () => openModal('modal-admin-console'));
+
+  // Console action buttons are static markup in index.html — wire them once.
+  if (adminConsoleWired) return;
+  adminConsoleWired = true;
   document.getElementById('btn-create-tournament').addEventListener('click', openCreateTournament);
   document.getElementById('btn-submit-results').addEventListener('click', openSubmitResults);
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);

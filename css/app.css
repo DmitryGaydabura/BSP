@@ -1647,6 +1647,113 @@ input[type="date"].form-input { min-height: 42px; }
 }
 .pp-tg-btn:active { opacity: 0.7; }
 
+/* Identity card: hero merged with the key-numbers strip */
+.pf-card { flex-direction: column; align-items: stretch; gap: 0; }
+.pf-top { display: flex; align-items: center; gap: 15px; position: relative; z-index: 1; }
+.pf-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  border-top: 1.5px dashed var(--border-def);
+  margin-top: 14px;
+  padding-top: 12px;
+  position: relative;
+  z-index: 1;
+}
+.pf-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  border-radius: var(--r-sm);
+  text-align: center;
+}
+button.pf-stat:active { background: var(--surface); }
+.pf-stat-val {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.pf-stat-lbl {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Admin console entry (single row on the profile) */
+.admin-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--r-md);
+  padding: 13px 15px;
+  margin-bottom: 12px;
+  text-align: left;
+  transition: transform 0.15s var(--ease);
+}
+.admin-entry:active { transform: scale(0.985); }
+.admin-entry-icon {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(217,239,85,0.15);
+  color: var(--lime);
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-entry-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.admin-entry-title { font-size: 14px; font-weight: 800; }
+.admin-entry-sub { font-size: 11px; color: rgba(244,242,234,0.65); }
+.admin-entry .admin-action-arrow { color: var(--lime); }
+
+/* Admin console group headers */
+.ac-group-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 14px 2px 8px;
+}
+.ac-group-title:first-child { margin-top: 0; }
+
+/* «Створити американо» row (Дружні subtab) */
+.t-create-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--lime-soft);
+  border: 1.5px dashed var(--ink);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  text-align: left;
+  transition: transform 0.15s var(--ease), background 0.15s;
+}
+.t-create-row:active { transform: scale(0.985); background: var(--lime); }
+.t-create-plus {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.t-create-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.t-create-text strong { font-size: 14px; font-weight: 800; color: var(--ink); }
+.t-create-text span { font-size: 11px; color: var(--text-sec); }
+
 /* Profile stats */
 .profile-stats {
   display: grid;

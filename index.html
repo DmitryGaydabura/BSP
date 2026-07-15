@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/app.css?v=38">
+  <link rel="stylesheet" href="css/app.css?v=39">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=2">
 </head>
 <body>
@@ -457,6 +457,68 @@
             </div>
           </div>
           <button class="btn-primary" id="ai-import-btn" style="width:100%;margin-top:14px" disabled>Додати гравця</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin console — grouped admin actions (opened from the Profile entry) -->
+  <div class="modal-overlay" id="modal-admin-console">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title">Адмін-панель</span>
+        <button class="modal-close" data-close="modal-admin-console">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="ac-group-title">Турніри</div>
+        <div class="admin-actions">
+          <button class="admin-action-btn" id="btn-create-tournament">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+            <span class="admin-action-label">Створити турнір</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+          <button class="admin-action-btn" id="btn-submit-results">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <span class="admin-action-label">Внести результати</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+          <button class="admin-action-btn" id="btn-manage-participants">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 9h6M9 13h4M8 4V2M16 4V2"/></svg>
+            <span class="admin-action-label">Учасники турніру</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+        </div>
+        <div class="ac-group-title">Гравці</div>
+        <div class="admin-actions">
+          <button class="admin-action-btn" id="btn-users">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            <span class="admin-action-label">Гравці</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+          <button class="admin-action-btn" id="btn-admin-import">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="admin-action-label">Імпорт з Raketo</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+        </div>
+        <div class="ac-group-title">Система</div>
+        <div class="admin-actions">
+          <button class="admin-action-btn" id="btn-admin-achievements">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span class="admin-action-label">Досягнення</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+          <button class="admin-action-btn" id="btn-admin-analysis">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <span class="admin-action-label">AI Аналіз турнірів</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
+          <button class="admin-action-btn" id="btn-migrate-v2">
+            <svg class="admin-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span class="admin-action-label">Перерахувати рейтинг v2</span>
+            <span class="admin-action-arrow">›</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1022,12 +1084,12 @@
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
 <script src="js/core.js?v=46" defer></script>
-<script src="js/tournaments.js?v=61" defer></script>
+<script src="js/tournaments.js?v=62" defer></script>
 <script src="js/americano.js?v=2" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
-<script src="js/players.js?v=65" defer></script>
-<script src="js/analysis-admin.js?v=76" defer></script>
+<script src="js/players.js?v=68" defer></script>
+<script src="js/analysis-admin.js?v=77" defer></script>
 <script src="js/home.js?v=1" defer></script>
 <script src="js/app.js?v=68" defer></script>
   <!-- Home screen banner -->
