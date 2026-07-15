@@ -49,7 +49,16 @@ function amUpdateRoundsHint() {
       `За замовчуванням ${n - 1} раундів — кожен гравець у парі з кожним рівно 1 раз.`;
 }
 
-function openCreateAmericano() {
+// Fill the americano level selects from the shared levels cache (analysis-admin.js)
+async function amPopulateLevelSelects() {
+  await loadTournamentLevels();
+  const opts = tournamentLevels.map(l =>
+    `<option value="${l.value}">${l.label}</option>`).join('');
+  document.getElementById('am-level').innerHTML = opts;
+  document.getElementById('am-level-max').innerHTML = opts;
+}
+
+async function openCreateAmericano() {
   if (!currentUser) { showToast('Увійдіть через Telegram, щоб створити турнір', 'error'); return; }
   editingAmericanoId = null;
   document.querySelector('#modal-create-americano .modal-title').textContent = 'Новий американо';
@@ -72,9 +81,12 @@ function openCreateAmericano() {
   amToggleAdminSection();
   amUpdateRoundsHint();
   openModal('modal-create-americano');
+  await amPopulateLevelSelects();
+  document.getElementById('am-level').value = 'D';
+  document.getElementById('am-level-max').value = 'D';
 }
 
-function openEditAmericano(t) {
+async function openEditAmericano(t) {
   editingAmericanoId = t.id;
   document.querySelector('#modal-create-americano .modal-title').textContent = 'Редагувати американо';
   document.getElementById('am-submit').textContent = 'Зберегти';
@@ -96,6 +108,9 @@ function openEditAmericano(t) {
   amToggleAdminSection();
   amUpdateRoundsHint();
   openModal('modal-create-americano');
+  await amPopulateLevelSelects();
+  document.getElementById('am-level').value = t.level || 'D';
+  document.getElementById('am-level-max').value = t.levelMax || t.level || 'D';
 }
 
 document.getElementById('am-max-participants').addEventListener('change', amUpdateRoundsHint);
@@ -110,6 +125,9 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const official = isAdmin && document.getElementById('am-official').checked;
   const payload = {
     name, date,
+    level:           document.getElementById('am-level').value || null,
+    levelMax:        document.getElementById('am-level-max').value
+                       || document.getElementById('am-level').value || null,
     time:            document.getElementById('am-time').value || null,
     location:        document.getElementById('am-location').value.trim() || null,
     price:           parseInt(document.getElementById('am-price').value) || null,

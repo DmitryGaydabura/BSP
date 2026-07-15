@@ -26,6 +26,18 @@
   color: var(--bsp-text);
 }
 
+/* Navy (legacy) theme — follows html[data-theme] set by core.js */
+html[data-theme="navy"] .bsp-achievements {
+  --bsp-ink:      #F5F0E8;
+  --bsp-card-1:   #1A2F4A;
+  --bsp-card-2:   #16283F;
+  --bsp-accent:   #E8C97A;
+  --bsp-accent-2: #C9A84C;
+  --bsp-text:     #F5F0E8;
+  --bsp-muted:    #8FA3B8;
+  --bsp-line:     rgba(201,168,76,0.2);
+}
+
 /* ---------- summary ---------- */
 .bsp-ach-summary {
   display: flex; align-items: baseline; gap: 10px;
@@ -104,9 +116,9 @@
 /* earned tag */
 .bsp-ach-done {
   font-family: var(--bsp-font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
-  font-weight: 700; color: var(--bsp-ink); padding: 3px 11px; border-radius: 9999px;
+  font-weight: 700; color: #15302B; padding: 3px 11px; border-radius: 9999px;
   background: var(--bsp-lime);
-  border: 1.5px solid var(--bsp-ink);
+  border: 1.5px solid #15302B;
 }
 
 /* progress (locked, count-based) */

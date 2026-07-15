@@ -60,13 +60,30 @@ const _ob = (() => {
 
 function initOnboarding() { _ob.show(); }
 
-/* ── Telegram WebApp init ──────────────────────────────────────── */
+/* ── Telegram WebApp init + theme ──────────────────────────────── */
 const tg = window.Telegram?.WebApp;
+
+// Theme follows the Telegram color scheme (browser: prefers-color-scheme):
+// light → «Court Paper» (current), dark → «navy» (legacy navy/gold palette).
+function applyAppTheme(scheme) {
+  const navy = scheme === 'dark';
+  document.documentElement.dataset.theme = navy ? 'navy' : 'paper';
+  const bg = navy ? '#0D1B2E' : '#F4F2EA';
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+  if (tg) {
+    try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); } catch { /* old client */ }
+  }
+}
+
 if (tg) {
   tg.ready();
   tg.expand();
-  tg.setHeaderColor('#F4F2EA');
-  tg.setBackgroundColor('#F4F2EA');
+  applyAppTheme(tg.colorScheme);
+  tg.onEvent('themeChanged', () => applyAppTheme(tg.colorScheme));
+} else {
+  const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
+  applyAppTheme(mq?.matches ? 'dark' : 'light');
+  mq?.addEventListener?.('change', e => applyAppTheme(e.matches ? 'dark' : 'light'));
 }
 
 /* ── App state ─────────────────────────────────────────────────── */

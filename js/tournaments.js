@@ -162,8 +162,21 @@ function renderUpcomingList(source, list) {
     return;
   }
 
-  list.innerHTML = filtered.map(buildTournamentRow).join('');
+  list.innerHTML = splitByFormatHtml(filtered);
   wireTournamentRows(list);
+}
+
+/** Club (classic/cup) tournaments first, americano-format ones in their own
+    section below — official americanos must not blend into the club list. */
+function splitByFormatHtml(items) {
+  const classic = items.filter(t => t.type !== 'AMERICANO');
+  const amer    = items.filter(t => t.type === 'AMERICANO');
+  let html = classic.map(buildTournamentRow).join('');
+  if (amer.length) {
+    if (classic.length) html += `<div class="t-list-sep">🎾 Американо</div>`;
+    html += amer.map(buildTournamentRow).join('');
+  }
+  return html;
 }
 
 const T_STATUS_LABEL = { DRAFT: 'Реєстрація', ACTIVE: 'Активний', FINISHED: 'Завершено', GROUP_STAGE: 'Груповий етап', PLAYOFF: 'Плей-офф' };
@@ -474,7 +487,14 @@ function renderFinishedList(source, list) {
     return;
   }
 
-  list.innerHTML = filtered.map(buildFinishedRow).join('');
+  const classic = filtered.filter(t => t.type !== 'AMERICANO');
+  const amer    = filtered.filter(t => t.type === 'AMERICANO');
+  let html = classic.map(buildFinishedRow).join('');
+  if (amer.length) {
+    if (classic.length) html += `<div class="t-list-sep">🎾 Американо</div>`;
+    html += amer.map(buildFinishedRow).join('');
+  }
+  list.innerHTML = html;
   wireTournamentRows(list);
 }
 
@@ -729,7 +749,7 @@ function buildTournamentRow(t) {
     cnt,
   ].filter(Boolean).join(' · ');
   return `
-    <button class="t-row${t.friendly ? ' t-row-friendly' : ''}" data-id="${t.id}">
+    <button class="t-row${t.friendly ? ' t-row-friendly' : ''}${t.type === 'AMERICANO' ? ' t-row-am' : ''}" data-id="${t.id}">
       ${tRowDateBlock(t)}
       <div class="t-row-main">
         <div class="t-row-name">${esc(t.name)}${isLive ? '<span class="live-badge">● LIVE</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}</div>
@@ -750,7 +770,7 @@ function buildFinishedRow(t) {
     ? results.find(r => (r.players || []).some(p => p.id != null && String(p.id) === String(currentUser.id)))
     : null;
   return `
-    <button class="t-row t-row-done${t.friendly ? ' t-row-friendly' : ''}" data-id="${t.id}">
+    <button class="t-row t-row-done${t.friendly ? ' t-row-friendly' : ''}${t.type === 'AMERICANO' ? ' t-row-am' : ''}" data-id="${t.id}">
       ${tRowDateBlock(t)}
       <div class="t-row-main">
         <div class="t-row-name">${esc(t.name)}</div>
