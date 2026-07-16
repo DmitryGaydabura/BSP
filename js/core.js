@@ -63,16 +63,37 @@ function initOnboarding() { _ob.show(); }
 /* ── Telegram WebApp init + theme ──────────────────────────────── */
 const tg = window.Telegram?.WebApp;
 
-// Theme follows the Telegram color scheme (browser: prefers-color-scheme):
+// Theme follows the Telegram color scheme (browser: prefers-color-scheme) by
+// default, but the user can pin it to light/dark from the profile screen —
+// that choice is saved in localStorage and wins over auto-detection.
 // light → «Court Paper» (current), dark → «navy» (legacy navy/gold palette).
+const THEME_PREF_KEY = 'bsp_theme_pref'; // 'light' | 'dark' | 'system'
+
+function getThemePref() {
+  return localStorage.getItem(THEME_PREF_KEY) || 'system';
+}
+
+function autoColorScheme() {
+  if (tg) return tg.colorScheme;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 function applyAppTheme(scheme) {
-  const navy = scheme === 'dark';
+  const pref = getThemePref();
+  const resolved = pref === 'system' ? scheme : pref;
+  const navy = resolved === 'dark';
   document.documentElement.dataset.theme = navy ? 'navy' : 'paper';
   const bg = navy ? '#0D1B2E' : '#F4F2EA';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
   if (tg) {
     try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); } catch { /* old client */ }
   }
+}
+
+function setThemePref(pref) {
+  if (pref === 'system') localStorage.removeItem(THEME_PREF_KEY);
+  else localStorage.setItem(THEME_PREF_KEY, pref);
+  applyAppTheme(autoColorScheme());
 }
 
 if (tg) {

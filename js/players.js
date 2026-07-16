@@ -991,6 +991,15 @@ function renderProfile() {
       <div id="history-list"><div class="history-loading">Завантаження...</div></div>
     </div>
 
+    <div class="pf-theme-row">
+      <div class="pf-theme-label">Тема</div>
+      <div class="seg" id="pf-theme-seg">
+        <button class="seg-btn" data-theme-pref="light">Світла</button>
+        <button class="seg-btn" data-theme-pref="dark">Темна</button>
+        <button class="seg-btn" data-theme-pref="system">Авто</button>
+      </div>
+    </div>
+
     <button class="btn-secondary" id="btn-whats-new" style="width:100%;margin-top:8px">Що нового?</button>
     <button class="btn-secondary" id="btn-support" style="width:100%;margin-top:4px">Написати підтримці</button>
     <button class="btn-secondary btn-danger" id="logout-btn" style="width:100%;margin-top:4px">Вийти</button>
@@ -1004,6 +1013,16 @@ function renderProfile() {
 
   document.getElementById('btn-whats-new').addEventListener('click', openWhatsNew);
   document.getElementById('btn-support').addEventListener('click', openSupportModal);
+
+  const themeSeg = document.getElementById('pf-theme-seg');
+  const activeThemePref = getThemePref();
+  themeSeg.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themePref === activeThemePref);
+    btn.addEventListener('click', () => {
+      setThemePref(btn.dataset.themePref);
+      themeSeg.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
 
   if (!u.initialPointsClaimed) {
     document.getElementById('btn-claim-points').addEventListener('click', openClaimPointsModal);

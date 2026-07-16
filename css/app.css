@@ -4109,6 +4109,16 @@ button.pf-stat:active { background: var(--surface); }
   box-shadow: 0 2px 6px rgba(21,48,43,0.25);
 }
 
+.pf-theme-row {
+  margin-top: 14px;
+}
+.pf-theme-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-left: 2px;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    TOURNAMENT LIST ROWS
    ═══════════════════════════════════════════════════════════════ */
