@@ -489,7 +489,8 @@ function buildPairParticipantsList(t, pairRegs, pairResRegs, canJoin, hasPending
 function fpAvatarHtml(player) {
   if (player.photoUrl) {
     const safe = player.photoUrl.replace(/"/g, '&quot;');
-    return `<img src="${safe}" alt="" onerror="this.style.display='none'">`;
+    // data-init lets the PNG export swap CORS-blocked photos for initials
+    return `<img src="${safe}" alt="" data-init="${esc(initials(player.name))}" onerror="this.style.display='none'">`;
   }
   return initials(player.name);
 }
@@ -561,8 +562,10 @@ function buildFinishedDetailCard(t) {
       footerHtml += `<div class="fin-odds">
           <div class="fin-odds-gauge">
             <svg class="fin-odds-ring" viewBox="0 0 40 40" aria-hidden="true">
-              <circle class="fin-odds-track" cx="20" cy="20" r="16" pathLength="100"/>
-              <circle class="fin-odds-arc" cx="20" cy="20" r="16" pathLength="100" style="--p:${Math.max(3, Math.min(t.winnerPreChance, 100))}"/>
+              <!-- presentation attrs duplicate the CSS so the PNG export survives
+                   html-to-image's lossy style inlining on SVG children -->
+              <circle class="fin-odds-track" cx="20" cy="20" r="16" pathLength="100" fill="none" stroke="rgba(244,242,234,0.15)" stroke-width="3.5"/>
+              <circle class="fin-odds-arc" cx="20" cy="20" r="16" pathLength="100" transform="rotate(-90 20 20)" fill="none" stroke="#D9EF55" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${Math.max(3, Math.min(t.winnerPreChance, 100))} 100" style="--p:${Math.max(3, Math.min(t.winnerPreChance, 100))}"/>
             </svg>
             <span class="fin-odds-num">${t.winnerPreChance}%</span>
           </div>
@@ -688,8 +691,102 @@ function buildFinishedDetailCard(t) {
       ${medalsHtml}
       ${myHtml}
       ${restHtml}
+      ${results.length ? `<button class="fin-share-btn" onclick="exportFinishedPng(${t.id})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Зберегти як картинку
+      </button>` : ''}
       ${analysisBtn}
     </div>`;
+}
+
+/* ── PNG export of the finished-tournament card ─────────────────── */
+
+/** Lazy-load the vendored html-to-image lib (kept off the boot path). */
+function ensureHtmlToImage() {
+  return new Promise((resolve, reject) => {
+    if (window.htmlToImage) return resolve();
+    const s = document.createElement('script');
+    s.src = 'js/vendor/html-to-image.min.js?v=1';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('lib load failed'));
+    document.head.appendChild(s);
+  });
+}
+
+/** Render the open finished card to a PNG data URL (clean shareable version). */
+async function _captureFinishedCardPng() {
+  const card = document.querySelector('#t-page-body .finished-card');
+  if (!card) throw new Error('card not found');
+  await ensureHtmlToImage();
+
+  // Work on an offscreen clone: strip buttons/personal bits, add branding.
+  const clone = card.cloneNode(true);
+  clone.querySelectorAll('.t-admin-actions, .analysis-btn, .fin-share-btn, .fin-my, .cup-view-btn, .am-view-btn')
+    .forEach(el => el.remove());
+  clone.insertAdjacentHTML('beforeend', '<div class="fin-export-brand">★ BLACKSEA PADEL · ODESA ★</div>');
+
+  const frame = document.createElement('div');
+  frame.className = 'fin-export-frame';
+  frame.appendChild(clone);
+  // Fixed canonical width — shared PNGs look the same from any device
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:440px;';
+  holder.appendChild(frame);
+  document.body.appendChild(holder);
+
+  try {
+    // Avatars the CORS way or not at all: photos we can't re-fetch would
+    // otherwise come out blank — swap them for initials.
+    await Promise.all([...clone.querySelectorAll('img')].map(async img => {
+      try {
+        const r = await fetch(img.src, { mode: 'cors' });
+        if (!r.ok) throw new Error();
+      } catch {
+        img.replaceWith(document.createTextNode(img.dataset.init || ''));
+      }
+    }));
+    const opts = { pixelRatio: 2, backgroundColor: getComputedStyle(document.body).backgroundColor };
+    await htmlToImage.toPng(frame, opts);          // warm-up: dodges the WebKit blank-first-render race
+    return await htmlToImage.toPng(frame, opts);
+  } finally {
+    holder.remove();
+  }
+}
+
+async function exportFinishedPng(tid) {
+  const btn = document.querySelector('#t-page-body .fin-share-btn');
+  if (btn?.disabled) return;
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Готуємо картинку…'; }
+  try {
+    const dataUrl = await _captureFinishedCardPng();
+    const t = (tournamentsData || []).find(x => String(x.id) === String(tid));
+    const fileName = `BSP-${t?.date || 'results'}.png`;
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        showToast('Готово! 📸');
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user closed the share sheet
+        // fall through to plain download
+      }
+    }
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('Картинку збережено 📸');
+  } catch (e) {
+    showToast('Не вдалося створити картинку', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+  }
 }
 
 function wireAdminTournamentBtns(container) {
