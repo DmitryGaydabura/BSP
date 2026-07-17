@@ -42,6 +42,7 @@ function normalizeTournament(t) {
     analysisGeneratedAt: t.analysisGeneratedAt || null,
     winnerPreChance: t.winnerPreChance ?? null,
     winnerPreSeed: t.winnerPreSeed ?? null,
+    finalizedAvgRating: t.finalizedAvgRating ?? null,
     // Americano / friendly tournament fields
     friendly: t.friendly || false,
     isPrivate: t.isPrivate || false,
@@ -544,11 +545,12 @@ function buildFinishedDetailCard(t) {
         </div>`;
     }).join('');
 
-    // Pre-tournament title odds for the champions (Elo chance computed by the
-    // backend from ratings *before* the tournament) — the story of the win.
+    // Plaque footer — the story of the win: pre-tournament win chance (Elo,
+    // computed by the backend from ratings *before* the tournament), the
+    // seed→finish journey, field strength, and an occasional «Прорив дня».
     const teams     = results.length;
     const soloChamp = champs.length === 1 && playersOf(champs[0]).length === 1;
-    let oddsHtml = '<div class="fin-hero-pad"></div>';
+    let footerHtml = '';
     if (t.winnerPreChance != null && teams >= 2) {
       const baseline = 100 / teams;
       const badge = t.winnerPreChance <= baseline * 0.6
@@ -556,7 +558,7 @@ function buildFinishedDetailCard(t) {
         : t.winnerPreSeed === 1
         ? `<span class="fin-odds-badge fin-odds-fav">${soloChamp ? 'Фаворит' : 'Фаворити'}</span>`
         : '';
-      oddsHtml = `<div class="fin-odds">
+      footerHtml += `<div class="fin-odds">
           <div class="fin-odds-gauge">
             <svg class="fin-odds-ring" viewBox="0 0 40 40" aria-hidden="true">
               <circle class="fin-odds-track" cx="20" cy="20" r="16" pathLength="100"/>
@@ -565,18 +567,36 @@ function buildFinishedDetailCard(t) {
             <span class="fin-odds-num">${t.winnerPreChance}%</span>
           </div>
           <div class="fin-odds-txt">
-            <div class="fin-odds-label">Шанс на титул до старту</div>
-            ${t.winnerPreSeed ? `<div class="fin-odds-sub">посів №${t.winnerPreSeed} із ${teams}</div>` : ''}
+            <div class="fin-odds-label">Шансів на перемогу до старту</div>
           </div>
           ${badge}
         </div>`;
     }
+    const factCells = [];
+    if (t.winnerPreSeed != null && teams >= 2) {
+      factCells.push({ l: 'Посів → фініш', v: `№${t.winnerPreSeed} → №1` });
+    }
+    if (t.finalizedAvgRating) {
+      factCells.push({ l: 'Сила поля', v: `${t.finalizedAvgRating} <small>BSP</small>` });
+    }
+    // «Прорив дня» — a non-champion pair that out-earned the champions
+    const champMaxPts = champs.length ? Math.max(...champs.map(r => r.pts || 0)) : 0;
+    const breakout = results.filter(r => r.pos !== 1)
+      .reduce((a, r) => (r.pts || 0) > (a ? a.pts : 0) ? r : a, null);
+    if (breakout && breakout.pts > champMaxPts && breakout.pts > 0) {
+      factCells.push({ l: 'Прорив дня', v: `+${breakout.pts}`, sub: playersOf(breakout).map(p => esc(p.name)).join(' / ') });
+    }
+    if (factCells.length) {
+      footerHtml += `<div class="fin-facts">${factCells.map(f =>
+        `<div class="fin-fact"><span class="fin-fact-l">${f.l}</span><span class="fin-fact-v">${f.v}</span>${f.sub ? `<span class="fin-fact-sub">${f.sub}</span>` : ''}</div>`).join('')}</div>`;
+    }
+    if (!footerHtml) footerHtml = '<div class="fin-hero-pad"></div>';
 
     const heroHtml = champs.length > 0
       ? `<div class="fin-hero">
           <div class="fin-hero-eyebrow">${soloChamp ? 'Чемпіон турніру' : 'Чемпіони турніру'}</div>
           ${champBlocks}
-          ${oddsHtml}
+          ${footerHtml}
         </div>`
       : '';
 
