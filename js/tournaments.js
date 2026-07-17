@@ -40,6 +40,8 @@ function normalizeTournament(t) {
     raketoId: t.raketoId || null,
     hasAnalysis: t.hasAnalysis || false,
     analysisGeneratedAt: t.analysisGeneratedAt || null,
+    winnerPreChance: t.winnerPreChance ?? null,
+    winnerPreSeed: t.winnerPreSeed ?? null,
     // Americano / friendly tournament fields
     friendly: t.friendly || false,
     isPrivate: t.isPrivate || false,
@@ -542,27 +544,39 @@ function buildFinishedDetailCard(t) {
         </div>`;
     }).join('');
 
-    // «Вага перемоги» — quantify the achievement on the plaque itself
-    const teams        = results.length;
-    const playersTotal = results.reduce((s, r) => s + playersOf(r).length, 0) || t.participantCount || 0;
-    const beaten       = Math.max(0, teams - champs.length);
-    const champPts     = champs.length ? Math.max(...champs.map(r => r.pts || 0)) : 0;
-    const isPairFormat = results.some(r => playersOf(r).length > 1);
-    const statTiles = [
-      playersTotal > 0 ? { v: playersTotal, l: 'гравців' } : null,
-      beaten > 0 ? { v: beaten, l: isPairFormat ? (beaten === 1 ? 'пара позаду' : 'пар позаду') : 'позаду' } : null,
-      champPts > 0 ? { v: `+${champPts}`, l: 'рейтингу', lime: true } : null,
-    ].filter(Boolean);
-    const statsHtml = statTiles.length >= 2
-      ? `<div class="fin-hero-stats">${statTiles.map(s =>
-          `<div class="fin-stat"><div class="fin-stat-v${s.lime ? ' fin-lime' : ''}">${s.v}</div><div class="fin-stat-l">${s.l}</div></div>`).join('')}</div>`
-      : '<div class="fin-hero-pad"></div>';
+    // Pre-tournament title odds for the champions (Elo chance computed by the
+    // backend from ratings *before* the tournament) — the story of the win.
+    const teams     = results.length;
+    const soloChamp = champs.length === 1 && playersOf(champs[0]).length === 1;
+    let oddsHtml = '<div class="fin-hero-pad"></div>';
+    if (t.winnerPreChance != null && teams >= 2) {
+      const baseline = 100 / teams;
+      const badge = t.winnerPreChance <= baseline * 0.6
+        ? '<span class="fin-odds-badge fin-odds-sensation">Сенсація</span>'
+        : t.winnerPreSeed === 1
+        ? `<span class="fin-odds-badge fin-odds-fav">${soloChamp ? 'Фаворит' : 'Фаворити'}</span>`
+        : '';
+      oddsHtml = `<div class="fin-odds">
+          <div class="fin-odds-gauge">
+            <svg class="fin-odds-ring" viewBox="0 0 40 40" aria-hidden="true">
+              <circle class="fin-odds-track" cx="20" cy="20" r="16" pathLength="100"/>
+              <circle class="fin-odds-arc" cx="20" cy="20" r="16" pathLength="100" style="--p:${Math.max(3, Math.min(t.winnerPreChance, 100))}"/>
+            </svg>
+            <span class="fin-odds-num">${t.winnerPreChance}%</span>
+          </div>
+          <div class="fin-odds-txt">
+            <div class="fin-odds-label">Шанс на титул до старту</div>
+            ${t.winnerPreSeed ? `<div class="fin-odds-sub">посів №${t.winnerPreSeed} із ${teams}</div>` : ''}
+          </div>
+          ${badge}
+        </div>`;
+    }
 
     const heroHtml = champs.length > 0
       ? `<div class="fin-hero">
-          <div class="fin-hero-eyebrow">${champs.length === 1 && playersOf(champs[0]).length === 1 ? 'Чемпіон турніру' : 'Чемпіони турніру'}</div>
+          <div class="fin-hero-eyebrow">${soloChamp ? 'Чемпіон турніру' : 'Чемпіони турніру'}</div>
           ${champBlocks}
-          ${statsHtml}
+          ${oddsHtml}
         </div>`
       : '';
 

@@ -1287,28 +1287,71 @@ body::before {
 }
 .fin-hero-pts small { font-size: 9px; font-weight: 800; letter-spacing: 0.06em; }
 .fin-hero-pad { height: 20px; }
-.fin-hero-stats {
+
+/* Pre-tournament title odds — donut gauge + seed + verdict chip */
+@keyframes fin-arc { from { stroke-dasharray: 0 100; } }
+.fin-odds {
   display: flex;
-  margin-top: 18px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 6px 14px;
   border-top: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent);
+  text-align: left;
 }
-.fin-stat { flex: 1; min-width: 0; padding: 11px 4px 13px; }
-.fin-stat + .fin-stat { border-left: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent); }
-.fin-stat-v {
+.fin-odds-gauge { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+.fin-odds-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.fin-odds-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--on-ink) 15%, transparent);
+  stroke-width: 3.5;
+}
+.fin-odds-arc {
+  fill: none;
+  stroke: var(--lime);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--p) 100;
+  animation: fin-arc 0.9s var(--ease) 0.4s both;
+}
+.fin-odds-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-mono);
-  font-size: 16.5px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.1;
-  color: var(--on-ink);
+  color: var(--lime);
 }
-.fin-stat-v.fin-lime { color: var(--lime); }
-.fin-stat-l {
-  margin-top: 3px;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
+.fin-odds-txt { flex: 1; min-width: 0; }
+.fin-odds-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--on-ink);
+  line-height: 1.3;
+}
+.fin-odds-sub {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--on-ink) 60%, transparent);
+}
+.fin-odds-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--on-ink) 55%, transparent);
+}
+.fin-odds-sensation { background: var(--lime); color: var(--on-lime); }
+.fin-odds-fav {
+  border: 1px solid color-mix(in srgb, var(--lime) 60%, transparent);
+  color: var(--lime);
 }
 
 /* Silver & bronze medal cards */
