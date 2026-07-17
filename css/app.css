@@ -1156,80 +1156,255 @@ body::before {
 }
 .finished-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
-/* Finished podium */
-.finished-podium {
+/* Finished tournament — trophy ceremony.
+   Champion plaque: engraved dark plate (--ink-fill stays dark in
+   both themes) with lime glow, one-shot sheen sweep and a stat
+   footer that quantifies the weight of the win. */
+@keyframes fin-rise  { from { opacity: 0; transform: translateY(12px); } }
+@keyframes fin-sheen { to   { left: 135%; } }
+@keyframes fin-crown { from { opacity: 0; transform: translate(-50%, -10px) rotate(-10deg); } }
+
+.fin-hero {
+  position: relative;
+  overflow: hidden;
+  margin: 12px 0;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--ink);
+  background: var(--ink-fill);
+  color: var(--on-ink);
+  text-align: center;
+  padding: 20px 14px 0;
+  animation: fin-rise 0.5s var(--ease) both;
+}
+.fin-hero::before {          /* lime halo + faint court diagonals */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 75% at 50% 0%, color-mix(in srgb, var(--lime) 17%, transparent), transparent 62%),
+    repeating-linear-gradient(115deg, transparent 0 22px, color-mix(in srgb, var(--on-ink) 4%, transparent) 22px 23px);
+  pointer-events: none;
+}
+.fin-hero::after {           /* one-shot sheen across the plaque */
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -60%;
+  width: 55%;
+  transform: skewX(-12deg);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--on-ink) 9%, transparent), transparent);
+  animation: fin-sheen 1.4s var(--ease) 0.5s both;
+  pointer-events: none;
+}
+.fin-hero-eyebrow {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 20px 0 0;
-  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--lime);
 }
-.fp-place {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 33%;
-  max-width: 118px;
+.fin-hero-eyebrow::before,
+.fin-hero-eyebrow::after {
+  content: '';
+  height: 1px;
+  width: 30px;
+  flex-shrink: 0;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--lime) 65%, transparent));
 }
-.fp-avatar-wrap { position: relative; }
-.fp-avatar {
-  width: 44px; height: 44px;
+.fin-hero-eyebrow::after { background: linear-gradient(to left, transparent, color-mix(in srgb, var(--lime) 65%, transparent)); }
+.fin-hero-champ + .fin-hero-champ {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed color-mix(in srgb, var(--on-ink) 18%, transparent);
+}
+.fin-hero-avatars {
+  position: relative;
+  display: inline-flex;
+  margin-top: 22px;
+}
+.fin-hero-crown {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 17px;
+  line-height: 1;
+  animation: fin-crown 0.55s var(--ease) 0.3s both;
+}
+.fin-hero-avatar {
+  width: 62px; height: 62px;
   border-radius: 50%;
-  background: var(--paper-deep);
-  border: 2px solid var(--ink);
+  background: color-mix(in srgb, var(--on-ink) 12%, transparent);
+  box-shadow: 0 0 0 3px var(--lime), 0 8px 22px color-mix(in srgb, var(--lime) 30%, transparent);
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: var(--text-sec);
+  font-size: 16px; font-weight: 800; color: var(--on-ink);
   overflow: hidden;
   cursor: pointer;
 }
-.fp-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.fp-1 .fp-avatar { width: 56px; height: 56px; font-size: 16px; box-shadow: 0 0 0 4px var(--lime); }
-.fp-2 .fp-avatar { box-shadow: 0 0 0 3px var(--paper-deep); }
-.fp-3 .fp-avatar { box-shadow: 0 0 0 3px var(--bronze-soft); }
-.fp-avatar-duo { display: flex; }
-.fp-avatar-duo .fp-avatar { width: 34px; height: 34px; font-size: 10px; }
-.fp-avatar-duo .fp-avatar:last-child { margin-left: -10px; z-index: 0; }
-.fp-avatar-duo .fp-avatar:first-child { z-index: 1; }
-.fp-1 .fp-avatar-duo .fp-avatar { width: 40px; height: 40px; font-size: 11px; }
-.fp-crown {
-  position: absolute;
-  top: -19px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 15px;
-  line-height: 1;
-}
-.fp-names {
-  font-size: 10.5px;
+.fin-hero-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.fin-hero-avatars.fin-duo .fin-hero-avatar { width: 52px; height: 52px; font-size: 13px; border: 2px solid var(--ink-fill); }
+.fin-hero-avatars.fin-duo .fin-hero-avatar:last-child { margin-left: -12px; z-index: 0; }
+.fin-hero-avatars.fin-duo .fin-hero-avatar:first-child { z-index: 1; }
+.fin-hero-names {
+  margin-top: 12px;
+  padding: 0 8px;
+  font-family: var(--font-display);
+  font-size: 16px;
   font-weight: 700;
-  text-align: center;
   line-height: 1.3;
-  color: var(--ink);
-  margin: 7px 0 2px;
-  display: flex;
-  flex-direction: column;
+  color: var(--on-ink);
 }
-.fp-name-sep { display: none; }
-.fp-score { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
-.fp-pts { font-family: var(--font-mono); font-size: 11.5px; font-weight: 700; color: var(--success); margin-bottom: 7px; }
-.fp-pts.neg { color: var(--clay); }
-.fp-block {
-  width: 100%;
-  border: 1.5px solid var(--ink);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
+.fin-hero-names .lb-row-tap { cursor: pointer; }
+.fin-hero-amp { margin: 0 7px; color: var(--lime); font-weight: 800; }
+.fin-hero-meta {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  margin-top: 9px;
 }
-.fp-rank { font-family: var(--font-display); font-size: 17px; font-weight: 800; }
-.fp-b1 { height: 50px; background: var(--lime); }
-.fp-b2 { height: 36px; background: var(--card); }
-.fp-b3 { height: 27px; background: var(--bronze-soft); }
-.fp-r1 { color: var(--on-lime); }
-.fp-r2 { color: var(--text-sec); }
-.fp-r3 { color: var(--bronze); }
+.fin-hero-score {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: color-mix(in srgb, var(--on-ink) 70%, transparent);
+}
+.fin-hero-pts {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--lime);
+  color: var(--on-lime);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+}
+.fin-hero-pts small { font-size: 9px; font-weight: 800; letter-spacing: 0.06em; }
+.fin-hero-pad { height: 20px; }
+.fin-hero-stats {
+  display: flex;
+  margin-top: 18px;
+  border-top: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent);
+}
+.fin-stat { flex: 1; min-width: 0; padding: 11px 4px 13px; }
+.fin-stat + .fin-stat { border-left: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent); }
+.fin-stat-v {
+  font-family: var(--font-mono);
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--on-ink);
+}
+.fin-stat-v.fin-lime { color: var(--lime); }
+.fin-stat-l {
+  margin-top: 3px;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--on-ink) 55%, transparent);
+}
+
+/* Silver & bronze medal cards */
+.fin-medals { display: flex; gap: 10px; margin-bottom: 14px; }
+.fin-medal {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--r-md);
+  padding: 15px 8px 12px;
+  text-align: center;
+  animation: fin-rise 0.5s var(--ease) both;
+}
+.fin-medal:nth-child(1) { animation-delay: 0.1s; }
+.fin-medal:nth-child(2) { animation-delay: 0.18s; }
+.fin-medal-2 { background: var(--paper-deep); border: 1.5px solid var(--border-def); }
+.fin-medal-3 { background: var(--bronze-soft); border: 1.5px solid color-mix(in srgb, var(--bronze) 45%, transparent); }
+.fin-medal-rank {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 21px; height: 21px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.fin-medal-2 .fin-medal-rank { background: var(--card); color: var(--text-sec); }
+.fin-medal-3 .fin-medal-rank { background: var(--bronze); color: var(--on-accent); }
+.fin-medal-tier {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+.fin-medal-2 .fin-medal-tier { color: var(--text-muted); }
+.fin-medal-3 .fin-medal-tier { color: var(--bronze); }
+.fin-medal-avatars { display: inline-flex; }
+.fin-medal-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: var(--text-sec);
+  overflow: hidden;
+  cursor: pointer;
+}
+.fin-medal-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.fin-medal-avatars.fin-duo .fin-medal-avatar { width: 34px; height: 34px; font-size: 10px; }
+.fin-medal-avatars.fin-duo .fin-medal-avatar:last-child { margin-left: -10px; z-index: 0; }
+.fin-medal-avatars.fin-duo .fin-medal-avatar:first-child { z-index: 1; }
+.fin-medal-names {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.fin-medal-names .lb-row-tap { cursor: pointer; }
+.fin-medal-score { margin-top: 3px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.fin-medal-pts { margin-top: 2px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--success); }
+.fin-medal-pts.neg { color: var(--clay); }
+
+/* Personal result ribbon */
+.fin-my {
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  border: 1.5px dashed var(--accent-line);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-sec);
+  text-align: center;
+  animation: fin-rise 0.5s var(--ease) 0.24s both;
+}
+.fin-my b { font-family: var(--font-mono); font-weight: 700; color: var(--ink); }
+.fin-my .fin-my-pos { color: var(--success); }
+.fin-my .fin-my-neg { color: var(--clay); }
+
+.fin-table-label {
+  margin: 4px 6px 2px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
 
 /* Results table (4th place and below) */
 .results-table {

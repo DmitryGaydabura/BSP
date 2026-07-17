@@ -510,45 +510,98 @@ function renderFinishedList(source, list) {
   wireTournamentRows(list);
 }
 
-/** Finished tournament full view (podium + results table) — detail page body. */
+/** Finished tournament full view (champion plaque + medals + results table) — detail page body. */
 function buildFinishedDetailCard(t) {
     const results = (t.results || []).slice().sort((a, b) => a.pos - b.pos);
-    const top3    = results.filter(r => r.pos >= 1 && r.pos <= 3);
+    // Legacy data may contain shared positions (e.g. 1,1,3) — keep every entry
+    // per slot so tied players never disappear from the ceremony.
+    const champs  = results.filter(r => r.pos === 1);
+    const silvers = results.filter(r => r.pos === 2);
+    const bronzes = results.filter(r => r.pos === 3);
     const rest    = results.filter(r => r.pos > 3);
     const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
 
-    const podiumConfig = [
-      { pos: 2, cls: 'fp-2', blockCls: 'fp-b2', rankCls: 'fp-r2', crown: '' },
-      { pos: 1, cls: 'fp-1', blockCls: 'fp-b1', rankCls: 'fp-r1', crown: '<span class="fp-crown">👑</span>' },
-      { pos: 3, cls: 'fp-3', blockCls: 'fp-b3', rankCls: 'fp-r3', crown: '' },
-    ];
+    const playersOf = r => r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
+    const tapAttr   = p => `onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')"`;
 
-    const podiumHtml = top3.length > 0
-      ? `<div class="finished-podium">
-          ${podiumConfig.map(({ pos, cls, blockCls, rankCls, crown }) => {
-            // Legacy data may contain shared positions (e.g. 1,1,3) — render every entry
-            // for the slot so tied players never disappear from the podium.
-            return top3.filter(r => r.pos === pos).map(r => {
-            const players = r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
-            const avatarSection = players.length > 1
-              ? `<div class="fp-avatar-duo">${players.map(p => `<div class="fp-avatar lb-row-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${fpAvatarHtml(p)}</div>`).join('')}</div>`
-              : `<div class="fp-avatar-wrap lb-row-tap" onclick="_tournamentPlayerTap('${players[0].id || ''}','${jsq(players[0].name)}')"> ${crown}<div class="fp-avatar">${fpAvatarHtml(players[0])}</div></div>`;
-            const names = players.map(p => `<span class="lb-row-tap" style="cursor:pointer" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')">${esc(p.name)}</span>`).join('<span class="fp-name-sep"> / </span>');
-            return `<div class="fp-place ${cls}">
-              ${avatarSection}
-              <div class="fp-names">${names}</div>
-              ${r.score ? `<div class="fp-score">${esc(r.score)}</div>` : ''}
-              ${r.pts !== 0 ? `<div class="fp-pts ${r.pts > 0 ? '' : 'neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</div>` : ''}
-              <div class="fp-block ${blockCls}"><span class="fp-rank ${rankCls}">${pos}</span></div>
-            </div>`;
-            }).join('');
-          }).join('')}
+    // ── Champion plaque ──
+    const champBlocks = champs.map(r => {
+      const players = playersOf(r);
+      const avatars = `<div class="fin-hero-avatars${players.length > 1 ? ' fin-duo' : ''}">
+          <span class="fin-hero-crown">👑</span>
+          ${players.map(p => `<div class="fin-hero-avatar lb-row-tap" ${tapAttr(p)}>${fpAvatarHtml(p)}</div>`).join('')}
+        </div>`;
+      const names = players.map(p => `<span class="lb-row-tap" ${tapAttr(p)}>${esc(p.name)}</span>`).join('<span class="fin-hero-amp">/</span>');
+      return `<div class="fin-hero-champ">
+          ${avatars}
+          <div class="fin-hero-names">${names}</div>
+          <div class="fin-hero-meta">
+            ${r.score ? `<span class="fin-hero-score">${esc(r.score)}</span>` : ''}
+            ${r.pts ? `<span class="fin-hero-pts">${r.pts > 0 ? '+' : ''}${r.pts} <small>BSP</small></span>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    // «Вага перемоги» — quantify the achievement on the plaque itself
+    const teams        = results.length;
+    const playersTotal = results.reduce((s, r) => s + playersOf(r).length, 0) || t.participantCount || 0;
+    const beaten       = Math.max(0, teams - champs.length);
+    const champPts     = champs.length ? Math.max(...champs.map(r => r.pts || 0)) : 0;
+    const isPairFormat = results.some(r => playersOf(r).length > 1);
+    const statTiles = [
+      playersTotal > 0 ? { v: playersTotal, l: 'гравців' } : null,
+      beaten > 0 ? { v: beaten, l: isPairFormat ? (beaten === 1 ? 'пара позаду' : 'пар позаду') : 'позаду' } : null,
+      champPts > 0 ? { v: `+${champPts}`, l: 'рейтингу', lime: true } : null,
+    ].filter(Boolean);
+    const statsHtml = statTiles.length >= 2
+      ? `<div class="fin-hero-stats">${statTiles.map(s =>
+          `<div class="fin-stat"><div class="fin-stat-v${s.lime ? ' fin-lime' : ''}">${s.v}</div><div class="fin-stat-l">${s.l}</div></div>`).join('')}</div>`
+      : '<div class="fin-hero-pad"></div>';
+
+    const heroHtml = champs.length > 0
+      ? `<div class="fin-hero">
+          <div class="fin-hero-eyebrow">${champs.length === 1 && playersOf(champs[0]).length === 1 ? 'Чемпіон турніру' : 'Чемпіони турніру'}</div>
+          ${champBlocks}
+          ${statsHtml}
         </div>`
+      : '';
+
+    // ── Silver & bronze medal cards ──
+    const medalCard = (r, tier) => {
+      const players = playersOf(r);
+      const avatars = `<div class="fin-medal-avatars${players.length > 1 ? ' fin-duo' : ''}">
+          ${players.map(p => `<div class="fin-medal-avatar lb-row-tap" ${tapAttr(p)}>${fpAvatarHtml(p)}</div>`).join('')}
+        </div>`;
+      const names = players.map(p => `<span class="lb-row-tap" ${tapAttr(p)}>${esc(p.name)}</span>`).join('');
+      return `<div class="fin-medal fin-medal-${tier}">
+          <span class="fin-medal-rank">${r.pos}</span>
+          <div class="fin-medal-tier">${tier === 2 ? 'Срібло' : 'Бронза'}</div>
+          ${avatars}
+          <div class="fin-medal-names">${names}</div>
+          ${r.score ? `<div class="fin-medal-score">${esc(r.score)}</div>` : ''}
+          ${r.pts ? `<div class="fin-medal-pts${r.pts > 0 ? '' : ' neg'}">${r.pts > 0 ? '+' : ''}${r.pts}</div>` : ''}
+        </div>`;
+    };
+    const medalsHtml = (silvers.length || bronzes.length)
+      ? `<div class="fin-medals">${silvers.map(r => medalCard(r, 2)).join('')}${bronzes.map(r => medalCard(r, 3)).join('')}</div>`
+      : '';
+
+    // ── Personal result ribbon (champions are already on the plaque) ──
+    const my = currentUser
+      ? results.find(r => playersOf(r).some(p => p.id != null && String(p.id) === String(currentUser.id)))
+      : null;
+    const myHtml = my && my.pos > 1
+      ? `<div class="fin-my">${
+          my.pos === 2 ? 'Ви взяли срібло 🥈' :
+          my.pos === 3 ? 'У вас бронза 🥉' :
+          `Ви фінішували <b>#${my.pos}</b> з ${teams}`
+        }${my.pts ? ` · <b class="${my.pts > 0 ? 'fin-my-pos' : 'fin-my-neg'}">${my.pts > 0 ? '+' : ''}${my.pts} BSP</b>` : ''}</div>`
       : '';
 
     const hasScore = results.some(r => r.score);
     const restHtml = rest.length > 0
-      ? `<div class="results-table">
+      ? `<div class="fin-table-label">Турнірна таблиця</div>
+        <div class="results-table">
           ${hasScore ? `<div class="results-col-labels">
             <span class="results-col-label-score">Рах.</span>
             <span class="results-col-label-pts">BSP</span>
@@ -597,7 +650,9 @@ function buildFinishedDetailCard(t) {
           <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
         </div>` : ''}
       </div>
-      ${podiumHtml}
+      ${heroHtml}
+      ${medalsHtml}
+      ${myHtml}
       ${restHtml}
       ${analysisBtn}
     </div>`;
