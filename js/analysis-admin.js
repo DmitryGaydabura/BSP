@@ -963,7 +963,6 @@ function closeModal(id) {
   el.style.zIndex = '';
   el.classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
-  if (id === 'modal-achievement' && achTrophyCleanup) { achTrophyCleanup(); achTrophyCleanup = null; }
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
