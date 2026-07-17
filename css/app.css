@@ -1353,44 +1353,6 @@ body::before {
   border: 1px solid color-mix(in srgb, var(--lime) 60%, transparent);
   color: var(--lime);
 }
-.fin-facts {
-  display: flex;
-  text-align: left;
-  border-top: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent);
-}
-.fin-fact { flex: 1; min-width: 0; padding: 10px 10px 13px; }
-.fin-fact + .fin-fact { border-left: 1px solid color-mix(in srgb, var(--on-ink) 16%, transparent); }
-.fin-fact-l {
-  display: block;
-  font-size: 8.5px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--on-ink) 55%, transparent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.fin-fact-v {
-  display: block;
-  margin-top: 3px;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--on-ink);
-  white-space: nowrap;
-}
-.fin-fact-v small { font-size: 8.5px; font-weight: 700; opacity: 0.6; }
-.fin-fact-sub {
-  display: block;
-  margin-top: 2px;
-  font-size: 9.5px;
-  font-weight: 600;
-  color: color-mix(in srgb, var(--on-ink) 60%, transparent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* Silver & bronze medal cards */
 .fin-medals { display: flex; gap: 10px; margin-bottom: 14px; }
@@ -1509,6 +1471,8 @@ body::before {
 .fin-export-frame { padding: 16px; background: var(--paper); }
 .fin-export-frame .finished-card { margin-bottom: 0; }
 .fin-export-frame *, .fin-export-frame *::before, .fin-export-frame *::after { animation: none !important; }
+/* blur-radius shadows come out as smudges in the rendered PNG — keep only the crisp ring */
+.fin-export-frame .fin-hero-avatar { box-shadow: 0 0 0 3px var(--lime); }
 .fin-export-brand {
   margin-top: 14px;
   text-align: center;

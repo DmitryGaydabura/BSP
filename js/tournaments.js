@@ -42,7 +42,6 @@ function normalizeTournament(t) {
     analysisGeneratedAt: t.analysisGeneratedAt || null,
     winnerPreChance: t.winnerPreChance ?? null,
     winnerPreSeed: t.winnerPreSeed ?? null,
-    finalizedAvgRating: t.finalizedAvgRating ?? null,
     // Americano / friendly tournament fields
     friendly: t.friendly || false,
     isPrivate: t.isPrivate || false,
@@ -546,9 +545,8 @@ function buildFinishedDetailCard(t) {
         </div>`;
     }).join('');
 
-    // Plaque footer — the story of the win: pre-tournament win chance (Elo,
-    // computed by the backend from ratings *before* the tournament), the
-    // seed→finish journey, field strength, and an occasional «Прорив дня».
+    // Plaque footer — pre-tournament win chance (Elo, computed by the backend
+    // from ratings *before* the tournament).
     const teams     = results.length;
     const soloChamp = champs.length === 1 && playersOf(champs[0]).length === 1;
     let footerHtml = '';
@@ -574,24 +572,6 @@ function buildFinishedDetailCard(t) {
           </div>
           ${badge}
         </div>`;
-    }
-    const factCells = [];
-    if (t.winnerPreSeed != null && teams >= 2) {
-      factCells.push({ l: 'Посів → фініш', v: `№${t.winnerPreSeed} → №1` });
-    }
-    if (t.finalizedAvgRating) {
-      factCells.push({ l: 'Сила поля', v: `${t.finalizedAvgRating} <small>BSP</small>` });
-    }
-    // «Прорив дня» — a non-champion pair that out-earned the champions
-    const champMaxPts = champs.length ? Math.max(...champs.map(r => r.pts || 0)) : 0;
-    const breakout = results.filter(r => r.pos !== 1)
-      .reduce((a, r) => (r.pts || 0) > (a ? a.pts : 0) ? r : a, null);
-    if (breakout && breakout.pts > champMaxPts && breakout.pts > 0) {
-      factCells.push({ l: 'Прорив дня', v: `+${breakout.pts}`, sub: playersOf(breakout).map(p => esc(p.name)).join(' / ') });
-    }
-    if (factCells.length) {
-      footerHtml += `<div class="fin-facts">${factCells.map(f =>
-        `<div class="fin-fact"><span class="fin-fact-l">${f.l}</span><span class="fin-fact-v">${f.v}</span>${f.sub ? `<span class="fin-fact-sub">${f.sub}</span>` : ''}</div>`).join('')}</div>`;
     }
     if (!footerHtml) footerHtml = '<div class="fin-hero-pad"></div>';
 
