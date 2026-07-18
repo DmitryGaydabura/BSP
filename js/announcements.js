@@ -230,7 +230,7 @@ function openEditAnnouncement(a) {
   openModal('modal-announcement-form');
 }
 
-function resizeImageToBase64(file, maxDim = 1080, quality = 0.8) {
+function resizeImageToBase64(file, maxDim = 2048, quality = 0.9) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error('Не вдалося прочитати файл'));
@@ -244,10 +244,27 @@ function resizeImageToBase64(file, maxDim = 1080, quality = 0.8) {
           width = Math.round(width * scale);
           height = Math.round(height * scale);
         }
+        // Downscale in halving steps: a single drawImage pass from a large
+        // source aliases badly; halving keeps the smoothing kernel effective.
+        let src = img;
+        let sw = img.width, sh = img.height;
+        while (sw / 2 >= width && sh / 2 >= height) {
+          sw = Math.round(sw / 2);
+          sh = Math.round(sh / 2);
+          const step = document.createElement('canvas');
+          step.width = sw;
+          step.height = sh;
+          const sctx = step.getContext('2d');
+          sctx.imageSmoothingQuality = 'high';
+          sctx.drawImage(src, 0, 0, sw, sh);
+          src = step;
+        }
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(src, 0, 0, width, height);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
       img.src = reader.result;
