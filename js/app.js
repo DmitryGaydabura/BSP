@@ -377,9 +377,14 @@ function renderCupModal() {
 
   if (cupState.groups && cupState.groups.length > 0) {
     html += `<div class="cup-section-title">Груповий етап</div>`;
+    const allowGroupEdit = isAdmin && (status === 'GROUP_STAGE' || status === 'PLAYOFF');
     cupState.groups.forEach(group => {
-      html += renderCupGroup(group, isAdmin && status === 'GROUP_STAGE');
+      html += renderCupGroup(group, allowGroupEdit);
     });
+
+    if (isAdmin && status === 'PLAYOFF') {
+      html += `<div class="cup-bracket-note">Групові результати можна виправити й після старту плей-офф — сітка при цьому не змінюється автоматично (за потреби скористайтесь «Редагувати пари»).</div>`;
+    }
 
     if (isAdmin && status === 'GROUP_STAGE') {
       const allPlayed = cupState.groups.every(g => g.matches.every(m => m.played));
