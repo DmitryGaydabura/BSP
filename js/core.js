@@ -96,6 +96,14 @@ function setThemePref(pref) {
   applyAppTheme(autoColorScheme());
 }
 
+// Header sun/moon toggle: pins an explicit light/dark preference
+// (overrides system-follow from that point on).
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
+  const dark = document.documentElement.dataset.theme === 'navy';
+  setThemePref(dark ? 'light' : 'dark');
+  try { tg?.HapticFeedback?.impactOccurred('light'); } catch { /* old client */ }
+});
+
 if (tg) {
   tg.ready();
   tg.expand();

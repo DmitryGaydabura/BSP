@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- crossorigin lets the PNG export (html-to-image) read cssRules and embed the fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" crossorigin="anonymous">
-  <link rel="stylesheet" href="css/app.css?v=72">
+  <link rel="stylesheet" href="css/app.css?v=75">
   <link rel="stylesheet" href="css/bsp-achievements.css?v=4">
 </head>
 <body>
@@ -130,6 +130,23 @@
       <span class="logo-name">Blacksea Padel</span>
       <span class="logo-sub">★ Odesa, Ukraine ★</span>
     </div>
+    <button class="theme-toggle" id="theme-toggle" role="switch" aria-label="Перемкнути тему">
+      <span class="tt-star tt-s1"></span>
+      <span class="tt-star tt-s2"></span>
+      <span class="tt-star tt-s3"></span>
+      <span class="tt-cloud"></span>
+      <span class="tt-knob">
+        <svg class="tt-ic tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>
+          <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4L7 7M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/>
+        </svg>
+        <svg class="tt-ic tt-moon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21 14.8A9.2 9.2 0 0 1 9.2 3 9.6 9.6 0 1 0 21 14.8Z"/>
+          <circle cx="9.6" cy="12.8" r="1.6" opacity=".3"/>
+          <circle cx="13.6" cy="17" r="1.05" opacity=".26"/>
+        </svg>
+      </span>
+    </button>
     <button class="header-help-btn" id="btn-help">?</button>
   </header>
 
@@ -1227,13 +1244,13 @@
 </div>
 
 <!-- main.js was split into ordered parts (shared global scope, executed in document order). -->
-<script src="js/core.js?v=49" defer></script>
+<script src="js/core.js?v=50" defer></script>
 <script src="js/tournaments.js?v=98" defer></script>
 <script src="js/americano.js?v=23" defer></script>
 <script src="js/winners-court.js?v=5" defer></script>
 <script src="js/bsp-crest.js?v=2" defer></script>
 <script src="js/bsp-achievements.js?v=1" defer></script>
-<script src="js/players.js?v=75" defer></script>
+<script src="js/players.js?v=77" defer></script>
 <script src="js/analysis-admin.js?v=83" defer></script>
 <script src="js/home.js?v=1" defer></script>
 <script src="js/announcements.js?v=2" defer></script>

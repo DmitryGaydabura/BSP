@@ -270,6 +270,116 @@ body::before {
 }
 .header-help-btn:active { background: var(--lime); color: var(--on-lime); transform: scale(0.92); }
 
+/* ── Header theme toggle — day/night scene ─────────────────────────
+   A miniature sky inside the pill: warm daylight gradient with a
+   drifting cloud in «paper», moonlit night with twinkling stars in
+   «navy». The knob is the sun (lime) / moon (gold) itself. Scene
+   colors are state-constant (day is always day), not theme tokens. */
+.theme-toggle {
+  position: relative;
+  width: 58px; height: 30px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(100deg, #F6EDC0 0%, #CDE7EF 55%, #A9D4E6 100%);
+  box-shadow: inset 0 1px 3px rgba(21,48,43,0.22);
+  transition: box-shadow 0.5s;
+}
+/* night sky overlay — cross-fades over the day gradient */
+.theme-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #060D1A 0%, #14274A 55%, #2C4A78 100%);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+html[data-theme="navy"] .theme-toggle { box-shadow: inset 0 1px 4px rgba(0,0,0,0.55); }
+html[data-theme="navy"] .theme-toggle::before { opacity: 1; }
+
+/* stars (night, left half — the knob occupies the right) */
+.tt-star {
+  position: absolute;
+  background: #E8C97A;
+  clip-path: polygon(50% 0, 64% 36%, 100% 50%, 64% 64%, 50% 100%, 36% 64%, 0 50%, 36% 36%);
+  opacity: 0;
+  transform: scale(0) rotate(-90deg);
+  transition: opacity 0.3s, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tt-s1 { width: 7px; height: 7px; left: 10px; top: 6px; }
+.tt-s2 { width: 4px; height: 4px; left: 21px; top: 17px; transition-delay: 0.08s; }
+.tt-s3 { width: 3px; height: 3px; left: 27px; top: 6px;  transition-delay: 0.16s; }
+html[data-theme="navy"] .tt-star { opacity: 1; transform: scale(1) rotate(0deg); }
+html[data-theme="navy"] .tt-s1 { animation: tt-twinkle 2.8s ease-in-out 1.2s infinite; }
+html[data-theme="navy"] .tt-s2 { animation: tt-twinkle 3.4s ease-in-out 2s   infinite; }
+html[data-theme="navy"] .tt-s3 { animation: tt-twinkle 2.2s ease-in-out 1.6s infinite; }
+@keyframes tt-twinkle {
+  0%, 100% { opacity: 1;    transform: scale(1)   rotate(0deg); }
+  50%      { opacity: 0.35; transform: scale(0.65) rotate(0deg); }
+}
+
+/* cloud (day, right half — the knob occupies the left) */
+.tt-cloud {
+  position: absolute;
+  right: 9px; top: 12px;
+  width: 16px; height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.92);
+  animation: tt-drift 5.5s ease-in-out infinite;
+  transition: opacity 0.35s;
+}
+.tt-cloud::after {
+  content: '';
+  position: absolute;
+  left: 3.5px; top: -3.5px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+}
+html[data-theme="navy"] .tt-cloud { opacity: 0; }
+@keyframes tt-drift {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-4px); }
+}
+
+/* knob = the sun / the moon */
+.tt-knob {
+  position: absolute;
+  top: 2.5px; left: 2.5px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--lime);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 0 9px rgba(217,239,85,0.75), 0 1px 2px rgba(21,48,43,0.3);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.4s, box-shadow 0.4s;
+}
+.theme-toggle:active .tt-knob { transform: scale(0.88); }
+html[data-theme="navy"] .tt-knob {
+  transform: translateX(25px);
+  background: #C9A84C;
+  box-shadow: 0 0 11px rgba(232,201,122,0.65), 0 1px 3px rgba(0,0,0,0.45);
+}
+html[data-theme="navy"] .theme-toggle:active .tt-knob { transform: translateX(25px) scale(0.88); }
+
+/* sun/moon icons morph inside the knob */
+.tt-ic {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 13px; height: 13px;
+  transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s;
+}
+.tt-sun  { color: #15302B; opacity: 1; transform: rotate(0deg) scale(1); }
+.tt-moon { color: #0D1B2E; opacity: 0; transform: rotate(-130deg) scale(0.3); }
+html[data-theme="navy"] .tt-sun  { opacity: 0; transform: rotate(150deg) scale(0.3); }
+html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-star, .tt-cloud { animation: none !important; }
+}
+
 /* ── Content / Tabs ────────────────────────────────────────────── */
 #content {
   flex: 1;
@@ -4359,16 +4469,6 @@ button.pf-stat:active { background: var(--surface); }
   background: var(--ink-fill);
   color: var(--on-ink);
   box-shadow: 0 2px 6px rgba(21,48,43,0.25);
-}
-
-.pf-theme-row {
-  margin-top: 14px;
-}
-.pf-theme-label {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-muted);
-  padding-left: 2px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
