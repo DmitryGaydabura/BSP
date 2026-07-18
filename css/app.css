@@ -84,6 +84,17 @@
   --accent-line:  #9CC8B4;
   --header-bg:    rgba(244,242,234,0.92);
 
+  /* Data-viz categorical slots — fixed hue order (green, terracotta, blue,
+     gold, violet, magenta), stepped per theme and validated for CVD/contrast
+     against the card surface. JS charts read these via getComputedStyle. */
+  --viz-s1: #0E7C5B;
+  --viz-s2: #C25037;
+  --viz-s3: #2F5DA8;
+  --viz-s4: #9A7716;
+  --viz-s5: #8A4FB5;
+  --viz-s6: #C2417E;
+  --viz-mute: rgba(113,130,122,0.38);
+
   --font-brand:   'Unbounded', 'Golos Text', system-ui, sans-serif;
   --font-display: 'Unbounded', 'Golos Text', system-ui, sans-serif;
   --font-body:    'Golos Text', system-ui, -apple-system, sans-serif;
@@ -161,6 +172,15 @@ html[data-theme="navy"] {
   --dplus-line:   rgba(76,195,138,0.35);
   --accent-line:  rgba(201,168,76,0.45);
   --header-bg:    rgba(13,27,46,0.94);
+
+  /* Data-viz slots — same hue order, stepped for the navy card surface */
+  --viz-s1: #2FA97C;
+  --viz-s2: #D96048;
+  --viz-s3: #4A87C8;
+  --viz-s4: #AE8A34;
+  --viz-s5: #9578D6;
+  --viz-s6: #CC5E8E;
+  --viz-mute: rgba(143,163,184,0.38);
 }
 
 /* Paper grain: light dots on the navy field */
@@ -3649,6 +3669,127 @@ button.pf-stat:active { background: var(--surface); }
 .chart-player-item.active { opacity: 1; color: var(--ink); }
 .chart-player-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .chart-player-name { white-space: nowrap; }
+
+/* Analysis viz sections (title odds donut + points race) */
+.viz-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-sub);
+}
+.viz-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.viz-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* Pre-start title odds — animated donut, tap a slice or a row to inspect */
+.wp-gauge-wrap { display: flex; justify-content: center; margin: 16px 0 4px; }
+.wp-gauge { position: relative; width: 192px; height: 192px; }
+.wp-gauge svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.wp-arc {
+  fill: none;
+  stroke-width: 19;
+  cursor: pointer;
+  pointer-events: stroke;
+  transition:
+    stroke-dasharray 0.9s var(--ease),
+    stroke-width 0.25s var(--ease),
+    opacity 0.25s ease;
+}
+.wp-gauge.has-sel .wp-arc:not(.sel) { opacity: 0.3; }
+.wp-arc.sel { stroke-width: 24; }
+.wp-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  padding: 0 40px;
+}
+.wp-center-num {
+  font-family: var(--font-mono);
+  font-size: 27px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.05;
+}
+.wp-center-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-sec);
+  margin-top: 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.wp-center-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.wp-list { margin-top: 12px; }
+.wp-row {
+  display: grid;
+  grid-template-columns: 20px 10px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.wp-row.sel { background: var(--surface); }
+.wp-row-rank {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: right;
+}
+.wp-row-dot { width: 8px; height: 8px; border-radius: 50%; }
+.wp-row-main { min-width: 0; }
+.wp-row-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wp-row-name .wp-champ { font-size: 11px; margin-left: 4px; }
+.wp-row-bar {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-sub);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.wp-row-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  width: 0;
+  transition: width 0.8s var(--ease);
+}
+.wp-row-pct {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-sec);
+  text-align: right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wp-arc { transition: stroke-width 0.25s var(--ease), opacity 0.25s ease; }
+  .wp-row-fill { transition: none; }
+}
 
 /* Admin analysis list */
 .aa-item {

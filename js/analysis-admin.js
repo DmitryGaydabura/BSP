@@ -8,11 +8,16 @@ function destroyCharts() {
   if (_tournamentChart) { _tournamentChart.destroy(); _tournamentChart = null; }
 }
 
-const CHART_PALETTE = [
-  '#0E7C5B','#1D6E8C','#D14D32','#B8912F','#7A4FA3',
-  '#C2417E','#3E7D2E','#B26B1F','#2F5DA8','#5C8A3C',
-  '#A63D3D','#5B6B7A','#0F8A8A','#8A7420','#8C6A55','#6B8A20',
-];
+/* Categorical viz slots come from CSS tokens (--viz-s1..6) so both themes get
+   their own validated palette; Chart.js needs them resolved to actual values. */
+const VIZ_SLOTS = 6;
+function vizToken(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function vizPalette() {
+  return Array.from({ length: VIZ_SLOTS }, (_, i) => vizToken(`--viz-s${i + 1}`, '#71827A'));
+}
 
 async function openAnalysisModal(tournamentId) {
   destroyCharts();
@@ -25,13 +30,22 @@ async function openAnalysisModal(tournamentId) {
 
   try {
     const data = await API.tournaments.getAnalysis(tournamentId);
+    const winProb = data.chartData?.winProb;
+    const hasRace = !!data.chartData?.players?.length;
     content.innerHTML = `
       <div class="analysis-text">${escapeHtml(data.analysis)}</div>
-      ${data.chartData ? '<canvas id="tournament-chart" style="margin-top:20px;max-height:260px"></canvas>' : ''}
+      ${winProb ? buildWinProbSection(winProb) : ''}
+      ${hasRace ? `
+        <div class="viz-section">
+          <div class="viz-title">Хід турніру</div>
+          <div class="viz-sub">Очки наростаючим підсумком · торкнись гравця, щоб виділити лінію</div>
+          <canvas id="tournament-chart" style="margin-top:4px;max-height:260px"></canvas>
+        </div>` : ''}
       ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
     `;
 
-    if (data.chartData) renderTournamentChart(data.chartData);
+    if (winProb) wireWinProbSection(winProb);
+    if (hasRace) renderTournamentChart(data.chartData);
 
     const tournamentMeta = (tournamentsData || []).find(t => t.id === tournamentId);
     const isCupTournament = tournamentMeta?.type === 'CUP';
@@ -62,19 +76,53 @@ async function openAnalysisModal(tournamentId) {
   }
 }
 
+/* Points race: emphasis model instead of 16 competing hues — the top-3
+   finishers start highlighted, everyone else is a thin muted line. Tapping a
+   player chip claims/releases one of the 6 palette slots (max 6 highlighted). */
 function renderTournamentChart(chartData) {
   const canvas = document.getElementById('tournament-chart');
   if (!canvas || !chartData?.players?.length) return;
 
   const players = chartData.players;
+  const pal = vizPalette();
+  const muteCol  = vizToken('--viz-mute', 'rgba(120,130,125,0.35)');
+  const tickCol  = vizToken('--text-muted', '#71827A');
+  const gridCol  = vizToken('--border-sub', 'rgba(21,48,43,0.10)');
+  const axisCol  = vizToken('--border-def', 'rgba(21,48,43,0.18)');
+  const tipBg    = vizToken('--ink-fill', '#15302B');
+  const tipInk   = vizToken('--on-ink', '#F4F2EA');
+
+  // players arrive in final-standings order; slot map = who holds which hue
+  const slotOf = new Map();
+  const claimSlot = idx => {
+    const used = new Set(slotOf.values());
+    for (let s = 0; s < pal.length; s++) {
+      if (!used.has(s)) { slotOf.set(idx, s); return true; }
+    }
+    return false;
+  };
+  players.slice(0, Math.min(3, players.length)).forEach((_, i) => claimSlot(i));
+
+  const chipColor = i => slotOf.has(i) ? pal[slotOf.get(i)] : muteCol;
   const gridHtml = `<div class="chart-player-grid" id="chart-player-grid">${
     players.map((p, i) => `
-      <div class="chart-player-item active" data-index="${i}">
-        <span class="chart-player-dot" style="background:${CHART_PALETTE[i % CHART_PALETTE.length]}"></span>
+      <div class="chart-player-item${slotOf.has(i) ? ' active' : ''}" data-index="${i}">
+        <span class="chart-player-dot" style="background:${chipColor(i)}"></span>
         <span class="chart-player-name">${esc(p.name)}</span>
       </div>`).join('')
   }</div>`;
   canvas.insertAdjacentHTML('beforebegin', gridHtml);
+
+  const styleDatasets = () => {
+    _tournamentChart.data.datasets.forEach((ds, i) => {
+      const emph = slotOf.has(i);
+      ds.borderColor = emph ? pal[slotOf.get(i)] : muteCol;
+      ds.borderWidth = emph ? 2.5 : 1.25;
+      ds.order = emph ? 0 : 1;
+      ds.pointHoverBackgroundColor = ds.borderColor;
+      ds.pointHoverBorderColor = ds.borderColor;
+    });
+  };
 
   _tournamentChart = new Chart(canvas, {
     type: 'line',
@@ -83,11 +131,12 @@ function renderTournamentChart(chartData) {
       datasets: players.map((p, i) => ({
         label: p.name,
         data: p.cumulative,
-        borderColor: CHART_PALETTE[i % CHART_PALETTE.length],
         backgroundColor: 'transparent',
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
+        borderColor: slotOf.has(i) ? pal[slotOf.get(i)] : muteCol,
+        borderWidth: slotOf.has(i) ? 2.5 : 1.25,
+        order: slotOf.has(i) ? 0 : 1,
+        pointRadius: 0,
+        pointHoverRadius: 4,
         tension: 0.3,
       })),
     },
@@ -97,27 +146,29 @@ function renderTournamentChart(chartData) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#15302B',
-          titleColor: '#F4F2EA',
-          bodyColor: '#C8D4CE',
+          backgroundColor: tipBg,
+          titleColor: tipInk,
+          bodyColor: tipInk,
           borderColor: 'rgba(217,239,85,0.4)',
           borderWidth: 1,
+          itemSort: (a, b) => b.raw - a.raw,
+          filter: item => slotOf.size === 0 || slotOf.has(item.datasetIndex),
           callbacks: {
-            title: items => 'Після ' + items[0].label,
+            title: items => items.length ? 'Після ' + items[0].label : '',
             label: item => ` ${item.dataset.label}: ${item.raw}п`,
           },
         },
       },
       scales: {
         x: {
-          ticks: { color: '#71827A', font: { size: 10 } },
-          grid: { color: 'rgba(21,48,43,0.07)' },
-          border: { color: 'rgba(21,48,43,0.18)' },
+          ticks: { color: tickCol, font: { size: 10 } },
+          grid: { color: gridCol },
+          border: { color: axisCol },
         },
         y: {
-          ticks: { color: '#71827A', font: { size: 10 } },
-          grid: { color: 'rgba(21,48,43,0.07)' },
-          border: { color: 'rgba(21,48,43,0.18)' },
+          ticks: { color: tickCol, font: { size: 10 } },
+          grid: { color: gridCol },
+          border: { color: axisCol },
           beginAtZero: true,
         },
       },
@@ -127,11 +178,169 @@ function renderTournamentChart(chartData) {
   document.getElementById('chart-player-grid')?.querySelectorAll('.chart-player-item').forEach(item => {
     item.addEventListener('click', () => {
       const idx = parseInt(item.dataset.index);
-      const on = item.classList.toggle('active');
-      _tournamentChart.setDatasetVisibility(idx, on);
+      if (slotOf.has(idx)) {
+        slotOf.delete(idx);
+      } else if (!claimSlot(idx)) {
+        showToast('Одночасно можна виділити до 6 гравців', 'info');
+        return;
+      }
+      item.classList.toggle('active', slotOf.has(idx));
+      item.querySelector('.chart-player-dot').style.background = chipColor(idx);
+      styleDatasets();
       _tournamentChart.update();
     });
   });
+}
+
+/* ── Pre-start title odds donut ──────────────────────────────────
+   Slices = top favorites (max 6, tail folded into «Інші»); the list below
+   is the full field and doubles as the legend/table view. */
+const WP_GAP = 1.1; // slice gap, in pathLength (percent) units
+
+function wpSlices(entries) {
+  const fold = entries.length > VIZ_SLOTS;
+  const top = fold ? entries.slice(0, VIZ_SLOTS - 1) : entries;
+  const slices = top.map((e, i) => ({
+    name: e.name, prob: Number(e.prob), color: `var(--viz-s${i + 1})`, entryIdx: i,
+  }));
+  if (fold) {
+    const rest = entries.slice(VIZ_SLOTS - 1);
+    slices.push({
+      name: 'Інші', prob: rest.reduce((s, e) => s + Number(e.prob), 0),
+      color: 'var(--viz-mute)', entryIdx: -1, count: rest.length,
+    });
+  }
+  return slices;
+}
+
+function wpFmtPct(p) {
+  if (p < 1) return '<1%';
+  return (p >= 10 ? String(Math.round(p)) : p.toFixed(1).replace('.', ',')) + '%';
+}
+
+function buildWinProbSection(winProb) {
+  const entries = (winProb?.entries || []).filter(e => Number(e.prob) >= 0);
+  if (entries.length < 2) return '';
+
+  const slices = wpSlices(entries);
+  const total = slices.reduce((s, x) => s + x.prob, 0) || 1;
+  let acc = 0;
+  const arcs = slices.map((s, si) => {
+    const share = s.prob / total * 100;
+    const len = Math.max(0.6, share - WP_GAP);
+    const arc = `<circle class="wp-arc" data-slice="${si}" cx="60" cy="60" r="46" pathLength="100"
+      stroke="${s.color}" stroke-dasharray="0 100" data-final="${len.toFixed(2)} ${(100 - len).toFixed(2)}"
+      stroke-dashoffset="${(-(acc + WP_GAP / 2)).toFixed(2)}" transform="rotate(-90 60 60)"
+      style="transition-delay:${si * 70}ms"/>`;
+    acc += share;
+    return arc;
+  }).join('');
+
+  const champPos = Math.min(...entries.map(e => Number(e.pos) || Infinity));
+  const maxProb = Math.max(...entries.map(e => Number(e.prob)), 1);
+  const sliceColorOf = i => i < slices.length - (slices[slices.length - 1].entryIdx === -1 ? 1 : 0)
+    ? slices[i].color : 'var(--viz-mute)';
+
+  const rows = entries.map((e, i) => `
+    <div class="wp-row" data-entry="${i}">
+      <span class="wp-row-rank">${i + 1}</span>
+      <span class="wp-row-dot" style="background:${sliceColorOf(i)}"></span>
+      <span class="wp-row-main">
+        <span class="wp-row-name">${esc(e.name)}${Number(e.pos) === champPos ? '<span class="wp-champ">🏆</span>' : ''}</span>
+        <span class="wp-row-bar"><span class="wp-row-fill" data-w="${(Number(e.prob) / maxProb * 100).toFixed(1)}" style="background:${sliceColorOf(i)}"></span></span>
+      </span>
+      <span class="wp-row-pct">${wpFmtPct(Number(e.prob))}</span>
+    </div>`).join('');
+
+  return `
+    <div class="viz-section" id="wp-section">
+      <div class="viz-title">Шанси на титул до старту</div>
+      <div class="viz-sub">За рейтингом учасників на момент початку турніру</div>
+      <div class="wp-gauge-wrap">
+        <div class="wp-gauge" id="wp-gauge">
+          <svg viewBox="0 0 120 120" aria-hidden="true">${arcs}</svg>
+          <div class="wp-center" id="wp-center"></div>
+        </div>
+      </div>
+      <div class="wp-list" id="wp-list">${rows}</div>
+    </div>`;
+}
+
+function wireWinProbSection(winProb) {
+  const section = document.getElementById('wp-section');
+  if (!section) return;
+  const entries = (winProb.entries || []).filter(e => Number(e.prob) >= 0);
+  const slices = wpSlices(entries);
+  const champPos = Math.min(...entries.map(e => Number(e.pos) || Infinity));
+  const gauge = section.querySelector('#wp-gauge');
+  const center = section.querySelector('#wp-center');
+  const arcs = [...section.querySelectorAll('.wp-arc')];
+  const rowEls = [...section.querySelectorAll('.wp-row')];
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // sweep-in: arcs grow from 0 to their share, list bars fill
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    arcs.forEach(a => { a.style.strokeDasharray = a.dataset.final; });
+    section.querySelectorAll('.wp-row-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+  }));
+
+  const sliceOfEntry = i => {
+    const si = slices.findIndex(s => s.entryIdx === i);
+    return si >= 0 ? si : (slices[slices.length - 1].entryIdx === -1 ? slices.length - 1 : -1);
+  };
+
+  let selected = null; // entry index, or 'others'
+
+  const setCenter = (num, name, tag) => {
+    center.innerHTML = `
+      <div class="wp-center-num">0%</div>
+      <div class="wp-center-name">${name}</div>
+      ${tag ? `<div class="wp-center-tag">${tag}</div>` : ''}`;
+    const numEl = center.querySelector('.wp-center-num');
+    if (reduceMotion || num < 1) { numEl.textContent = wpFmtPct(num); return; }
+    const t0 = performance.now(), dur = 700;
+    const tick = now => {
+      const k = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - k, 3);
+      numEl.textContent = wpFmtPct(num * eased);
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+
+  const apply = () => {
+    const selSlice = selected === 'others'
+      ? slices.length - 1
+      : (selected == null ? -1 : sliceOfEntry(selected));
+    gauge.classList.toggle('has-sel', selected != null);
+    arcs.forEach((a, si) => a.classList.toggle('sel', si === selSlice));
+    rowEls.forEach((r, i) => r.classList.toggle('sel', selected === i));
+
+    if (selected == null) {
+      const fav = entries[0];
+      setCenter(Number(fav.prob), esc(fav.name), 'фаворит');
+    } else if (selected === 'others') {
+      const others = slices[slices.length - 1];
+      setCenter(others.prob, 'Інші', `${others.count} ${others.count === 1 ? 'учасник' : 'учасників'}`);
+    } else {
+      const e = entries[selected];
+      const tag = Number(e.pos) === champPos ? 'переможець 🏆'
+        : (e.pos ? `підсумок — ${Number(e.pos)}-е місце` : '');
+      setCenter(Number(e.prob), esc(e.name), tag);
+    }
+  };
+
+  arcs.forEach((a, si) => a.addEventListener('click', () => {
+    const target = slices[si].entryIdx === -1 ? 'others' : slices[si].entryIdx;
+    selected = selected === target ? null : target;
+    apply();
+  }));
+  rowEls.forEach((r, i) => r.addEventListener('click', () => {
+    selected = selected === i ? null : i;
+    apply();
+  }));
+
+  apply();
 }
 
 function renderPlayerAnalysis(container, data) {
