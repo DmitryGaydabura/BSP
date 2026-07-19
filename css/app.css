@@ -969,11 +969,13 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
 .lb-trn.neg { color: var(--clay); }
 .lb-pts   { width: 44px; font-weight: 700; font-size: 13.5px; color: var(--ink); }
 .lb-change {
-  width: 20px;
+  width: 28px;
   flex-shrink: 0;
-  text-align: center;
-  font-size: 11px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 800;
+  letter-spacing: -0.3px;
 }
 .lb-change.up   { color: var(--success); }
 .lb-change.down { color: var(--clay); }

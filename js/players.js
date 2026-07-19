@@ -45,7 +45,7 @@ function normalizeRating(r) {
     tournamentPts: (r.ratingPoints || 0) - startingPts,
     wins: r.wins,
     losses: r.losses,
-    change: r.rankChange > 0 ? `+${r.rankChange}` : r.rankChange < 0 ? `${r.rankChange}` : '=',
+    lastDelta: r.lastDelta ?? null,
     level: r.playerLevel || null,
   };
 }
@@ -61,8 +61,9 @@ function avatarHtml(p, size = 'md') {
 function renderLbRow(p, rank, showLevel) {
   const rankCls = rank <= 3 ? `r${rank}` : '';
   const top3cls = rank <= 3 ? 'top3' : '';
-  const changeSign = p.change === '=' ? '–' : p.change;
-  const changeCls = p.change.startsWith('+') ? 'up' : p.change.startsWith('-') ? 'down' : 'same';
+  const d = p.lastDelta;
+  const changeCls = d > 0 ? 'up' : d < 0 ? 'down' : 'same';
+  const changeSign = d > 0 ? `▲${d}` : d < 0 ? `▼${-d}` : '–';
   const lvl = p.level || levelFromPoints(p.pts);
   const avatarContent = p.photoUrl
     ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
