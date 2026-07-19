@@ -295,6 +295,19 @@ function nameMatches(name, query) {
   return tokens.every(t => hay.includes(t));
 }
 
+/** One-shot staggered entrance for a freshly rendered list: each child fades
+    in with a small cascade. The class is removed afterwards so later
+    stale-while-revalidate re-renders don't re-animate. */
+function staggerListIn(el, cap = 12) {
+  if (!el || !el.children.length) return;
+  [...el.children].forEach((c, i) => c.style.setProperty('--stg', Math.min(i, cap)));
+  el.classList.add('stagger-in');
+  setTimeout(() => {
+    el.classList.remove('stagger-in');
+    [...el.children].forEach(c => c.style.removeProperty('--stg'));
+  }, 800);
+}
+
 function ratioClass(wins, losses) {
   const total = wins + losses;
   if (!total) return 'ratio-mid';

@@ -408,23 +408,39 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
   -webkit-overflow-scrolling: touch;
   padding: 0 14px;
   overscroll-behavior: contain;
+  position: relative; /* anchor for .drag-peek panels during tab swipe */
 }
-.tab-panel { display: none; padding-bottom: 40px; animation: tab-in 0.3s var(--ease); }
+.tab-panel { display: none; padding-bottom: 40px; }
 .tab-panel.active { display: block; }
+/* Entrance is explicit (added by switchTab on tap switches, skipped for
+   finger-following swipes) so class churn never re-triggers it. */
+.tab-panel.tab-enter { animation: tab-in 0.3s var(--ease); }
 @keyframes tab-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
-/* Directional variants when the switch came from a horizontal swipe */
-.tab-panel.swipe-in-left  { animation: tab-in-left 0.22s var(--ease); }
-.tab-panel.swipe-in-right { animation: tab-in-right 0.22s var(--ease); }
-@keyframes tab-in-left {
-  from { opacity: 0; transform: translateX(28px); }
-  to   { opacity: 1; transform: none; }
+/* Finger-following tab swipe: the incoming panel is absolutely positioned
+   over the scroll viewport (left/right mirror #content's 14px padding) and
+   both panels are driven by inline transforms while dragging. */
+.tab-panel.drag-peek {
+  display: block;
+  position: absolute;
+  left: 14px;
+  right: 14px;
 }
-@keyframes tab-in-right {
-  from { opacity: 0; transform: translateX(-28px); }
-  to   { opacity: 1; transform: none; }
+.tab-panel.dragging {
+  animation: none;
+  transition: none;
+  will-change: transform;
+}
+
+/* Staggered first-paint of list rows (tournaments, leaderboard) */
+.stagger-in > * {
+  animation: row-in 0.3s var(--ease) both;
+  animation-delay: calc(var(--stg, 0) * 26ms);
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(10px); }
 }
 
 /* Section headers */
@@ -481,13 +497,32 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.nav-tab.active {
-  background: var(--lime);
-  color: var(--on-lime);
-  box-shadow: inset 0 0 0 1.5px var(--ink);
-}
+.nav-tab.active { color: var(--on-lime); }
 .nav-tab.active .nav-icon { transform: translateY(-1px); }
 .nav-tab:active .nav-icon { transform: scale(0.9); }
+
+/* ── Sliding pill thumbs ───────────────────────────────────────────
+   Injected by app.js into .seg / #results-subtabs / #bottom-nav; the
+   active button's fill lives on this element so it can glide instead
+   of teleporting. Buttons sit above it (z-index). */
+.pill-thumb {
+  position: absolute;
+  left: 0;
+  border-radius: 999px;
+  background: var(--ink-fill);
+  box-shadow: 0 2px 6px rgba(21,48,43,0.25);
+  transition: transform 0.28s var(--ease), width 0.28s var(--ease);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0; /* hidden until first positioned */
+}
+.pill-thumb.thumb-ready { opacity: 1; }
+#bottom-nav .pill-thumb {
+  background: var(--lime);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+  border-radius: var(--r-md);
+}
+.seg-btn, .results-subtab, .nav-tab { position: relative; z-index: 1; }
 
 /* ── Toast ─────────────────────────────────────────────────────── */
 #toast {
@@ -577,6 +612,7 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
   display: flex;
   gap: 6px;
   margin-top: 12px;
+  position: relative; /* pill-thumb anchor */
   background: var(--paper-deep);
   border: 1.5px solid var(--border-def);
   border-radius: 999px;
@@ -593,11 +629,7 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
 }
-.results-subtab.active {
-  background: var(--ink-fill);
-  color: var(--on-ink);
-  box-shadow: 0 2px 6px rgba(21,48,43,0.25);
-}
+.results-subtab.active { color: var(--on-ink); } /* fill lives on .pill-thumb */
 
 /* ── Empty / offline states ────────────────────────────────────── */
 .empty-state, .tab-offline-state {
@@ -4601,6 +4633,7 @@ button.pf-stat:active { background: var(--surface); }
 .seg {
   display: flex;
   gap: 6px;
+  position: relative; /* pill-thumb anchor */
   background: var(--paper-deep);
   border: 1.5px solid var(--border-def);
   border-radius: 999px;
@@ -4617,11 +4650,7 @@ button.pf-stat:active { background: var(--surface); }
   transition: all 0.2s var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
-.seg-btn.active {
-  background: var(--ink-fill);
-  color: var(--on-ink);
-  box-shadow: 0 2px 6px rgba(21,48,43,0.25);
-}
+.seg-btn.active { color: var(--on-ink); } /* fill lives on .pill-thumb */
 
 /* ═══════════════════════════════════════════════════════════════
    TOURNAMENT LIST ROWS

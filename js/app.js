@@ -17,42 +17,59 @@ let rendered = { home: true, results: false, ratings: false, profile: false, act
 
 const tabScroll = {}; // remembered scroll position per tab
 
-function switchTab(tab) {
+function renderTabContent(tab) {
+  if (tab === 'home')     renderHome();
+  if (tab === 'results')  renderResults();
+  if (tab === 'ratings')  renderRatings();
+  if (tab === 'profile')  renderProfile();
+  if (tab === 'activity') renderActivity();
+}
+
+function switchTab(tab, opts = {}) {
   if (tab === currentTab) return;
 
   const content = document.getElementById('content');
   tabScroll[currentTab] = content.scrollTop;
 
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById(TABS[tab]).classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active', 'tab-enter'));
+  const panel = document.getElementById(TABS[tab]);
+  panel.classList.add('active');
+  if (!opts.noAnim) panel.classList.add('tab-enter');
 
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelector(`.nav-tab[data-tab="${NAV_KEY[tab] || tab}"]`)?.classList.add('active');
 
   content.scrollTop = tabScroll[tab] || 0;
 
+  const refresh = () => {
+    if (tab === 'home') {
+      renderHome(); // cheap: uses cached data, keeps «next game» fresh
+    } else if (tab === 'profile') {
+      renderProfile();
+    } else if (tab === 'results') {
+      // Stale-while-revalidate: show the cached list instantly, refetch silently
+      // (so pair changes from the bot still appear — without a skeleton flash)
+      renderResults();
+      refreshTournamentsSilently();
+    } else if (tab === 'ratings') {
+      refreshRatingsSilently();
+    }
+  };
+
   if (!rendered[tab]) {
-    if (tab === 'home')     renderHome();
-    if (tab === 'results')  renderResults();
-    if (tab === 'ratings')  renderRatings();
-    if (tab === 'profile')  renderProfile();
-    if (tab === 'activity') renderActivity();
+    renderTabContent(tab);
     rendered[tab] = true;
-  } else if (tab === 'home') {
-    renderHome(); // cheap: uses cached data, keeps «next game» fresh
-  } else if (tab === 'profile') {
-    renderProfile();
-  } else if (tab === 'results') {
-    // Stale-while-revalidate: show the cached list instantly, refetch silently
-    // (so pair changes from the bot still appear — without a skeleton flash)
-    renderResults();
-    refreshTournamentsSilently();
-  } else if (tab === 'ratings') {
-    refreshRatingsSilently();
+  } else if (opts.deferRefresh) {
+    // Swipe navigation: the panel is already on screen — re-rendering while the
+    // release animation plays causes a visible hitch. Refresh right after it settles.
+    setTimeout(refresh, 120);
+  } else {
+    refresh();
   }
 
   currentTab = tab;
   updateNavIcons();
+  syncPillThumbs();
 }
 
 function updateNavIcons() {
@@ -63,6 +80,12 @@ function updateNavIcons() {
 
 document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// Drop the one-shot entrance class once it has played, so later class/display
+// churn (e.g. becoming the incoming panel of a swipe) can't replay it.
+document.getElementById('content').addEventListener('animationend', e => {
+  if (e.animationName === 'tab-in') e.target.classList.remove('tab-enter');
 });
 
 updateNavIcons();
@@ -94,13 +117,34 @@ if (tg) {
   });
 }
 
-/* Segment toggles (Рейтинг ↔ Активність inside the ratings screen) */
+/* Segment toggles (Рейтинг ↔ Активність inside the ratings screen).
+   Each panel holds its own static copy of the toggle, so on switch the pill
+   in the incoming panel is placed at the previous segment first, then slides. */
 document.querySelectorAll('.seg-btn[data-seg]').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.seg));
+  btn.addEventListener('click', () => {
+    const from = btn.dataset.seg === 'activity' ? 'ratings' : 'activity';
+    switchTab(btn.dataset.seg);
+    slideSegThumbFrom(from);
+  });
 });
 
+function slideSegThumbFrom(fromSeg) {
+  const seg = document.querySelector('.tab-panel.active .seg');
+  const thumb = seg?.querySelector('.pill-thumb');
+  const fromBtn = seg?.querySelector(`.seg-btn[data-seg="${fromSeg}"]`);
+  if (!thumb || !fromBtn || !fromBtn.offsetWidth) return;
+  thumb.style.transition = 'none';
+  thumb.style.width = fromBtn.offsetWidth + 'px';
+  thumb.style.transform = `translateX(${fromBtn.offsetLeft}px)`;
+  void thumb.offsetWidth; // reflow so the jump isn't animated
+  thumb.style.transition = '';
+  positionPillThumb(seg);
+}
+
 /* ════════════════════════════════════════════════════════════════
-   SWIPE NAVIGATION — horizontal swipe on #content switches tabs.
+   SWIPE NAVIGATION — the panels follow the finger (like Telegram
+   chat folders): the neighbor panel is pre-rendered and dragged in
+   alongside the current one, then the release snaps or springs back.
    Skipped while #t-page or a modal is open, and for gestures that
    start inside a horizontally scrollable element (tables etc.).
 ════════════════════════════════════════════════════════════════ */
@@ -110,7 +154,13 @@ const SWIPE_TAB_ORDER = ['home', 'results', 'ratings', 'profile'];
   const content = document.getElementById('content');
   if (!content) return;
 
-  let startX = 0, startY = 0, tracking = false;
+  let sx = 0, sy = 0;            // gesture start
+  let mode = 0;                  // 0 idle · 1 armed · 2 dragging
+  let dir = 0;                   // +1 = next tab (swipe left), −1 = previous
+  let d = 0, W = 0;
+  let outPanel = null, inPanel = null, targetTab = null;
+  let prevX = 0, prevT = 0, vel = 0;
+  let settling = false;          // release animation still playing
 
   const insideHScroll = (el) => {
     for (; el && el !== content; el = el.parentElement) {
@@ -123,42 +173,259 @@ const SWIPE_TAB_ORDER = ['home', 'results', 'ratings', 'profile'];
   };
 
   content.addEventListener('touchstart', (e) => {
-    tracking = false;
-    if (e.touches.length !== 1) return;
+    mode = 0;
+    if (settling || e.touches.length !== 1) return;
     if (typeof tPageId !== 'undefined' && tPageId) return;
     if (document.querySelector('.modal-overlay.open')) return;
     if (insideHScroll(e.target)) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true;
+    sx = prevX = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    prevT = e.timeStamp;
+    vel = 0;
+    mode = 1;
   }, { passive: true });
 
   content.addEventListener('touchmove', (e) => {
-    if (!tracking) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) tracking = false;
+    if (!mode) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    const dx = x - sx;
+    const dy = y - sy;
+
+    if (mode === 1) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { mode = 0; return; } // vertical scroll wins
+      if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+
+      const pos = SWIPE_TAB_ORDER.indexOf(NAV_KEY[currentTab] || currentTab);
+      dir = dx < 0 ? 1 : -1;
+      targetTab = SWIPE_TAB_ORDER[pos + dir];
+      if (pos === -1 || !targetTab) { mode = 0; return; }
+
+      // Pre-render the target BEFORE it becomes visible — rendering during the
+      // animation is what caused the visible hitch.
+      if (!rendered[targetTab]) { renderTabContent(targetTab); rendered[targetTab] = true; }
+
+      W = content.clientWidth;
+      outPanel = document.querySelector('.tab-panel.active');
+      inPanel = document.getElementById(TABS[targetTab]);
+      // Align the incoming panel so its remembered scroll offset sits at the viewport top
+      inPanel.style.top = (content.scrollTop - (tabScroll[targetTab] || 0)) + 'px';
+      inPanel.classList.add('drag-peek');
+      outPanel.classList.add('dragging');
+      inPanel.classList.add('dragging');
+      mode = 2;
+    }
+
+    if (mode === 2) {
+      e.preventDefault();
+      d = dir === 1 ? Math.min(0, dx) : Math.max(0, dx);
+      outPanel.style.transform = `translateX(${d}px)`;
+      inPanel.style.transform = `translateX(${d + dir * W}px)`;
+      vel = (x - prevX) / Math.max(1, e.timeStamp - prevT);
+      prevX = x; prevT = e.timeStamp;
+    }
+  }, { passive: false });
+
+  const endDrag = () => {
+    if (mode !== 2) { mode = 0; return; }
+    mode = 0;
+    const flick = dir === 1 ? vel < -0.35 : vel > 0.35;
+    const commit = Math.abs(d) > W * 0.3 || (flick && Math.abs(d) > 20);
+    const tt = targetTab;
+    const op = outPanel, ip = inPanel;
+
+    settling = true;
+    op.style.transition = ip.style.transition = 'transform 0.24s var(--ease)';
+    if (commit) {
+      op.style.transform = `translateX(${-dir * W}px)`;
+      ip.style.transform = 'translateX(0)';
+      setTimeout(() => {
+        // Finalize in one frame: .active lands on a panel that is already
+        // displayed and noAnim skips the entrance animation — no flash.
+        switchTab(tt, { deferRefresh: true, noAnim: true });
+        cleanup(op, ip);
+        if (tg) { if (tt !== 'home') tg.BackButton.show(); else tg.BackButton.hide(); }
+      }, 250);
+    } else {
+      op.style.transform = 'translateX(0)';
+      ip.style.transform = `translateX(${dir * W}px)`;
+      setTimeout(() => cleanup(op, ip), 250);
+    }
+  };
+
+  function cleanup(op, ip) {
+    [op, ip].forEach(p => {
+      p.classList.remove('dragging', 'drag-peek');
+      p.style.transform = '';
+      p.style.transition = '';
+      p.style.top = '';
+    });
+    outPanel = inPanel = targetTab = null;
+    settling = false;
+  }
+
+  content.addEventListener('touchend', endDrag);
+  content.addEventListener('touchcancel', endDrag);
+})();
+
+/* ════════════════════════════════════════════════════════════════
+   SLIDING PILL THUMBS — one absolutely-positioned pill per toggle
+   container glides behind the active button instead of the active
+   background teleporting. Containers: .seg, #results-subtabs, #bottom-nav.
+════════════════════════════════════════════════════════════════ */
+const PILL_CONTAINERS = '.seg, #results-subtabs, #bottom-nav';
+
+function positionPillThumb(wrap) {
+  const btn = wrap.querySelector('.seg-btn.active, .results-subtab.active, .nav-tab.active');
+  const thumb = wrap.querySelector(':scope > .pill-thumb');
+  if (!btn || !thumb || !btn.offsetWidth) return; // container hidden — position when shown
+  thumb.style.width  = btn.offsetWidth + 'px';
+  thumb.style.height = btn.offsetHeight + 'px';
+  thumb.style.top    = btn.offsetTop + 'px';
+  thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
+  thumb.classList.add('thumb-ready');
+}
+
+function syncPillThumbs() {
+  document.querySelectorAll(PILL_CONTAINERS).forEach(positionPillThumb);
+}
+
+document.querySelectorAll(PILL_CONTAINERS).forEach(wrap => {
+  const thumb = document.createElement('span');
+  thumb.className = 'pill-thumb';
+  wrap.prepend(thumb);
+  // Reposition after the container's own click handlers moved .active
+  wrap.addEventListener('click', () => requestAnimationFrame(() => positionPillThumb(wrap)));
+});
+window.addEventListener('resize', syncPillThumbs);
+syncPillThumbs();
+
+/* ════════════════════════════════════════════════════════════════
+   MODAL SHEET — swipe down to dismiss (finger-following drag).
+   Engages on a downward drag anywhere on the sheet, except when the
+   scrollable .modal-body is not at its top (then it just scrolls).
+════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  const sheet = overlay.querySelector('.modal-sheet');
+  if (!sheet) return;
+
+  let sx = 0, sy = 0, dy = 0, mode = 0; // 0 idle · 1 armed · 2 dragging
+  let body = null, prevY = 0, prevT = 0, vel = 0;
+
+  sheet.addEventListener('touchstart', e => {
+    mode = 0;
+    if (e.touches.length !== 1) return;
+    body = e.target.closest('.modal-body');
+    sx = e.touches[0].clientX;
+    sy = prevY = e.touches[0].clientY;
+    prevT = e.timeStamp;
+    dy = 0; vel = 0;
+    mode = 1;
   }, { passive: true });
 
-  content.addEventListener('touchend', (e) => {
-    if (!tracking) return;
-    tracking = false;
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  sheet.addEventListener('touchmove', e => {
+    if (!mode) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    dy = y - sy;
 
-    const pos = SWIPE_TAB_ORDER.indexOf(NAV_KEY[currentTab] || currentTab);
-    const next = SWIPE_TAB_ORDER[pos + (dx < 0 ? 1 : -1)];
-    if (pos === -1 || !next) return;
+    if (mode === 1) {
+      if (body && body.scrollTop > 0) { mode = 0; return; }       // let the body scroll
+      if (dy < -8 || Math.abs(dy) < Math.abs(x - sx)) { if (dy < -8) mode = 0; return; }
+      if (dy < 10) return;
+      sheet.style.transition = 'none';
+      mode = 2;
+    }
 
-    switchTab(next);
-    document.getElementById(TABS[next])?.classList.add(dx < 0 ? 'swipe-in-left' : 'swipe-in-right');
-    if (tg) { if (next !== 'home') tg.BackButton.show(); else tg.BackButton.hide(); }
+    e.preventDefault();
+    sheet.style.transform = `translateY(${Math.max(0, dy)}px)`;
+    vel = (y - prevY) / Math.max(1, e.timeStamp - prevT);
+    prevY = y; prevT = e.timeStamp;
+  }, { passive: false });
+
+  const endSheetDrag = () => {
+    if (mode !== 2) { mode = 0; return; }
+    mode = 0;
+    const commit = dy > 120 || (vel > 0.5 && dy > 40);
+    sheet.style.transition = 'transform 0.25s var(--ease)';
+    if (commit) {
+      sheet.style.transform = 'translateY(110%)';
+      setTimeout(() => {
+        closeModal(overlay.id);
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+      }, 240);
+    } else {
+      sheet.style.transform = '';
+      setTimeout(() => { sheet.style.transition = ''; }, 260);
+    }
+  };
+  sheet.addEventListener('touchend', endSheetDrag);
+  sheet.addEventListener('touchcancel', endSheetDrag);
+});
+
+/* ════════════════════════════════════════════════════════════════
+   T-PAGE EDGE SWIPE — drag from the left edge pulls the tournament
+   detail page rightward following the finger; past the threshold it
+   closes (mirrors the Telegram/iOS back gesture).
+════════════════════════════════════════════════════════════════ */
+(() => {
+  const page = document.getElementById('t-page');
+  if (!page) return;
+
+  let sx = 0, sy = 0, dx = 0, mode = 0, W = 0;
+  let prevX = 0, prevT = 0, vel = 0;
+
+  page.addEventListener('touchstart', e => {
+    mode = 0;
+    if (e.touches.length !== 1 || !tPageId) return;
+    sx = prevX = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    if (sx > 36) return; // edge zone only — keeps inner horizontal scrolls usable
+    prevT = e.timeStamp;
+    dx = 0; vel = 0;
+    W = page.clientWidth;
+    mode = 1;
   }, { passive: true });
 
-  content.addEventListener('animationend', (e) => {
-    e.target.classList?.remove('swipe-in-left', 'swipe-in-right');
-  });
+  page.addEventListener('touchmove', e => {
+    if (!mode) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    dx = x - sx;
+
+    if (mode === 1) {
+      if (Math.abs(y - sy) > Math.abs(dx)) { mode = 0; return; }
+      if (dx < 10) return;
+      page.style.transition = 'none';
+      mode = 2;
+    }
+
+    e.preventDefault();
+    page.style.transform = `translateX(${Math.max(0, dx)}px)`;
+    vel = (x - prevX) / Math.max(1, e.timeStamp - prevT);
+    prevX = x; prevT = e.timeStamp;
+  }, { passive: false });
+
+  const endPageDrag = () => {
+    if (mode !== 2) { mode = 0; return; }
+    mode = 0;
+    const commit = dx > W * 0.3 || (vel > 0.5 && dx > 40);
+    page.style.transition = 'transform 0.25s var(--ease)';
+    if (commit) {
+      page.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        closeTournamentPage();
+        page.style.transition = '';
+        page.style.transform = '';
+      }, 250);
+    } else {
+      page.style.transform = '';
+      setTimeout(() => { page.style.transition = ''; }, 260);
+    }
+  };
+  page.addEventListener('touchend', endPageDrag);
+  page.addEventListener('touchcancel', endPageDrag);
 })();
 
 /* ════════════════════════════════════════════════════════════════

@@ -118,9 +118,13 @@ async function renderResults() {
     renderFinishedList(finished, list);
   }
 
+  // Staggered entrance on the first real (non-skeleton) render only
+  if (!_tListStaggered) { _tListStaggered = true; staggerListIn(list); }
+
   // Keep an open tournament detail page in sync with freshly fetched data
   refreshOpenTournamentPage();
 }
+let _tListStaggered = false;
 
 /** Friendly subtab: create CTA on top, then active tournaments, finished below. */
 function renderFriendlyList(friendly, list) {

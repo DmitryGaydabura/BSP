@@ -152,6 +152,8 @@ function renderRatingsSkeleton() {
   document.getElementById('ratings-updated').textContent = '';
 }
 
+let _lbStaggered = false;
+
 async function renderRatings() {
   if (apiLoading && !ratingsData) {
     renderRatingsSkeleton();
@@ -217,6 +219,9 @@ async function renderRatings() {
       lbEl.innerHTML = filtered.map((p, i) => renderLbRow(p, i + 1, false)).join('');
     }
   }
+
+  // Staggered entrance on the first real (non-skeleton) render only
+  if (!_lbStaggered && filtered.length) { _lbStaggered = true; staggerListIn(lbEl); }
 
   /* Honest freshness label — actual fetch time, not render time */
   document.getElementById('ratings-updated').textContent =
