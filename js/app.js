@@ -100,6 +100,68 @@ document.querySelectorAll('.seg-btn[data-seg]').forEach(btn => {
 });
 
 /* ════════════════════════════════════════════════════════════════
+   SWIPE NAVIGATION — horizontal swipe on #content switches tabs.
+   Skipped while #t-page or a modal is open, and for gestures that
+   start inside a horizontally scrollable element (tables etc.).
+════════════════════════════════════════════════════════════════ */
+const SWIPE_TAB_ORDER = ['home', 'results', 'ratings', 'profile'];
+
+(() => {
+  const content = document.getElementById('content');
+  if (!content) return;
+
+  let startX = 0, startY = 0, tracking = false;
+
+  const insideHScroll = (el) => {
+    for (; el && el !== content; el = el.parentElement) {
+      if (el.scrollWidth > el.clientWidth + 1) {
+        const ox = getComputedStyle(el).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+      }
+    }
+    return false;
+  };
+
+  content.addEventListener('touchstart', (e) => {
+    tracking = false;
+    if (e.touches.length !== 1) return;
+    if (typeof tPageId !== 'undefined' && tPageId) return;
+    if (document.querySelector('.modal-overlay.open')) return;
+    if (insideHScroll(e.target)) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    tracking = true;
+  }, { passive: true });
+
+  content.addEventListener('touchmove', (e) => {
+    if (!tracking) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) tracking = false;
+  }, { passive: true });
+
+  content.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+    const pos = SWIPE_TAB_ORDER.indexOf(NAV_KEY[currentTab] || currentTab);
+    const next = SWIPE_TAB_ORDER[pos + (dx < 0 ? 1 : -1)];
+    if (pos === -1 || !next) return;
+
+    switchTab(next);
+    document.getElementById(TABS[next])?.classList.add(dx < 0 ? 'swipe-in-left' : 'swipe-in-right');
+    if (tg) { if (next !== 'home') tg.BackButton.show(); else tg.BackButton.hide(); }
+  }, { passive: true });
+
+  content.addEventListener('animationend', (e) => {
+    e.target.classList?.remove('swipe-in-left', 'swipe-in-right');
+  });
+})();
+
+/* ════════════════════════════════════════════════════════════════
    REGISTRATION CONFIRM SCREEN
 ════════════════════════════════════════════════════════════════ */
 const DAYS_UK_LONG = ['неділя','понеділок','вівторок','середа','четвер','п\'ятниця','субота'];
