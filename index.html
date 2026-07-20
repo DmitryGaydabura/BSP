@@ -5,6 +5,103 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#F4F2EA">
   <title>Blacksea Padel</title>
+  <!-- ── On-device debug overlay ──────────────────────────────────────
+       Diagnostic only. Off for everyone unless opened via a debug deep link
+       (…?startapp=debug → tgWebAppStartParam=debug in the URL) or localStorage
+       bsp_debug=1. Registered FIRST so it captures errors from every later
+       script + resource. Self-contained (no CDN) so no CSP/SRI risk. -->
+  <script>
+  (function () {
+    var enabled = /(?:startapp|start_param|tgWebAppStartParam)=debug|[?#&]debug\b/i.test(location.href);
+    try { if (localStorage.getItem('bsp_debug') === '1') enabled = true; } catch (e) {}
+    if (!enabled) return;
+    try { localStorage.setItem('bsp_debug', '1'); } catch (e) {}
+
+    var t0 = Date.now();
+    var buf = [];
+    function push(kind, msg) {
+      buf.push({ t: Date.now() - t0, kind: kind, msg: String(msg) });
+      render();
+    }
+    window.__dbg = { log: function (m) { push('log', m); }, buf: buf };
+
+    // Error + rejection + resource-load-failure capture (capture phase for resources)
+    window.addEventListener('error', function (e) {
+      if (e && e.target && e.target !== window && (e.target.src || e.target.href)) {
+        push('res!', (e.target.tagName || '?') + ' failed: ' + (e.target.src || e.target.href));
+      } else {
+        push('err!', (e && e.message ? e.message : 'error') +
+          (e && e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+      }
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason; push('rej!', (r && (r.message || r.stack)) || r || 'rejection');
+    });
+
+    // Long-task jank counter (main-thread blocks > 50ms)
+    var jank = { n: 0, ms: 0 };
+    try {
+      new PerformanceObserver(function (list) {
+        list.getEntries().forEach(function (en) { jank.n++; jank.ms += en.duration; });
+        render();
+      }).observe({ entryTypes: ['longtask'] });
+    } catch (e) {}
+
+    var panel, body;
+    function env() {
+      var tg = (window.Telegram && window.Telegram.WebApp) || {};
+      var c = navigator.connection || {};
+      var wv = (navigator.userAgent.match(/Chrome\/[\d.]+/) || ['WebView ?'])[0];
+      return [
+        'UA-WebView: ' + wv,
+        'platform: ' + (tg.platform || '?') + '  tg.version: ' + (tg.version || '?'),
+        'colorScheme: ' + (tg.colorScheme || '?') + '  theme: ' + document.documentElement.dataset.theme,
+        'DPR: ' + window.devicePixelRatio + '  win: ' + window.innerWidth + '×' + window.innerHeight,
+        'tg.viewportH: ' + (tg.viewportHeight || '?') + '  stable: ' + (tg.viewportStableHeight || '?'),
+        'net: ' + (c.effectiveType || '?') + (c.saveData ? ' (saveData ON)' : ''),
+        'jank: ' + jank.n + ' tasks / ' + Math.round(jank.ms) + 'ms blocked',
+      ].join('\n');
+    }
+    function render() {
+      if (!panel) return;
+      var head = env();
+      var lines = buf.slice(-40).map(function (e) {
+        return '+' + e.t + 'ms ' + e.kind + ' ' + e.msg;
+      }).join('\n');
+      body.textContent = head + '\n──────────\n' + (lines || '(no errors captured)');
+    }
+    function build() {
+      panel = document.createElement('div');
+      panel.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;max-height:45vh;' +
+        'overflow:auto;background:rgba(0,0,0,0.9);color:#7CFC7C;font:11px/1.4 monospace;' +
+        'padding:8px 10px 10px;white-space:pre-wrap;border-top:2px solid #7CFC7C';
+      var bar = document.createElement('div');
+      bar.style.cssText = 'display:flex;gap:8px;margin-bottom:6px';
+      bar.innerHTML = '<b style="color:#fff">🐞 BSP debug</b>';
+      var mk = function (label, fn) {
+        var b = document.createElement('button');
+        b.textContent = label;
+        b.style.cssText = 'margin-left:auto;background:#7CFC7C;color:#000;border:0;border-radius:4px;padding:2px 8px;font:11px monospace';
+        b.onclick = fn; bar.appendChild(b); return b;
+      };
+      mk('copy', function () {
+        var txt = env() + '\n──────────\n' + buf.map(function (e) { return '+' + e.t + 'ms ' + e.kind + ' ' + e.msg; }).join('\n');
+        try { navigator.clipboard.writeText(txt); } catch (e) {}
+        var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {} ta.remove();
+      });
+      mk('off', function () { try { localStorage.removeItem('bsp_debug'); } catch (e) {} panel.remove(); panel = null; });
+      body = document.createElement('div');
+      panel.appendChild(bar); panel.appendChild(body);
+      document.body.appendChild(panel);
+      render();
+      setInterval(render, 1000); // keep jank/viewport numbers live
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
+    else build();
+    push('log', 'debug overlay active');
+  })();
+  </script>
   <script src="config.js"></script>
   <script src="js/api.js?v=19"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-NrKB+u6Ts6AtkIhwPixiKTzgSKNblyhlk0Sohlgar9UHUBzai/sgnNNWWd291xqt" crossorigin="anonymous"></script>
