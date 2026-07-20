@@ -7,7 +7,7 @@ let americanoState = null;        // AmericanoDto from the backend
 let americanoTournamentId = null;
 let editingAmericanoId = null;
 let americanoDirectory = null;    // cached /users/directory for the add-picker
-let amSelectedFormat = 'CLASSIC'; // 'CLASSIC' | 'WINNERS_COURT' — selected in the shared create/edit modal
+let amSelectedFormat = 'CLASSIC'; // 'CLASSIC' | 'TEAM_AMERICANO' | 'WINNERS_COURT' — selected in the shared create/edit modal
 
 const AM_SIZES  = [4, 8, 12, 16];
 const AM_POINTS_CLASSIC = [16, 21, 24, 32];
@@ -64,20 +64,29 @@ function amUpdateRoundsHint() {
     const courts = n / 4;
     input.placeholder = "обов'язково";
     hint.textContent = `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — переможці підіймаються на вищий корт, переможені опускаються.`;
+  } else if (amSelectedFormat === 'TEAM_AMERICANO') {
+    const teams = n / 2;
+    input.placeholder = `авто (${teams - 1})`;
+    hint.textContent = `${teams} команди по 2 гравці. За замовчуванням ${teams - 1} раунд${teams - 1 === 1 ? '' : 'ів'} — кожна команда грає з кожною рівно 1 раз.`;
   } else {
     input.placeholder = `авто (${n - 1})`;
     hint.textContent = `За замовчуванням ${n - 1} раундів — кожен гравець у парі з кожним рівно 1 раз.`;
   }
 }
 
-/** Switch the shared create/edit modal between classic Americano and Winner's Court. */
+const AM_FORMAT_HINTS = {
+  CLASSIC: 'Класичний американо: кожен гравець грає в парі з кожним іншим рівно по одному разу.',
+  TEAM_AMERICANO: 'Командний американо: фіксовані пари на весь турнір; команди грають одна проти одної (реєстрація через запрошення партнера, як у парному).',
+  WINNERS_COURT: "Winner's Court: переможці рухаються на вищий корт, переможені — на нижчий; партнер попереднього раунду стає суперником.",
+};
+
+/** Switch the shared create/edit modal between the three americano formats. */
 function amSetFormat(format) {
   amSelectedFormat = format;
   document.getElementById('am-format-classic').classList.toggle('am-format-active', format === 'CLASSIC');
+  document.getElementById('am-format-team').classList.toggle('am-format-active', format === 'TEAM_AMERICANO');
   document.getElementById('am-format-wc').classList.toggle('am-format-active', format === 'WINNERS_COURT');
-  document.getElementById('am-format-hint').textContent = format === 'WINNERS_COURT'
-      ? "Winner's Court: переможці рухаються на вищий корт, переможені — на нижчий; партнер попереднього раунду стає суперником."
-      : 'Класичний американо: кожен гравець грає в парі з кожним іншим рівно по одному разу.';
+  document.getElementById('am-format-hint').textContent = AM_FORMAT_HINTS[format] || AM_FORMAT_HINTS.CLASSIC;
   amPopulatePointsOptions();
   amUpdateRoundsHint();
 }
@@ -85,11 +94,13 @@ function amSetFormat(format) {
 /** Format can't change once a tournament exists — lock the toggle while editing. */
 function amLockFormatToggle(locked) {
   document.getElementById('am-format-classic').disabled = locked;
+  document.getElementById('am-format-team').disabled = locked;
   document.getElementById('am-format-wc').disabled = locked;
   document.getElementById('am-format-row').style.opacity = locked ? '0.55' : '';
 }
 
 document.getElementById('am-format-classic').addEventListener('click', () => amSetFormat('CLASSIC'));
+document.getElementById('am-format-team').addEventListener('click', () => amSetFormat('TEAM_AMERICANO'));
 document.getElementById('am-format-wc').addEventListener('click', () => amSetFormat('WINNERS_COURT'));
 
 // Fill the americano level selects from the shared levels cache (analysis-admin.js)
@@ -134,11 +145,14 @@ async function openCreateAmericano() {
 
 async function openEditAmericano(t) {
   editingAmericanoId = t.id;
-  const isWc = t.type === 'WINNERS_COURT';
-  amSetFormat(isWc ? 'WINNERS_COURT' : 'CLASSIC');
+  const fmtType = t.type === 'WINNERS_COURT' ? 'WINNERS_COURT'
+                : t.type === 'TEAM_AMERICANO' ? 'TEAM_AMERICANO' : 'CLASSIC';
+  amSetFormat(fmtType);
   amLockFormatToggle(true);
   document.querySelector('#modal-create-americano .modal-title').textContent =
-      isWc ? "Редагувати Winner's Court" : 'Редагувати американо';
+      fmtType === 'WINNERS_COURT' ? "Редагувати Winner's Court"
+      : fmtType === 'TEAM_AMERICANO' ? 'Редагувати командне американо'
+      : 'Редагувати американо';
   document.getElementById('am-submit').textContent = 'Зберегти';
   populateAmTimeSelect();
   document.getElementById('am-name').value = t.name || '';
@@ -173,6 +187,7 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   if (!name || !date) { showToast('Вкажіть назву та дату', 'error'); return; }
 
   const isWc = amSelectedFormat === 'WINNERS_COURT';
+  const isTeam = amSelectedFormat === 'TEAM_AMERICANO';
   const roundsCount = parseInt(document.getElementById('am-rounds').value) || null;
   if (isWc && !roundsCount) {
     showToast("Вкажіть кількість раундів для Winner's Court", 'error');
@@ -183,6 +198,8 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const official = isAdmin && document.getElementById('am-official').checked;
   const payload = {
     name, date,
+    // Only the americano endpoint understands `type`; omit it for Winner's Court.
+    type:            isWc ? undefined : (isTeam ? 'TEAM_AMERICANO' : 'AMERICANO'),
     level:           document.getElementById('am-level').value || null,
     levelMax:        document.getElementById('am-level-max').value
                        || document.getElementById('am-level').value || null,
@@ -210,7 +227,8 @@ document.getElementById('am-submit').addEventListener('click', async () => {
       showToast('Турнір оновлено', 'success');
     } else {
       await api.create(payload);
-      showToast(isWc ? "Winner's Court створено! 🎾" : 'Американо створено! 🎾', 'success');
+      showToast(isWc ? "Winner's Court створено! 🎾"
+              : isTeam ? 'Командне американо створено! 👥' : 'Американо створено! 🎾', 'success');
     }
     tournamentsData = null;
     closeModal('modal-create-americano');
@@ -321,8 +339,22 @@ function renderAmericanoModal() {
     });
   }
 
-  // Standings
-  if (st.standings && st.standings.length) {
+  // Standings — team americano groups both partners into one row
+  if (st.teamStandings && st.teamStandings.length) {
+    const anyPlayed = st.teamStandings.some(s => s.matchesPlayed > 0);
+    const iAmIn = s => currentUser && (s.players || []).some(p => p.id === currentUser.id);
+    html += `<div class="cup-section-title" style="margin-top:14px">Таблиця команд${anyPlayed ? '' : ' (матчі ще не зіграні)'}</div>`;
+    html += `<div class="am-standings">
+      <div class="am-st-head"><span></span><span>Команда</span><span>В–П</span><span>Очки</span></div>
+      ${st.teamStandings.map(s => `
+        <div class="am-st-row${iAmIn(s) ? ' am-st-me' : ''}">
+          <span class="am-st-pos pos-${s.position}">${s.position}</span>
+          <span class="am-st-name">${amTeamNames(s.players || [])}</span>
+          <span class="am-st-wl">${s.wins}–${s.losses}</span>
+          <span class="am-st-pts">${s.points}</span>
+        </div>`).join('')}
+    </div>`;
+  } else if (st.standings && st.standings.length) {
     const anyPlayed = st.standings.some(s => s.matchesPlayed > 0);
     html += `<div class="cup-section-title" style="margin-top:14px">Таблиця${anyPlayed ? '' : ' (матчі ще не зіграні)'}</div>`;
     html += `<div class="am-standings">

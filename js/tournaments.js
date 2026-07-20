@@ -181,8 +181,15 @@ function renderUpcomingList(source, list) {
   wireTournamentRows(list);
 }
 
-/** AMERICANO and WINNERS_COURT share the app-user-created, self-managed format bucket. */
-const AM_FAMILY_TYPES = new Set(['AMERICANO', 'WINNERS_COURT']);
+/** AMERICANO, TEAM_AMERICANO and WINNERS_COURT share the app-user-created, self-managed format bucket. */
+const AM_FAMILY_TYPES = new Set(['AMERICANO', 'TEAM_AMERICANO', 'WINNERS_COURT']);
+
+/** Types that register via the partner-invite flow (solo join + pair request / admin pairing).
+    TEAM_AMERICANO and CUP only register this way while still in DRAFT. */
+function tIsPairReg(t) {
+  return t.type === 'PAIR'
+      || ((t.type === 'CUP' || t.type === 'TEAM_AMERICANO') && t.status === 'DRAFT');
+}
 
 /** Club (classic/cup) tournaments first, americano-format ones in their own
     section below — official americanos must not blend into the club list. */
@@ -208,8 +215,8 @@ function buildTournamentDetailCard(t) {
     const reserve       = t.reserveParticipants || [];
     const pairRegs      = t.pairRegistrations || [];
     const pairResRegs   = t.pairReserveRegistrations || [];
-    // CUP registers in DRAFT using the same partner-invite flow as PAIR tournaments.
-    const isPairReg     = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+    // CUP and TEAM_AMERICANO register in DRAFT using the same partner-invite flow as PAIR tournaments.
+    const isPairReg     = tIsPairReg(t);
     const myPairEntry   = (isPairReg && currentUser)
         ? pairRegs.find(pr => pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id)
         : null;
@@ -246,7 +253,7 @@ function buildTournamentDetailCard(t) {
       : (t.maxParticipants
           ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
           : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
     const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
     const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
@@ -340,9 +347,20 @@ function buildTournamentDetailCard(t) {
     // Americano / Winner's Court: the creator manages their own tournament like an admin
     const canManageT = currentUser && (currentUser.role === 'ADMIN'
         || t.createdById === currentUser.id);
-    const amViewBtn = (AM_FAMILY_TYPES.has(t.type) && (t.status === 'ACTIVE' || (t.status === 'DRAFT' && canManageT)))
+    // Team americano registers/pairs in this card (DRAFT); the rounds modal opens once ACTIVE.
+    const amIsTeamDraft = t.type === 'TEAM_AMERICANO' && t.status === 'DRAFT';
+    const amViewBtn = (AM_FAMILY_TYPES.has(t.type) && !amIsTeamDraft
+        && (t.status === 'ACTIVE' || (t.status === 'DRAFT' && canManageT)))
       ? `<button class="chip-btn chip-cup-view am-view-btn" data-id="${t.id}">${t.status === 'DRAFT' ? '⚙ Керувати турніром' : 'Раунди та рахунок'}</button>`
       : '';
+    let amTeamStartBtn = '';
+    if (amIsTeamDraft && canManageT) {
+      const teams = (t.pairRegistrations || []).filter(pr => pr.player2);
+      const solos = (t.pairRegistrations || []).filter(pr => !pr.player2);
+      const n = teams.length * 2;
+      const ready = solos.length === 0 && [4, 8, 12, 16].includes(n);
+      amTeamStartBtn = `<button class="t-admin-btn t-admin-am-team-start-btn" data-id="${t.id}" ${ready ? '' : 'disabled'}>▶ Запустити американо${ready ? '' : ' (потрібні повні пари: 4, 8, 12 або 16 гравців)'}</button>`;
+    }
     const friendlyBadges = `${t.friendly ? '<span class="friendly-badge">Дружній</span>' : ''}${t.isPrivate ? '<span class="friendly-badge fb-private">🔒</span>' : ''}`;
 
     return `
@@ -378,6 +396,7 @@ function buildTournamentDetailCard(t) {
               ${t.status === 'DRAFT' || currentUser?.role === 'ADMIN' ? `<button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>` : ''}
               ${adminCupBtn}
               ${adminCupFinalize}
+              ${amTeamStartBtn}
               <button class="t-admin-btn t-admin-delete-btn" data-id="${t.id}">Видалити</button>
             </div>` : ''}
           </div>
@@ -526,7 +545,7 @@ function buildFinishedDetailCard(t) {
     const silvers = results.filter(r => r.pos === 2);
     const bronzes = results.filter(r => r.pos === 3);
     const rest    = results.filter(r => r.pos > 3);
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
+    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
 
     const playersOf = r => r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
     const tapAttr   = p => `onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')"`;
@@ -789,7 +808,7 @@ function wireAdminTournamentBtns(container) {
       btn.disabled = true;
       try {
         // Americano / Winner's Court go through their own endpoints — creators may delete their own
-        if (t?.type === 'AMERICANO') await API.americano.delete(btn.dataset.id);
+        if (t?.type === 'AMERICANO' || t?.type === 'TEAM_AMERICANO') await API.americano.delete(btn.dataset.id);
         else if (t?.type === 'WINNERS_COURT') await API.winnersCourt.delete(btn.dataset.id);
         else await API.tournaments.delete(btn.dataset.id);
         tournamentsData = null;
@@ -809,6 +828,23 @@ function wireAdminTournamentBtns(container) {
   });
   container.querySelectorAll('.t-admin-cup-start-btn').forEach(btn => {
     btn.addEventListener('click', () => openCupStartModal(btn.dataset.id));
+  });
+  container.querySelectorAll('.t-admin-am-team-start-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!(await uiConfirm('Запустити командне американо? Склад пар буде зафіксовано.'))) return;
+      btn.disabled = true;
+      try {
+        await API.americano.start(btn.dataset.id);
+        tournamentsData = null;
+        await renderResults();
+        refreshOpenTournamentPage();
+        showToast('Розклад згенеровано! 🎾', 'success');
+        openAmericanoModal(btn.dataset.id);
+      } catch (e) {
+        showToast('Помилка: ' + (e.data?.message || e.message || 'unknown'), 'error');
+        btn.disabled = false;
+      }
+    });
   });
   container.querySelectorAll('.t-admin-cup-finalize-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -890,7 +926,7 @@ function tRowDateBlock(t) {
 /** The current user's relation to a tournament, or null when not enrolled. */
 function myEnrollmentState(t) {
   if (!currentUser) return null;
-  const isPairReg = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+  const isPairReg = tIsPairReg(t);
   if (isPairReg) {
     const inEntry = pool => (pool || []).find(pr =>
       pr.player1?.id === currentUser.id || pr.player2?.id === currentUser.id);
@@ -914,13 +950,14 @@ function tTypeLabel(t) {
   return t.type === 'SINGLE' ? 'Одиночний'
        : t.type === 'CUP' ? '🏆 Кубок'
        : t.type === 'AMERICANO' ? '🎾 Американо'
+       : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо'
        : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court"
        : 'Парний';
 }
 
 function buildTournamentRow(t) {
   const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
-  const isPairReg = t.type === 'PAIR' || (t.type === 'CUP' && t.status === 'DRAFT');
+  const isPairReg = tIsPairReg(t);
   const pairRegs = t.pairRegistrations || [];
   const cnt = isPairReg
     ? (t.maxParticipants

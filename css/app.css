@@ -207,10 +207,15 @@ a { color: var(--accent); text-decoration: none; }
 img { display: block; }
 ::selection { background: var(--lime); color: var(--ink); }
 
-/* Subtle paper grain over the whole field */
+/* Subtle paper grain over the whole field.
+   position:absolute (not fixed): body doesn't scroll — #content does — so this
+   looks identical to a fixed layer, but a full-viewport `position: fixed`
+   decorative layer forces Android WebView to composite the scroller separately,
+   which triggers the scroll layer to drop its tiles (content paints then goes
+   blank). absolute keeps it out of its own compositing layer. */
 body::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
@@ -412,15 +417,14 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
      fail to rasterize until a forced full repaint (blank tabs until the theme
      toggle restyles everything). Removing it keeps the layerization simple. */
   padding: 0 14px;
-  /* overscroll-behavior:contain removed — Samsung/Android WebView has repaint
-     bugs on scrollers that declare it; the Telegram vertical-swipe gesture is
-     already handled via tg.disableVerticalSwipes() in core.js. */
-  position: relative; /* anchor for .drag-peek panels during tab swipe */
-  /* Force a deterministic backing layer so Samsung/Android WebView rasterizes
-     the scroll contents on first paint instead of leaving the tab blank until a
-     forced restyle (theme toggle). transform also keeps this the containing
-     block for the absolutely-positioned .drag-peek panels during tab swipes. */
-  transform: translateZ(0);
+  overscroll-behavior: contain;
+  /* position:relative anchors the absolutely-positioned .drag-peek panels during
+     tab swipes. Deliberately NOT promoting this scroller to its own GPU layer
+     (no -webkit-overflow-scrolling, no transform/will-change): on Android WebView
+     a promoted tall scroll layer can fail to rasterize its tiles — the content
+     blanks with no JS error and no main-thread jank while the header/bottom-nav
+     (separate layers) still paint. Keeping #content a plain scroller avoids that. */
+  position: relative;
 }
 .tab-panel { display: none; padding-bottom: 40px; }
 .tab-panel.active { display: block; }
@@ -3599,14 +3603,16 @@ button.pf-stat:active { background: var(--surface); }
 .am-format-toggle { display: flex; gap: 6px; }
 .am-format-btn {
   flex: 1;
-  font-size: 12.5px;
+  min-width: 0;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--text-sec);
   background: var(--surface);
   border: 1.5px solid var(--border-def);
   border-radius: var(--r-sm);
-  padding: 9px 6px;
+  padding: 9px 4px;
   text-align: center;
+  line-height: 1.25;
 }
 .am-format-btn.am-format-active {
   color: var(--accent-deep);
