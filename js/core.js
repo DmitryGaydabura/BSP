@@ -107,6 +107,17 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
 if (tg) {
   tg.ready();
   tg.expand();
+  // Android-only fix: Telegram's WebView wraps the app in a native vertical-swipe
+  // gesture (minimize / pull-to-refresh). On the short Home screen (scrollTop 0)
+  // a downward drag re-instantiates the WebView, so Android users get a "home
+  // screen keeps reloading" loop and can never settle in. iOS has no such gesture.
+  // disableVerticalSwipes() (Bot API 7.7+) turns it off; guard for old clients.
+  try {
+    if (typeof tg.disableVerticalSwipes === 'function'
+        && (!tg.isVersionAtLeast || tg.isVersionAtLeast('7.7'))) {
+      tg.disableVerticalSwipes();
+    }
+  } catch { /* old client — method unsupported */ }
   applyAppTheme(tg.colorScheme);
   tg.onEvent('themeChanged', () => applyAppTheme(tg.colorScheme));
 } else {
