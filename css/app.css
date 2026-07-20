@@ -239,8 +239,9 @@ body::before {
   flex-shrink: 0;
   height: var(--header-h);
   background: var(--header-bg);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* backdrop-filter removed — --header-bg is ~93% opaque, so the blur was
+     visually negligible, but backdrop-filter is a known Samsung/Android WebView
+     compositing hazard that can drop paints on nearby layers. */
   border-bottom: 1.5px solid var(--ink);
   display: flex;
   align-items: center;
@@ -405,10 +406,21 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  /* NOTE: no -webkit-overflow-scrolling:touch — it's an obsolete iOS-only hint
+     that does nothing on modern iOS/Android, but on Samsung/Android WebView it
+     promotes this scroller to an ambiguously-composited layer whose contents
+     fail to rasterize until a forced full repaint (blank tabs until the theme
+     toggle restyles everything). Removing it keeps the layerization simple. */
   padding: 0 14px;
-  overscroll-behavior: contain;
+  /* overscroll-behavior:contain removed — Samsung/Android WebView has repaint
+     bugs on scrollers that declare it; the Telegram vertical-swipe gesture is
+     already handled via tg.disableVerticalSwipes() in core.js. */
   position: relative; /* anchor for .drag-peek panels during tab swipe */
+  /* Force a deterministic backing layer so Samsung/Android WebView rasterizes
+     the scroll contents on first paint instead of leaving the tab blank until a
+     forced restyle (theme toggle). transform also keeps this the containing
+     block for the absolutely-positioned .drag-peek panels during tab swipes. */
+  transform: translateZ(0);
 }
 .tab-panel { display: none; padding-bottom: 40px; }
 .tab-panel.active { display: block; }
