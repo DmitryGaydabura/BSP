@@ -475,12 +475,11 @@ function showRegistrationConfirm(tournament, alreadyEnrolled = false, asReserve 
     priceSection.classList.add('hidden');
   }
 
-  // Pair-based registration (PAIR, and CUP while in DRAFT): show both options
-  // (solo + join a waiting player) in the body
+  // Pair-based registration (PAIR, and CUP / TEAM_AMERICANO while in DRAFT): show
+  // both options (solo + join a waiting player) in the body
   const pairOptsEl = document.getElementById('reg-confirm-pair-options');
   const submitBtn = document.getElementById('reg-confirm-submit');
-  const isPairReg = tournament.type === 'PAIR'
-    || (tournament.type === 'CUP' && tournament.status === 'DRAFT');
+  const isPairReg = tIsPairReg(tournament);
 
   if (isPairReg && !alreadyEnrolled) {
     const pool = asReserve
@@ -1496,9 +1495,8 @@ async function handleTournamentDeepLink(tournamentId) {
 async function handlePairJoinDeepLink(tournamentId, targetParticipantId) {
   try {
     const tournament = await API.tournaments.get(tournamentId);
-    // CUP uses the same partner-invite flow as PAIR while in DRAFT
-    const isPairReg = tournament && (tournament.type === 'PAIR'
-      || (tournament.type === 'CUP' && tournament.status === 'DRAFT'));
+    // CUP and TEAM_AMERICANO use the same partner-invite flow as PAIR while in DRAFT
+    const isPairReg = tournament && tIsPairReg(tournament);
     if (!isPairReg || tournament.status === 'FINISHED') return;
     const pairRegs = tournament.pairRegistrations || [];
     const soloEntry = pairRegs.find(pr => String(pr.participant1Id) === String(targetParticipantId));
