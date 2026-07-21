@@ -4829,6 +4829,161 @@ button.pf-stat:active { background: var(--surface); }
 #t-page-body .finished-card-name { display: none; }
 
 /* ═══════════════════════════════════════════════════════════════
+   CASUAL MATCHES TAB
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Compact list rows — same base as .t-row, custom leading icon block */
+.m-row-icon {
+  flex-shrink: 0;
+  width: 46px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: var(--lime-soft);
+  border: 1.5px solid var(--border-def);
+  border-radius: 10px;
+}
+.m-row-icon-friendly { background: var(--sea-soft); }
+
+/* Rating / friendly badge */
+.m-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+}
+.m-badge-rating   { background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent-line); }
+.m-badge-friendly { background: var(--sea-soft); color: var(--sea); }
+
+/* Detail page header badges */
+.m-page-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* Full-screen match detail page — mirrors #t-page */
+#m-page {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s var(--ease), visibility 0.3s;
+  visibility: hidden;
+  pointer-events: none;
+}
+#m-page.t-page-visible {
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Section headers inside the match page */
+.m-section-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 16px 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.m-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background: var(--border-def);
+}
+
+/* Roster rows (active + waitlist) */
+.m-roster-list { display: flex; flex-direction: column; gap: 7px; }
+.m-roster-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--border-sub);
+  border-radius: var(--r-md);
+  padding: 8px 10px;
+}
+.m-roster-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-roster-pts { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-sec); flex-shrink: 0; }
+.m-roster-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.m-roster-act {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-def);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text-sec);
+  transition: background 0.15s, border-color 0.15s;
+}
+.m-roster-act:active { background: var(--paper-deep); }
+.m-act-promote { color: var(--accent-deep); border-color: rgba(14,124,91,0.4); }
+.m-act-remove  { color: var(--clay); border-color: rgba(209,77,50,0.4); }
+.m-roster-empty { font-size: 12px; color: var(--text-muted); padding: 8px 2px; }
+
+/* Approval banner */
+.m-approve-banner {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-sec);
+  background: var(--lime-soft);
+  border-left: 3px solid var(--lime);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: 10px 12px;
+  margin: 4px 0 14px;
+}
+.m-approve-text { color: var(--ink); }
+
+/* Set editor — team picker + score inputs */
+.mse-set { background: var(--card); }
+.mse-remove-set {
+  float: right;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+}
+.mse-teams { display: flex; align-items: stretch; gap: 8px; }
+.mse-team { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mse-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border-def);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  transition: border-color 0.15s, background 0.15s;
+}
+.mse-chip-sel { border-color: var(--ink); background: var(--lime-soft); }
+.mse-chip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mse-score-row, .mse-tb-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.mse-score-sep { font-size: 20px; font-weight: 700; color: var(--text-muted); }
+.mse-tb-row { padding-top: 8px; border-top: 1px dashed var(--border-def); }
+
+/* ═══════════════════════════════════════════════════════════════
    HOME TAB
    ═══════════════════════════════════════════════════════════════ */
 .hm-hero {

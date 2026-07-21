@@ -556,20 +556,7 @@ async function openPlayerProfile(player, rank) {
       if (chartBody) chartBody.innerHTML = svg ?? '<div class="history-empty">Немає турнірних результатів</div>';
       if (histList) {
         if (history?.length > 0) {
-          histList.innerHTML = history.map(h => {
-            const sign = h.pointsDelta >= 0 ? '+' : '';
-            const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
-            const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
-            const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
-            return `
-              <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
-                <div class="history-row-info">
-                  <div class="history-row-name">${esc(h.tournamentName)}</div>
-                  <div class="history-row-meta">${esc(h.tournamentLevel)} · ${date}${avgInfo}</div>
-                </div>
-                <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
-              </div>`;
-          }).join('');
+          histList.innerHTML = history.map(buildHistoryRow).join('');
         } else {
           histList.innerHTML = '<div class="history-empty">Немає записів</div>';
         }
@@ -1162,6 +1149,46 @@ function openAchievementTournament(tid) {
   openTournamentPage(parseInt(tid, 10));
 }
 
+/** Same idea for a casual-match history row — jump to the Матчі tab and open its detail page. */
+function openAchievementMatch(mid) {
+  document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+  if (typeof switchTab === 'function') switchTab('matches');
+  if (typeof openMatchPage === 'function') openMatchPage(parseInt(mid, 10));
+}
+
+/** One rating-history row. RatingHistoryDto has two shapes (h.source):
+    TOURNAMENT (tournamentId/tournamentLevel set, opens the tournament detail page) and
+    CASUAL_MATCH (tournamentId/tournamentLevel null, matchId set instead, no level badge —
+    opens the match detail page when matchId is present, otherwise a plain non-clickable row). */
+function buildHistoryRow(h) {
+  const sign = h.pointsDelta >= 0 ? '+' : '';
+  const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
+  const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
+  const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
+  const isCasual = h.source === 'CASUAL_MATCH';
+
+  let onclick = '';
+  let tapCls = '';
+  if (isCasual) {
+    if (h.matchId != null) { onclick = ` onclick="openAchievementMatch(${h.matchId})"`; tapCls = ' history-row-tap'; }
+  } else {
+    onclick = ` onclick="openAchievementTournament(${h.tournamentId})"`;
+    tapCls = ' history-row-tap';
+  }
+
+  const name = isCasual ? `🎾 ${esc(h.tournamentName)}` : esc(h.tournamentName);
+  const meta = isCasual ? `${date}${avgInfo}` : `${esc(h.tournamentLevel)} · ${date}${avgInfo}`;
+
+  return `
+    <div class="history-row${tapCls}"${onclick}>
+      <div class="history-row-info">
+        <div class="history-row-name">${name}</div>
+        <div class="history-row-meta">${meta}</div>
+      </div>
+      <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
+    </div>`;
+}
+
 function wireAchievements(container) {
   container.querySelectorAll('.ach-cup[data-tid]').forEach(cup => {
     cup.addEventListener('click', () => {
@@ -1326,21 +1353,7 @@ async function loadHistory() {
       chartBody.innerHTML = svg ?? '<div class="history-empty">Недостатньо даних</div>';
     }
 
-    container.innerHTML = history.map(h => {
-      const sign = h.pointsDelta >= 0 ? '+' : '';
-      const ptsCls = h.pointsDelta >= 0 ? 'pos' : 'neg';
-      const date = new Date(h.tournamentDate).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', year: 'numeric' });
-      const avgInfo = h.tournamentAvgRating ? ` · avg ${h.tournamentAvgRating}` : '';
-      return `
-        <div class="history-row history-row-tap" onclick="openAchievementTournament(${h.tournamentId})">
-          <div class="history-row-info">
-            <div class="history-row-name">${esc(h.tournamentName)}</div>
-            <div class="history-row-meta">${esc(h.tournamentLevel)} · ${date}${avgInfo}</div>
-          </div>
-          <div class="history-row-pts ${ptsCls}">${sign}${h.pointsDelta}</div>
-        </div>
-      `;
-    }).join('');
+    container.innerHTML = history.map(buildHistoryRow).join('');
   } catch {
     container.innerHTML = '<div class="history-empty">Помилка завантаження</div>';
     if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';

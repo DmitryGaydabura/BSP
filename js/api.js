@@ -119,6 +119,19 @@ const API = (() => {
       finalize:         id              => request('POST', `/tournaments/${id}/cup/finalize`),
     },
 
+    matches: {
+      list:          ()             => request('GET',    '/matches'),
+      get:           id             => request('GET',    `/matches/${id}`),
+      create:        data           => request('POST',   '/matches', data),
+      cancel:        id             => request('DELETE', `/matches/${id}`),
+      join:          id             => request('POST',   `/matches/${id}/join`),
+      promote:       (id, userId)   => request('POST',   `/matches/${id}/players/${userId}/promote`),
+      waitlist:      (id, userId)   => request('POST',   `/matches/${id}/players/${userId}/waitlist`),
+      removePlayer:  (id, userId)   => request('DELETE', `/matches/${id}/players/${userId}`),
+      submitSets:    (id, payload)  => request('PUT',    `/matches/${id}/sets`, payload),
+      approve:       id             => request('POST',   `/matches/${id}/approve`),
+    },
+
     ratings: {
       list:        () => request('GET',  '/ratings'),
       guests:      () => request('GET',  '/ratings/guests'),

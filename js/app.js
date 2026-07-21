@@ -5,6 +5,7 @@
 const TABS = {
   home:     'tab-home',
   results:  'tab-results',
+  matches:  'tab-matches',
   ratings:  'tab-ratings',
   profile:  'tab-profile',
   activity: 'tab-activity',
@@ -13,13 +14,14 @@ const TABS = {
 // ratings nav button while it is open.
 const NAV_KEY = { activity: 'ratings' };
 let currentTab = 'home';
-let rendered = { home: true, results: false, ratings: false, profile: false, activity: false };
+let rendered = { home: true, results: false, matches: false, ratings: false, profile: false, activity: false };
 
 const tabScroll = {}; // remembered scroll position per tab
 
 function renderTabContent(tab) {
   if (tab === 'home')     renderHome();
   if (tab === 'results')  renderResults();
+  if (tab === 'matches')  renderMatches();
   if (tab === 'ratings')  renderRatings();
   if (tab === 'profile')  renderProfile();
   if (tab === 'activity') renderActivity();
@@ -51,6 +53,9 @@ function switchTab(tab, opts = {}) {
       // (so pair changes from the bot still appear — without a skeleton flash)
       renderResults();
       refreshTournamentsSilently();
+    } else if (tab === 'matches') {
+      renderMatches();
+      refreshMatchesSilently();
     } else if (tab === 'ratings') {
       refreshRatingsSilently();
     }
@@ -95,9 +100,14 @@ updateNavIcons();
 ════════════════════════════════════════════════════════════════ */
 if (tg) {
   tg.BackButton.onClick(() => {
-    // Back navigation: tournament page → home tab → close app
+    // Back navigation: detail page → home tab → close app
     if (typeof tPageId !== 'undefined' && tPageId) {
       closeTournamentPage();
+      if (currentTab !== 'home') tg.BackButton.show();
+      return;
+    }
+    if (typeof mPageId !== 'undefined' && mPageId) {
+      closeMatchPage();
       if (currentTab !== 'home') tg.BackButton.show();
       return;
     }
@@ -148,7 +158,7 @@ function slideSegThumbFrom(fromSeg) {
    Skipped while #t-page or a modal is open, and for gestures that
    start inside a horizontally scrollable element (tables etc.).
 ════════════════════════════════════════════════════════════════ */
-const SWIPE_TAB_ORDER = ['home', 'results', 'ratings', 'profile'];
+const SWIPE_TAB_ORDER = ['home', 'results', 'matches', 'ratings', 'profile'];
 
 (() => {
   const content = document.getElementById('content');
@@ -176,6 +186,7 @@ const SWIPE_TAB_ORDER = ['home', 'results', 'ratings', 'profile'];
     mode = 0;
     if (settling || e.touches.length !== 1) return;
     if (typeof tPageId !== 'undefined' && tPageId) return;
+    if (typeof mPageId !== 'undefined' && mPageId) return;
     if (document.querySelector('.modal-overlay.open')) return;
     if (insideHScroll(e.target)) return;
     sx = prevX = e.touches[0].clientX;
@@ -416,6 +427,66 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       page.style.transform = 'translateX(100%)';
       setTimeout(() => {
         closeTournamentPage();
+        page.style.transition = '';
+        page.style.transform = '';
+      }, 250);
+    } else {
+      page.style.transform = '';
+      setTimeout(() => { page.style.transition = ''; }, 260);
+    }
+  };
+  page.addEventListener('touchend', endPageDrag);
+  page.addEventListener('touchcancel', endPageDrag);
+})();
+
+/* M-PAGE EDGE SWIPE — same gesture as above, for the casual match detail page. */
+(() => {
+  const page = document.getElementById('m-page');
+  if (!page) return;
+
+  let sx = 0, sy = 0, dx = 0, mode = 0, W = 0;
+  let prevX = 0, prevT = 0, vel = 0;
+
+  page.addEventListener('touchstart', e => {
+    mode = 0;
+    if (e.touches.length !== 1 || !mPageId) return;
+    sx = prevX = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    if (sx > 36) return; // edge zone only — keeps inner horizontal scrolls usable
+    prevT = e.timeStamp;
+    dx = 0; vel = 0;
+    W = page.clientWidth;
+    mode = 1;
+  }, { passive: true });
+
+  page.addEventListener('touchmove', e => {
+    if (!mode) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    dx = x - sx;
+
+    if (mode === 1) {
+      if (Math.abs(y - sy) > Math.abs(dx)) { mode = 0; return; }
+      if (dx < 10) return;
+      page.style.transition = 'none';
+      mode = 2;
+    }
+
+    e.preventDefault();
+    page.style.transform = `translateX(${Math.max(0, dx)}px)`;
+    vel = (x - prevX) / Math.max(1, e.timeStamp - prevT);
+    prevX = x; prevT = e.timeStamp;
+  }, { passive: false });
+
+  const endPageDrag = () => {
+    if (mode !== 2) { mode = 0; return; }
+    mode = 0;
+    const commit = dx > W * 0.3 || (vel > 0.5 && dx > 40);
+    page.style.transition = 'transform 0.25s var(--ease)';
+    if (commit) {
+      page.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        closeMatchPage();
         page.style.transition = '';
         page.style.transform = '';
       }, 250);
