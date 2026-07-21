@@ -227,6 +227,13 @@ function buildRosterSection(m) {
       <div class="m-section-title">Черга${waitlist.length ? ` (${waitlist.length})` : ''}</div>
       <div class="m-roster-list">${waitlistRows}</div>`;
   }
+
+  if (canManage) {
+    // Creator invites (lands ACTIVE if a slot is free, else WAITLIST); admin adds straight
+    // to ACTIVE. Same picker, the backend decides where the player lands.
+    const label = currentUser?.role === 'ADMIN' ? 'Додати гравця' : 'Запросити гравця';
+    html += `<button type="button" class="btn-secondary" id="m-invite-btn" style="width:100%;margin-top:8px">+ ${esc(label)}</button>`;
+  }
   return html;
 }
 
@@ -266,6 +273,12 @@ function buildMatchDetailBody(m) {
   const stCls   = M_STATUS_CLS[m.status] || 't-status-done';
   const creatorName = m.createdBy ? playerNameOf(m.createdBy) : '';
   const canCancel = m.canManageRoster && (m.status === 'OPEN' || m.status === 'PENDING_APPROVAL');
+  // Any participant who isn't the creator can leave (the creator cancels instead) —
+  // only meaningful while the match hasn't already finished/been cancelled.
+  const canLeave = !!currentUser
+    && (m.myState === 'ACTIVE' || m.myState === 'WAITLIST')
+    && m.createdBy?.id !== currentUser.id
+    && m.status !== 'FINISHED' && m.status !== 'CANCELLED';
 
   return `
     <div class="m-page-badges">
@@ -286,6 +299,9 @@ function buildMatchDetailBody(m) {
       ? `<div class="cup-bracket-note" style="margin-top:10px">Середній рейтинг матчу на момент завершення: ${m.finalizedAvgRating}</div>` : ''}
 
     ${canCancel ? `<button type="button" class="t-admin-btn t-admin-delete-btn" id="m-cancel-btn" style="width:100%;margin-top:16px">Скасувати матч</button>` : ''}
+    ${canLeave ? `<div style="display:flex;justify-content:center;margin-top:14px">
+      <button type="button" class="chip-btn chip-leave" id="m-leave-btn">Вийти з матчу</button>
+    </div>` : ''}
   `;
 }
 
@@ -460,6 +476,19 @@ function wireMatchPageActions(container, m) {
     } catch (e) { showToast(e.data?.message || e.message || 'Помилка', 'error'); }
   });
 
+  container.querySelector('#m-invite-btn')?.addEventListener('click', () => openMatchAddPicker(m));
+
+  container.querySelector('#m-leave-btn')?.addEventListener('click', async () => {
+    if (!(await uiConfirm('Вийти з цього матчу?'))) return;
+    try {
+      await API.matches.leave(m.id);
+      showToast('Ви вийшли з матчу', 'info');
+      closeMatchPage();
+      matchesData = null;
+      renderMatches();
+    } catch (e) { showToast(e.data?.message || e.message || 'Помилка', 'error'); }
+  });
+
   // ── Set editor ──
   container.querySelectorAll('.mse-chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -590,3 +619,61 @@ document.getElementById('cm-submit')?.addEventListener('click', async () => {
     btn.disabled = false;
   }
 });
+
+/* ── Add-player picker (roster management, mirrors the Americano add-picker) ── */
+
+let mDirectory = null;        // cached /users/directory for the picker
+let mAddPickerMatchId = null; // which match the picker is currently adding into
+
+async function openMatchAddPicker(m) {
+  mAddPickerMatchId = m.id;
+  const titleEl = document.getElementById('mm-picker-title');
+  if (titleEl) titleEl.textContent = currentUser?.role === 'ADMIN' ? 'Додати гравця' : 'Запросити гравця';
+  const listEl = document.getElementById('mm-picker-list');
+  listEl.innerHTML = '<div class="am-empty">Завантаження...</div>';
+  document.getElementById('mm-picker-search').value = '';
+  openModal('modal-match-add');
+  try {
+    if (!mDirectory) mDirectory = await API.users.directory();
+    renderMatchPicker('');
+  } catch (e) {
+    listEl.innerHTML = `<div class="am-empty">Помилка: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderMatchPicker(query) {
+  const listEl = document.getElementById('mm-picker-list');
+  const m = (matchesData || []).find(x => String(x.id) === String(mAddPickerMatchId));
+  const attached = new Set([...(m?.activePlayers || []), ...(m?.waitlist || [])].map(p => p.user.id));
+  const q = query.trim().toLowerCase();
+  const matches = (mDirectory || [])
+    .filter(u => !attached.has(u.id))
+    .filter(u => !q || (u.displayName || '').toLowerCase().includes(q))
+    .slice(0, 30);
+  listEl.innerHTML = matches.length
+    ? matches.map(u => `
+        <div class="am-picker-row" data-uid="${u.id}">
+          <span>${esc(u.displayName || '?')}</span>
+          <span class="am-picker-pts">${u.ratingPoints || 0} pts</span>
+        </div>`).join('')
+    : '<div class="am-empty">Нікого не знайдено</div>';
+
+  listEl.querySelectorAll('.am-picker-row').forEach(row => {
+    row.addEventListener('click', async () => {
+      row.style.pointerEvents = 'none';
+      try {
+        const fresh = await API.matches.addPlayer(mAddPickerMatchId, row.dataset.uid);
+        mCacheUpdate(fresh);
+        closeModal('modal-match-add');
+        showToast('Гравця додано 🎾', 'success');
+        renderMatchPage(fresh);
+        renderMatches();
+      } catch (e) {
+        showToast(e.data?.message || e.message || 'Помилка', 'error');
+        row.style.pointerEvents = '';
+      }
+    });
+  });
+}
+
+document.getElementById('mm-picker-search')?.addEventListener('input', e => renderMatchPicker(e.target.value));

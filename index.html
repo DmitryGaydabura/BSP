@@ -121,7 +121,7 @@
   })();
   </script>
   <script src="config.js"></script>
-  <script src="js/api.js?v=20"></script>
+  <script src="js/api.js?v=21"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" integrity="sha384-NrKB+u6Ts6AtkIhwPixiKTzgSKNblyhlk0Sohlgar9UHUBzai/sgnNNWWd291xqt" crossorigin="anonymous"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -551,6 +551,23 @@
           </div>
         </div>
         <button class="btn-primary" id="cm-submit" style="width:100%;margin-top:4px">Створити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Casual match: add/invite-player picker (mirrors #modal-americano-add) -->
+  <div class="modal-overlay" id="modal-match-add">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-header">
+        <span class="modal-title" id="mm-picker-title">Додати гравця</span>
+        <button class="modal-close" data-close="modal-match-add">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <input class="form-input" id="mm-picker-search" type="text" placeholder="Пошук гравця...">
+        </div>
+        <div id="mm-picker-list"></div>
       </div>
     </div>
   </div>
@@ -1426,7 +1443,7 @@
 <script src="js/analysis-admin.js?v=93" defer></script>
 <script src="js/home.js?v=1" defer></script>
 <script src="js/announcements.js?v=4" defer></script>
-<script src="js/matches.js?v=2" defer></script>
+<script src="js/matches.js?v=7" defer></script>
 <script src="js/app.js?v=97" defer></script>
   <!-- Home screen banner -->
   <!-- Raketo link required — shown on startup if account not linked -->

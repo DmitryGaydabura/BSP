@@ -125,6 +125,8 @@ const API = (() => {
       create:        data           => request('POST',   '/matches', data),
       cancel:        id             => request('DELETE', `/matches/${id}`),
       join:          id             => request('POST',   `/matches/${id}/join`),
+      leave:         id             => request('DELETE', `/matches/${id}/leave`),
+      addPlayer:     (id, userId)   => request('POST',   `/matches/${id}/players/${userId}`),
       promote:       (id, userId)   => request('POST',   `/matches/${id}/players/${userId}/promote`),
       waitlist:      (id, userId)   => request('POST',   `/matches/${id}/players/${userId}/waitlist`),
       removePlayer:  (id, userId)   => request('DELETE', `/matches/${id}/players/${userId}`),
