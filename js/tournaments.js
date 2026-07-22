@@ -525,14 +525,9 @@ function renderFinishedList(source, list) {
     return;
   }
 
-  const classic = filtered.filter(t => !AM_FAMILY_TYPES.has(t.type));
-  const amer    = filtered.filter(t => AM_FAMILY_TYPES.has(t.type));
-  let html = classic.map(buildFinishedRow).join('');
-  if (amer.length) {
-    if (classic.length) html += `<div class="t-list-sep">🎾 Американо</div>`;
-    html += amer.map(buildFinishedRow).join('');
-  }
-  list.innerHTML = html;
+  // Results/history read chronologically — the most recently finished tournament
+  // (source is date-desc from the backend) stays on top regardless of format.
+  list.innerHTML = filtered.map(buildFinishedRow).join('');
   wireTournamentRows(list);
 }
 

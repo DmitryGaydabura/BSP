@@ -493,7 +493,9 @@ async function openAdminAnalysisModal() {
 
     list.innerHTML = finished.map(t => {
       const isCup = t.type === 'CUP';
-      const isAmericanoFamily = t.type === 'AMERICANO' || t.type === 'WINNERS_COURT';
+      // AMERICANO, TEAM_AMERICANO and WINNERS_COURT are analysed from native BSP match
+      // data (no Raketo link needed or possible) — same as CUP.
+      const isAmericanoFamily = AM_FAMILY_TYPES.has(t.type);
       const isNative = isCup || isAmericanoFamily;
       const canGenerate = isNative || !!t.raketoId;
       return `
@@ -505,7 +507,7 @@ async function openAdminAnalysisModal() {
         ${isNative
           ? `<div class="aa-linked">
                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-               ${isCup ? 'Кубок' : t.type === 'WINNERS_COURT' ? "Winner's Court" : 'Американо'} — аналіз з даних BSP
+               ${isCup ? 'Кубок' : t.type === 'WINNERS_COURT' ? "Winner's Court" : t.type === 'TEAM_AMERICANO' ? 'Командне американо' : 'Американо'} — аналіз з даних BSP
              </div>`
           : t.raketoId
             ? `<div class="aa-linked">

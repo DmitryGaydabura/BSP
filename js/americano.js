@@ -421,6 +421,7 @@ function renderAmericanoModal() {
     try {
       americanoState = await API.americano.finalize(americanoTournamentId);
       tournamentsData = null;
+      renderResults();          // repaint the list so the tournament moves into «Завершені»
       renderAmericanoModal();
       showToast(americanoState.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
     } catch (e) {
