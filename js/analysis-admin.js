@@ -8,6 +8,14 @@ function destroyCharts() {
   if (_tournamentChart) { _tournamentChart.destroy(); _tournamentChart = null; }
 }
 
+/* Per-format headings for the analysis infographic. Each finished-tournament format gets
+   its own chart + copy so the visual matches how the format actually plays out. */
+const CHART_META = {
+  race:     { title: 'Хід турніру',        sub: 'Очки наростаючим підсумком · торкнись гравця, щоб виділити лінію' },
+  teamRace: { title: 'Хід турніру · команди', sub: 'Очки команд наростаючим підсумком · торкнись команду, щоб виділити' },
+  ladder:   { title: 'Драбина кортів',     sub: 'Корт гравця щораунду · вище = ближче до королівського корту' },
+};
+
 /* Categorical viz slots come from CSS tokens (--viz-s1..6) so both themes get
    their own validated palette; Chart.js needs them resolved to actual values. */
 const VIZ_SLOTS = 6;
@@ -31,21 +39,27 @@ async function openAnalysisModal(tournamentId) {
   try {
     const data = await API.tournaments.getAnalysis(tournamentId);
     const winProb = data.chartData?.winProb;
-    const hasRace = !!data.chartData?.players?.length;
+    const chartType = data.chartData?.chartType || (data.chartData?.players?.length ? 'race' : null);
+    const isLadder = chartType === 'ladder';
+    const hasSeries = !!data.chartData?.players?.length;
+    const meta = CHART_META[chartType] || CHART_META.race;
     content.innerHTML = `
       <div class="analysis-text">${escapeHtml(data.analysis)}</div>
       ${winProb ? buildWinProbSection(winProb) : ''}
-      ${hasRace ? `
+      ${hasSeries ? `
         <div class="viz-section">
-          <div class="viz-title">Хід турніру</div>
-          <div class="viz-sub">Очки наростаючим підсумком · торкнись гравця, щоб виділити лінію</div>
-          <canvas id="tournament-chart" style="margin-top:4px;max-height:260px"></canvas>
+          <div class="viz-title">${meta.title}</div>
+          <div class="viz-sub">${meta.sub}</div>
+          <canvas id="tournament-chart" style="margin-top:4px;max-height:${isLadder ? 300 : 260}px"></canvas>
         </div>` : ''}
       ${data.generatedAt ? `<div class="analysis-meta">Згенеровано: ${fmtDatetime(data.generatedAt)}</div>` : ''}
     `;
 
     if (winProb) wireWinProbSection(winProb);
-    if (hasRace) renderTournamentChart(data.chartData);
+    if (hasSeries) {
+      if (isLadder) renderLadderChart(data.chartData);
+      else renderTournamentChart(data.chartData);
+    }
 
     const tournamentMeta = (tournamentsData || []).find(t => t.id === tournamentId);
     const isCupTournament = tournamentMeta?.type === 'CUP';
@@ -170,6 +184,134 @@ function renderTournamentChart(chartData) {
           grid: { color: gridCol },
           border: { color: axisCol },
           beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  document.getElementById('chart-player-grid')?.querySelectorAll('.chart-player-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const idx = parseInt(item.dataset.index);
+      if (slotOf.has(idx)) {
+        slotOf.delete(idx);
+      } else if (!claimSlot(idx)) {
+        showToast('Одночасно можна виділити до 6 гравців', 'info');
+        return;
+      }
+      item.classList.toggle('active', slotOf.has(idx));
+      item.querySelector('.chart-player-dot').style.background = chipColor(idx);
+      styleDatasets();
+      _tournamentChart.update();
+    });
+  });
+}
+
+/* Winners Court ladder: y-axis is the court rank, INVERTED so court 1 (the King's court)
+   sits at the top. Each player is a stepped line — a flat line riding the top means they
+   held the top court all tournament; a line climbing from the bottom is the comeback story.
+   Same emphasis model as the points race: top finishers coloured, the rest muted, tap to
+   toggle. Gaps (nulls) are byes and are simply skipped (spanGaps). */
+function renderLadderChart(chartData) {
+  const canvas = document.getElementById('tournament-chart');
+  if (!canvas || !chartData?.players?.length) return;
+
+  const players = chartData.players;
+  const totalCourts = chartData.totalCourts || Math.max(1, ...players.flatMap(p =>
+    (p.courts || []).filter(c => c != null)));
+  const pal = vizPalette();
+  const muteCol = vizToken('--viz-mute', 'rgba(120,130,125,0.35)');
+  const tickCol = vizToken('--text-muted', '#71827A');
+  const gridCol = vizToken('--border-sub', 'rgba(21,48,43,0.10)');
+  const axisCol = vizToken('--border-def', 'rgba(21,48,43,0.18)');
+  const tipBg   = vizToken('--ink-fill', '#15302B');
+  const tipInk  = vizToken('--on-ink', '#F4F2EA');
+
+  const slotOf = new Map();
+  const claimSlot = idx => {
+    const used = new Set(slotOf.values());
+    for (let s = 0; s < pal.length; s++) {
+      if (!used.has(s)) { slotOf.set(idx, s); return true; }
+    }
+    return false;
+  };
+  players.slice(0, Math.min(3, players.length)).forEach((_, i) => claimSlot(i));
+
+  const chipColor = i => slotOf.has(i) ? pal[slotOf.get(i)] : muteCol;
+  const gridHtml = `<div class="chart-player-grid" id="chart-player-grid">${
+    players.map((p, i) => `
+      <div class="chart-player-item${slotOf.has(i) ? ' active' : ''}" data-index="${i}">
+        <span class="chart-player-dot" style="background:${chipColor(i)}"></span>
+        <span class="chart-player-name">${esc(p.name)}</span>
+      </div>`).join('')
+  }</div>`;
+  canvas.insertAdjacentHTML('beforebegin', gridHtml);
+
+  const styleDatasets = () => {
+    _tournamentChart.data.datasets.forEach((ds, i) => {
+      const emph = slotOf.has(i);
+      ds.borderColor = emph ? pal[slotOf.get(i)] : muteCol;
+      ds.borderWidth = emph ? 2.5 : 1.25;
+      ds.order = emph ? 0 : 1;
+      ds.pointRadius = emph ? 3 : 0;
+      ds.pointBackgroundColor = ds.borderColor;
+    });
+  };
+
+  _tournamentChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: players.map((p, i) => ({
+        label: p.name,
+        data: p.courts,
+        spanGaps: true,
+        backgroundColor: 'transparent',
+        borderColor: slotOf.has(i) ? pal[slotOf.get(i)] : muteCol,
+        borderWidth: slotOf.has(i) ? 2.5 : 1.25,
+        order: slotOf.has(i) ? 0 : 1,
+        pointRadius: slotOf.has(i) ? 3 : 0,
+        pointHoverRadius: 4,
+        pointBackgroundColor: slotOf.has(i) ? pal[slotOf.get(i)] : muteCol,
+        stepped: 'middle',
+      })),
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: tipBg,
+          titleColor: tipInk,
+          bodyColor: tipInk,
+          borderColor: 'rgba(217,239,85,0.4)',
+          borderWidth: 1,
+          itemSort: (a, b) => a.raw - b.raw,
+          filter: item => slotOf.size === 0 || slotOf.has(item.datasetIndex),
+          callbacks: {
+            title: items => items.length ? items[0].label : '',
+            label: item => item.raw == null ? '' : ` ${item.dataset.label}: корт ${item.raw}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: tickCol, font: { size: 10 } },
+          grid: { color: gridCol },
+          border: { color: axisCol },
+        },
+        y: {
+          reverse: true,          // court 1 (King's court) on top
+          min: 0.5,
+          max: totalCourts + 0.5,
+          ticks: {
+            color: tickCol,
+            font: { size: 10 },
+            stepSize: 1,
+            callback: v => Number.isInteger(v) && v >= 1 && v <= totalCourts ? 'Корт ' + v : '',
+          },
+          grid: { color: gridCol },
+          border: { color: axisCol },
         },
       },
     },
@@ -497,7 +639,10 @@ async function openAdminAnalysisModal() {
       // data (no Raketo link needed or possible) — same as CUP.
       const isAmericanoFamily = AM_FAMILY_TYPES.has(t.type);
       const isNative = isCup || isAmericanoFamily;
-      const canGenerate = isNative || !!t.raketoId;
+      // Every finished tournament can now be analysed: native types + Americano/Cup from BSP
+      // match data, regular SINGLE/PAIR from the final standings. A Raketo link is optional
+      // enrichment for regular tournaments, no longer a requirement.
+      const canGenerate = true;
       return `
       <div class="aa-item" data-id="${t.id}" data-date="${t.date}">
         <div class="aa-item-header">
