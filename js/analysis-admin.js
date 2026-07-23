@@ -272,7 +272,7 @@ function renderLadderChart(chartData) {
         pointRadius: slotOf.has(i) ? 3 : 0,
         pointHoverRadius: 4,
         pointBackgroundColor: slotOf.has(i) ? pal[slotOf.get(i)] : muteCol,
-        stepped: 'middle',
+        cubicInterpolationMode: 'monotone',
       })),
     },
     options: {
