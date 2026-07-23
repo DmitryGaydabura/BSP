@@ -50,12 +50,39 @@ function normalizeRating(r) {
   };
 }
 
+// Deterministic hue (0–359) from a name — same name always gets the same color,
+// spread out via a large odd multiplier so consecutive names don't cluster.
+function avatarHue(name) {
+  const s = String(name || '?');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+// Colored monogram circle — the fallback for both "no photoUrl" and "photo failed
+// to load" (Telegram photo_url links expire, so <img> 404s are routine). Fills
+// whatever square/circle container it's placed in (100% × 100%, own border-radius),
+// so it works as a drop-in replacement for a bare <img> inside any avatar wrapper.
+function avatarMonogram(name) {
+  const hue = avatarHue(name);
+  return `<div class="avatar-mono" style="background:hsl(${hue} 58% 40%)">${esc(initials(name))}</div>`;
+}
+
+// onerror handler for avatar <img> tags — swaps the broken photo for a styled
+// monogram circle instead of bare fallback text. Global function so it can be
+// wired via inline onerror="" attributes (see CLAUDE.md "Global functions").
+function avatarMonoFallback(imgEl) {
+  if (imgEl && imgEl.parentNode) imgEl.parentNode.innerHTML = avatarMonogram(imgEl.dataset.name || '?');
+}
+
 function avatarHtml(p, size = 'md') {
-  const cls = size === 'sm' ? 'lb-avatar' : 'podium-avatar';
-  if (p.photoUrl) {
-    return `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.innerHTML='${jsq(initials(p.name))}'">`;
+  const name = p?.name || p?.displayName || '?';
+  if (p?.photoUrl) {
+    // Name lives in a data-attribute (HTML-attribute-escaped via esc), NOT interpolated
+    // into the inline JS string — avoids any attribute/JS double-context escaping pitfalls.
+    return `<img src="${esc(p.photoUrl)}" alt="" data-name="${esc(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="avatarMonoFallback(this)">`;
   }
-  return initials(p.name);
+  return avatarMonogram(name);
 }
 
 function renderLbRow(p, rank, showLevel) {
@@ -65,9 +92,7 @@ function renderLbRow(p, rank, showLevel) {
   const changeCls = rc > 0 ? 'up' : rc < 0 ? 'down' : 'same';
   const changeSign = rc > 0 ? `▲${rc}` : rc < 0 ? `▼${-rc}` : '=';
   const lvl = p.level || levelFromPoints(p.pts);
-  const avatarContent = p.photoUrl
-    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
-    : initials(p.name);
+  const avatarContent = avatarHtml(p, 'sm');
   const startDisp = p.startingPts ?? '—';
   const tp = p.tournamentPts;
   const trnCls = tp > 0 ? 'pos' : tp < 0 ? 'neg' : '';
@@ -99,9 +124,9 @@ function renderPodium(players) {
   const crowns = ['', '★', ''];
 
   document.getElementById('podium').innerHTML = podiumOrder.map((p, i) => {
-    const avatarContent = p.photoUrl
-      ? `<img src="${esc(p.photoUrl)}" alt="" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
-      : initials(p.name);
+    // Avatar sits in its own inner wrapper so the onerror fallback only replaces
+    // the photo, never the crown sibling that shares .podium-avatar as a parent.
+    const avatarContent = `<span class="podium-av-wrap">${avatarHtml(p)}</span>`;
     return `
       <div class="podium-place lb-row-tap" onclick="_lbRowTap('${p.id || ''}',${podiumRanks[i]})">
         <div class="podium-avatar ${podiumAvatarCls[i]}">
@@ -327,9 +352,7 @@ function relativeDateUa(iso) {
 }
 
 function renderGuestRow(p) {
-  const avatarContent = p.photoUrl
-    ? `<img src="${esc(p.photoUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentNode.textContent='${jsq(initials(p.name))}'">`
-    : initials(p.name);
+  const avatarContent = avatarHtml(p, 'sm');
   const linked = (p.startingPts || 0) > 0;
   const raketoTag = linked
     ? `<span class="guest-tag guest-tag-raketo">Raketo</span>`
@@ -455,9 +478,7 @@ async function openPlayerProfile(player, rank) {
 
     <div id="pp-panel-profile">
       <div class="pp-hero ${tier}">
-        <div class="pp-avatar">${player.photoUrl
-          ? `<img src="${esc(player.photoUrl)}" alt="" onerror="this.parentNode.textContent='${jsq(initials(player.name))}'">`
-          : initials(player.name)}</div>
+        <div class="pp-avatar">${avatarHtml(player)}</div>
         <div class="pp-info">
           <div class="pp-name">${esc(player.name)}</div>
           ${lvl ? `<span class="level-badge level-badge-hero ${lvlCls}">${lvl}</span>` : ''}
@@ -819,7 +840,7 @@ async function renderActivityList() {
           ${e.rank === 1 ? '★' : e.rank}
         </div>
         <div class="activity-avatar">
-          ${e.photoUrl ? `<img src="${esc(e.photoUrl)}" alt="">` : initials(e.displayName)}
+          ${avatarHtml({ name: e.displayName, photoUrl: e.photoUrl }, 'sm')}
         </div>
         <div class="activity-info">
           <div class="activity-name">${esc(e.displayName)}</div>
@@ -911,7 +932,7 @@ function renderProfile() {
     <div class="profile-hero ${tier} pf-card">
       <div class="pf-top">
         <div class="profile-avatar">
-          ${u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : initials(u.displayName)}
+          ${avatarHtml({ name: u.displayName, photoUrl: u.photoUrl })}
         </div>
         <div class="profile-info">
           <div class="profile-name">${esc(u.displayName)}</div>

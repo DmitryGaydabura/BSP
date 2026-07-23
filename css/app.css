@@ -825,6 +825,25 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
 .gsb-cta:active { transform: scale(0.95); }
 
 /* ── Podium ────────────────────────────────────────────────────── */
+/* Avatar monogram fallback — dropped into any avatar container by avatarHtml()
+   (js/players.js) when a player has no photoUrl, or via avatarMonoFallback()
+   when a Telegram photoUrl 404s (Telegram photo links expire). Fills 100% of
+   whatever circle it lands in; per-name hue keeps it readable in both themes. */
+.avatar-mono {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: inherit;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.18);
+}
+/* Wrapper so the podium's crown (a sibling of the avatar) survives the onerror swap */
+.podium-av-wrap { display: block; width: 100%; height: 100%; }
+
 .podium {
   display: flex;
   align-items: flex-end;
@@ -3598,7 +3617,27 @@ button.pf-stat:active { background: var(--surface); }
   cursor: pointer;
 }
 .am-picker-row:active { background: var(--lime-soft); border-color: var(--ink); }
-.am-picker-pts { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+.am-picker-pts { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); flex-shrink: 0; }
+/* Avatar + name variant (used by the Матчі add-player picker) — name flex-grows
+   to absorb the row's free space so it hugs the avatar instead of drifting to
+   the middle under justify-content:space-between. */
+.am-picker-av {
+  width: 28px; height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--paper-deep);
+  border: 1.5px solid var(--border-def);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: var(--text-sec);
+}
+.am-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .am-format-toggle { display: flex; gap: 6px; }
 .am-format-btn {
@@ -4832,20 +4871,89 @@ button.pf-stat:active { background: var(--surface); }
    CASUAL MATCHES TAB
    ═══════════════════════════════════════════════════════════════ */
 
-/* Compact list rows — same base as .t-row, custom leading icon block */
-.m-row-icon {
-  flex-shrink: 0;
-  width: 46px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  background: var(--lime-soft);
-  border: 1.5px solid var(--border-def);
-  border-radius: 10px;
+/* Compact list rows — same base as .t-row, with a colored left edge marking
+   rating (accent) vs friendly (sea) and the lineup shown inline. */
+.m-row { position: relative; overflow: hidden; border-left-width: 4px; }
+.m-row.m-row-rating   { border-left-color: var(--accent); }
+.m-row.m-row-friendly { border-left-color: var(--sea); }
+
+.m-row-top { display: flex; align-items: center; gap: 6px; }
+.m-row-time {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
 }
-.m-row-icon-friendly { background: var(--sea-soft); }
+.m-row-loc {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-row-kind { font-size: 12px; margin-left: auto; line-height: 1; }
+.m-dot {
+  width: 7px; height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.m-dot-open      { background: var(--lime-ink); }
+.m-dot-pending   { background: var(--clay); }
+.m-dot-done      { background: var(--text-dim); }
+.m-dot-cancelled { background: var(--text-dim); }
+
+/* Lineup preview — overlapping avatar circles, optionally split 2v2 */
+.m-row-lineup { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.m-lineup-team { display: flex; }
+.m-lineup-av {
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid var(--card);
+  background: var(--paper-deep);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9.5px; font-weight: 800; color: var(--text-sec);
+  margin-left: -8px;
+}
+.m-lineup-av:first-child { margin-left: 0; }
+.m-row-vs {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.m-lineup-empty { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+.m-row-waitn { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
+
+/* Finished row — score + winning side, no need to open the match */
+.m-row-final { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+.m-row-team { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.m-row-team-right { flex-direction: row-reverse; text-align: right; }
+.m-row-team-names {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.m-row-team-win .m-row-team-names { color: var(--ink); font-weight: 700; }
+.m-row-final-mid { flex-shrink: 0; }
+.m-row-setscore {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.m-row-games {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
 
 /* Rating / friendly badge */
 .m-badge {
@@ -4982,6 +5090,75 @@ button.pf-stat:active { background: var(--surface); }
 }
 .mse-score-sep { font-size: 20px; font-weight: 700; color: var(--text-muted); }
 .mse-tb-row { padding-top: 8px; border-top: 1px dashed var(--border-def); }
+
+/* Announce/Record match wizards — rating chip w/ subtitle, companion/partner
+   chips, level multiselect, and the Record wizard's collapsible «Коли і де?». */
+.mw-rating-chip { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px; }
+.mw-chip-main { font-size: 13px; font-weight: 700; }
+.mw-chip-sub { font-size: 9.5px; font-weight: 600; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+.mw-rating-chip.active .mw-chip-sub { color: var(--on-lime); opacity: 0.75; }
+
+.mw-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.mw-chip-row:empty { margin-bottom: 0; }
+.mw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1.5px solid var(--border-def);
+  border-radius: 999px;
+  padding: 4px 6px 4px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mw-chip-av { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
+.mw-chip-name { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mw-chip-x {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--paper-deep);
+  color: var(--text-muted);
+  font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mw-chip-x:active { background: var(--clay); color: #fff; }
+
+.mw-level-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.mw-level-chip {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  transition: transform 0.15s var(--ease);
+}
+/* Unselected chips get a neutral outline; selected ones are plain .level-badge
+   elements (level-d-plus/level-c/…) — :not() bumps specificity so this neutral
+   styling doesn't clobber the level-badge color rules on the "on" state. */
+.mw-level-chip:not(.mw-level-chip-on) {
+  border: 1.5px solid var(--border-def);
+  background: var(--card);
+  color: var(--text-sec);
+}
+.mw-level-chip:active { transform: scale(0.92); }
+.mw-level-chip-on { border-width: 1.5px; }
+
+.mw-collapse-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 8px 2px;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-sec);
+}
+.mw-collapse-toggle:active { color: var(--ink); }
 
 /* ═══════════════════════════════════════════════════════════════
    HOME TAB

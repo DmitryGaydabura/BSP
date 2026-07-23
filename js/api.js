@@ -134,6 +134,14 @@ const API = (() => {
       approve:       id             => request('POST',   `/matches/${id}/approve`),
     },
 
+    locations: {
+      list:       ()         => request('GET',    '/locations'),
+      adminList:  ()         => request('GET',    '/admin/locations'),
+      create:     data       => request('POST',   '/admin/locations', data),
+      update:     (id, data) => request('PUT',    `/admin/locations/${id}`, data),
+      remove:     id         => request('DELETE', `/admin/locations/${id}`),
+    },
+
     ratings: {
       list:        () => request('GET',  '/ratings'),
       guests:      () => request('GET',  '/ratings/guests'),

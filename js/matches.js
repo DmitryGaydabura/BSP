@@ -59,11 +59,18 @@ async function renderMatches() {
     .slice(0, 15);
 
   const createRow = `
-    <button class="t-create-row" onclick="openCreateMatchModal()">
-      <span class="t-create-plus">＋</span>
+    <button class="t-create-row" onclick="openAnnounceMatchModal()">
+      <span class="t-create-plus" aria-hidden="true">📣</span>
       <span class="t-create-text">
-        <strong>Створити матч</strong>
-        <span>Товариська гра — збери гравців і внеси рахунок</span>
+        <strong>Анонсувати гру</strong>
+        <span>Зберіть гравців на конкретний час і корт</span>
+      </span>
+    </button>
+    <button class="t-create-row" onclick="openRecordMatchModal()">
+      <span class="t-create-plus" aria-hidden="true">➕</span>
+      <span class="t-create-text">
+        <strong>Записати матч</strong>
+        <span>Уже зіграли — одразу внесіть рахунок</span>
       </span>
     </button>`;
 
@@ -99,32 +106,116 @@ async function refreshMatchesSilently() {
   } catch { /* offline — keep showing the cached data */ }
 }
 
+// Time-first label: prefer the (not-yet-deployed) scheduledAt field, fall back
+// to "created" — coded defensively since the backend may not send it yet.
+function mScheduleLabel(m) {
+  if (m.scheduledAt) {
+    const d = new Date(m.scheduledAt);
+    if (!isNaN(d.getTime())) {
+      const datePart = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+      const timePart = d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+      return `${datePart} · ${timePart}`;
+    }
+  }
+  return `Створено ${fmt(m.createdAt)}`;
+}
+
+// One player's avatar in a lineup strip (overlapping circles, mirrors lb-avatar sizing).
+function mLineupAvatar(u) {
+  return `<span class="m-lineup-av" title="${esc(playerNameOf(u))}">${avatarHtml({ name: playerNameOf(u), photoUrl: u.photoUrl }, 'sm')}</span>`;
+}
+
+// Who's actually playing, at a glance. ≥4 active players get a 2v2 "vs" split
+// (mirrors the default team pairing used by the score composer); fewer just show
+// whoever has joined so far.
+function mLineupHtml(activeUsers) {
+  if (!activeUsers.length) return `<span class="m-lineup-empty">Ще ніхто не приєднався</span>`;
+  if (activeUsers.length >= 4) {
+    const teamA = activeUsers.slice(0, 2), teamB = activeUsers.slice(2, 4);
+    return `
+      <span class="m-lineup-team">${teamA.map(mLineupAvatar).join('')}</span>
+      <span class="m-row-vs">vs</span>
+      <span class="m-lineup-team">${teamB.map(mLineupAvatar).join('')}</span>`;
+  }
+  return `<span class="m-lineup-team">${activeUsers.map(mLineupAvatar).join('')}</span>`;
+}
+
+// Tally sets won per side from m.sets to show a finished match's result inline,
+// without needing to open the detail page. Team rosters are read off the first
+// set (matches don't change lineup mid-match).
+function mSetsSummary(m) {
+  const sets = m.sets || [];
+  if (!sets.length) return null;
+  let winsA = 0, winsB = 0;
+  sets.forEach(s => { if (s.gamesA > s.gamesB) winsA++; else if (s.gamesB > s.gamesA) winsB++; });
+  return {
+    sets, winsA, winsB,
+    teamA: [sets[0].a1, sets[0].a2],
+    teamB: [sets[0].b1, sets[0].b2],
+    aWon: winsA > winsB,
+    bWon: winsB > winsA,
+  };
+}
+
 function buildMatchRow(m) {
-  const stLabel = M_STATUS_LABEL[m.status] || m.status;
-  const stCls   = M_STATUS_CLS[m.status] || 't-status-done';
-  const activeN = (m.activePlayers || []).length;
-  const waitN   = (m.waitlist || []).length;
-  const meta = [
-    `${activeN}/4 гравці`,
-    waitN ? `${waitN} у черзі` : null,
-    fmt(m.createdAt),
-  ].filter(Boolean).join(' · ');
+  const dotCls = m.status === 'OPEN' ? 'm-dot-open'
+    : m.status === 'PENDING_APPROVAL' ? 'm-dot-pending'
+    : m.status === 'CANCELLED' ? 'm-dot-cancelled'
+    : 'm-dot-done';
   const myTag = m.myState === 'ACTIVE'
     ? `<span class="t-row-state st-ok">У складі</span>`
     : m.myState === 'WAITLIST'
       ? `<span class="t-row-state st-wait">У черзі</span>`
       : '';
-  return `
-    <button class="t-row m-row" data-id="${m.id}">
-      <div class="m-row-icon${m.ratingEnabled ? '' : ' m-row-icon-friendly'}">${m.ratingEnabled ? '⚡' : '🎾'}</div>
-      <div class="t-row-main">
-        <div class="t-row-name">${esc(mMatchTitle(m))}</div>
-        <div class="t-row-meta">${esc(meta)}</div>
-        <div class="t-row-tags">
-          <span class="${stCls}">${stLabel}</span>
-          <span class="m-badge ${m.ratingEnabled ? 'm-badge-rating' : 'm-badge-friendly'}">${m.ratingEnabled ? '⚡ Рейтинговий' : '🎾 Дружній'}</span>
-          ${myTag}
+
+  const timeLabel = mScheduleLabel(m);
+  const locLabel = m.location ? `<span class="m-row-loc">· ${esc(m.location)}</span>` : '';
+
+  let bodyHtml;
+  if (m.status === 'FINISHED') {
+    const summary = mSetsSummary(m);
+    if (summary) {
+      const scoreStr = summary.sets.map(s => {
+        const tb = s.tiebreakA != null ? ` (${s.tiebreakA}:${s.tiebreakB})` : '';
+        return `${s.gamesA}:${s.gamesB}${tb}`;
+      }).join(', ');
+      bodyHtml = `
+        <div class="m-row-final">
+          <div class="m-row-team${summary.aWon ? ' m-row-team-win' : ''}">
+            <span class="m-lineup-team">${summary.teamA.map(mLineupAvatar).join('')}</span>
+            <span class="m-row-team-names">${esc(playerNameOf(summary.teamA[0]))} / ${esc(playerNameOf(summary.teamA[1]))}</span>
+          </div>
+          <div class="m-row-final-mid">
+            <span class="m-row-setscore">${summary.winsA}:${summary.winsB}</span>
+          </div>
+          <div class="m-row-team m-row-team-right${summary.bWon ? ' m-row-team-win' : ''}">
+            <span class="m-row-team-names">${esc(playerNameOf(summary.teamB[0]))} / ${esc(playerNameOf(summary.teamB[1]))}</span>
+            <span class="m-lineup-team">${summary.teamB.map(mLineupAvatar).join('')}</span>
+          </div>
         </div>
+        <div class="m-row-games">${esc(scoreStr)}</div>`;
+    } else {
+      bodyHtml = `<div class="m-lineup-empty">Рахунок не внесено</div>`;
+    }
+  } else {
+    const active = (m.activePlayers || []).map(ap => ap.user);
+    const waitN = (m.waitlist || []).length;
+    bodyHtml = `
+      <div class="m-row-lineup">${mLineupHtml(active)}</div>
+      ${waitN ? `<div class="m-row-waitn">+${waitN} у черзі</div>` : ''}`;
+  }
+
+  return `
+    <button class="t-row m-row ${m.ratingEnabled ? 'm-row-rating' : 'm-row-friendly'}" data-id="${m.id}">
+      <div class="t-row-main">
+        <div class="m-row-top">
+          <span class="m-row-time">${esc(timeLabel)}</span>
+          ${locLabel}
+          <span class="m-row-kind" aria-hidden="true">${m.ratingEnabled ? '⚡' : '🎾'}</span>
+          <span class="m-dot ${dotCls}" aria-hidden="true"></span>
+        </div>
+        ${bodyHtml}
+        ${myTag ? `<div class="m-row-tags">${myTag}</div>` : ''}
       </div>
       <span class="t-row-chev">›</span>
     </button>`;
@@ -580,16 +671,191 @@ function wireMatchPageActions(container, m) {
   });
 }
 
-/* ── Create match sheet ──────────────────────────────────────────── */
+/* ── Create-match wizards: Announce (US 1) + Record (Phase 3) ───────
+   Two separate flows sharing: rating-type chips, a Day/Time→scheduledAt
+   converter, the locations cache, level chips and a companion/partner
+   picker modal (#modal-match-picker). ─────────────────────────────── */
 
-function openCreateMatchModal() {
-  const titleInp = document.getElementById('cm-title');
-  if (titleInp) titleInp.value = '';
-  document.querySelectorAll('#cm-rating-toggle .claim-chip').forEach(b => {
-    b.classList.toggle('active', b.dataset.val === 'true');
-  });
-  openModal('modal-create-match');
+let mLocationsCache = null; // API.locations.list() cache, shared by both wizards
+async function mGetLocations() {
+  if (mLocationsCache) return mLocationsCache;
+  try { mLocationsCache = await API.locations.list(); } catch { mLocationsCache = []; }
+  return mLocationsCache;
 }
+
+const MATCH_LEVELS = [
+  { key: 'D',        label: 'D'  },
+  { key: 'D_PLUS',    label: 'D+' },
+  { key: 'C_MINUS',   label: 'C−' },
+  { key: 'C',         label: 'C'  },
+  { key: 'C_PLUS',    label: 'C+' },
+  { key: 'B_MINUS',   label: 'B−' },
+];
+
+const UK_WEEKDAY_ABBR = ['Нд','Пн','Вт','Ср','Чт','Пт','Сб'];
+
+// Next 7 days (today first), labelled «Сьогодні»/«Завтра»/«Пн 28.07».
+function mDayOptions() {
+  const now = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+    const label = i === 0 ? 'Сьогодні' : i === 1 ? 'Завтра'
+      : `${UK_WEEKDAY_ABBR[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { value, label };
+  });
+}
+
+// 00:00–23:00, step 1h.
+function mTimeOptions() {
+  return Array.from({ length: 24 }, (_, h) => {
+    const v = String(h).padStart(2, '0') + ':00';
+    return { value: v, label: v };
+  });
+}
+
+// Day (YYYY-MM-DD) + Time (HH:mm) are read as the player's own local wall-clock
+// time — `new Date(y,m,d,h,min)` builds that instant in the *device's* timezone,
+// then .toISOString() converts to UTC. Correct as long as the phone's timezone
+// matches the player's (true for a Telegram Mini App opened on one's own phone
+// in Odesa).
+function mScheduledAtIso(dayValue, timeValue) {
+  if (!dayValue || !timeValue) return null;
+  const [y, mo, d] = dayValue.split('-').map(Number);
+  const [hh, mm] = timeValue.split(':').map(Number);
+  return new Date(y, mo - 1, d, hh, mm, 0, 0).toISOString();
+}
+
+function mLevelChipHtml(lvl, on) {
+  const cls = on ? `mw-level-chip mw-level-chip-on level-badge level-badge-lg ${levelClass(lvl.label)}` : 'mw-level-chip';
+  return `<button type="button" class="${cls}" data-level="${lvl.key}">${lvl.label}</button>`;
+}
+
+function mRenderLevelChips(containerId, selectedSet) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = MATCH_LEVELS.map(lvl => mLevelChipHtml(lvl, selectedSet.has(lvl.key))).join('');
+  el.querySelectorAll('.mw-level-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.level;
+      if (selectedSet.has(key)) selectedSet.delete(key); else selectedSet.add(key);
+      mRenderLevelChips(containerId, selectedSet);
+    });
+  });
+}
+
+function mWizardChipHtml(u) {
+  return `<span class="mw-chip" data-uid="${u.id}">
+    <span class="mw-chip-av">${avatarHtml({ name: playerNameOf(u), photoUrl: u.photoUrl }, 'sm')}</span>
+    <span class="mw-chip-name">${esc(playerNameOf(u))}</span>
+    <button type="button" class="mw-chip-x" data-uid="${u.id}" aria-label="Прибрати">✕</button>
+  </span>`;
+}
+
+function mRenderChosenChips(containerId, list, onRemove) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = list.map(mWizardChipHtml).join('');
+  el.querySelectorAll('.mw-chip-x').forEach(btn => {
+    btn.addEventListener('click', () => onRemove(btn.dataset.uid));
+  });
+}
+
+/* ── Shared companion/partner picker (mirrors renderMatchPicker but has
+   no match yet to attach into — the caller decides what to do on pick). ── */
+let mwPickerState = null; // { excludeIds: Set<string>, onPick(user) }
+
+function openMatchWizardPicker(title, excludeIds, onPick) {
+  mwPickerState = { excludeIds, onPick };
+  document.getElementById('mwp-title').textContent = title;
+  document.getElementById('mwp-search').value = '';
+  const listEl = document.getElementById('mwp-list');
+  listEl.innerHTML = '<div class="am-empty">Завантаження...</div>';
+  openModal('modal-match-picker');
+  (async () => {
+    try {
+      if (!mDirectory) mDirectory = await API.users.directory();
+      mRenderWizardPicker('');
+    } catch (e) {
+      listEl.innerHTML = `<div class="am-empty">Помилка: ${esc(e.message)}</div>`;
+    }
+  })();
+}
+
+function mRenderWizardPicker(query) {
+  const listEl = document.getElementById('mwp-list');
+  if (!mwPickerState) return;
+  const q = query.trim().toLowerCase();
+  const rows = (mDirectory || [])
+    .filter(u => !mwPickerState.excludeIds.has(String(u.id)))
+    .filter(u => !q || (u.displayName || '').toLowerCase().includes(q))
+    .slice(0, 30);
+  listEl.innerHTML = rows.length
+    ? rows.map(u => `
+        <div class="am-picker-row" data-uid="${u.id}">
+          <span class="am-picker-av">${avatarHtml({ name: u.displayName, photoUrl: u.photoUrl }, 'sm')}</span>
+          <span class="am-picker-name">${esc(u.displayName || '?')}</span>
+          <span class="am-picker-pts">${u.ratingPoints || 0} pts</span>
+        </div>`).join('')
+    : '<div class="am-empty">Нікого не знайдено</div>';
+
+  listEl.querySelectorAll('.am-picker-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const u = (mDirectory || []).find(x => String(x.id) === row.dataset.uid);
+      if (!u || !mwPickerState) return;
+      const { onPick } = mwPickerState;
+      closeModal('modal-match-picker');
+      mwPickerState = null;
+      onPick(u);
+    });
+  });
+}
+
+document.getElementById('mwp-search')?.addEventListener('input', e => mRenderWizardPicker(e.target.value));
+
+/* ── Announce wizard ─────────────────────────────────────────────── */
+
+let mAnnounceCompanions = [];
+let mAnnounceLevels = new Set();
+
+function mAnnounceNeeded() {
+  const slots = parseInt(document.getElementById('cm-slots').value, 10);
+  return 3 - slots;
+}
+
+function mAnnounceRemoveCompanion(uid) {
+  mAnnounceCompanions = mAnnounceCompanions.filter(u => String(u.id) !== uid);
+  mUpdateCompanionUi();
+}
+
+function mUpdateCompanionUi() {
+  const needed = mAnnounceNeeded();
+  const group = document.getElementById('cm-companions-group');
+  const label = document.getElementById('cm-companions-label');
+  if (needed === 0) {
+    group.style.display = 'none';
+    mAnnounceCompanions = [];
+  } else {
+    group.style.display = '';
+    label.textContent = needed === 1 ? 'Напарник' : `Напарники (${needed})`;
+    if (mAnnounceCompanions.length > needed) mAnnounceCompanions = mAnnounceCompanions.slice(0, needed);
+  }
+  mRenderChosenChips('cm-companions-chips', mAnnounceCompanions, mAnnounceRemoveCompanion);
+  const addBtn = document.getElementById('cm-companions-add');
+  if (addBtn) addBtn.style.display = mAnnounceCompanions.length >= needed ? 'none' : '';
+}
+
+document.getElementById('cm-slots')?.addEventListener('change', mUpdateCompanionUi);
+
+document.getElementById('cm-companions-add')?.addEventListener('click', () => {
+  const needed = mAnnounceNeeded();
+  if (mAnnounceCompanions.length >= needed) return;
+  const exclude = new Set([String(currentUser?.id), ...mAnnounceCompanions.map(u => String(u.id))]);
+  openMatchWizardPicker(needed === 1 ? 'Обрати напарника' : 'Обрати напарника', exclude, u => {
+    mAnnounceCompanions.push(u);
+    mUpdateCompanionUi();
+  });
+});
 
 document.querySelectorAll('#cm-rating-toggle .claim-chip').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -598,23 +864,172 @@ document.querySelectorAll('#cm-rating-toggle .claim-chip').forEach(btn => {
   });
 });
 
+async function openAnnounceMatchModal() {
+  mAnnounceCompanions = [];
+  mAnnounceLevels = new Set();
+
+  document.querySelectorAll('#cm-rating-toggle .claim-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === 'true');
+  });
+
+  const daySel = document.getElementById('cm-day');
+  daySel.innerHTML = mDayOptions().map(o => `<option value="${o.value}">${esc(o.label)}</option>`).join('');
+  const timeSel = document.getElementById('cm-time');
+  timeSel.innerHTML = mTimeOptions().map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  timeSel.value = '18:00';
+
+  document.getElementById('cm-slots').value = '2';
+  mUpdateCompanionUi();
+  mRenderLevelChips('cm-levels', mAnnounceLevels);
+
+  const locSel = document.getElementById('cm-location');
+  locSel.innerHTML = '<option value="">Завантаження…</option>';
+
+  openModal('modal-create-match');
+
+  const locs = await mGetLocations();
+  locSel.innerHTML = locs.length
+    ? locs.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('')
+    : '<option value="">Немає доступних локацій</option>';
+}
+
 document.getElementById('cm-submit')?.addEventListener('click', async () => {
   const btn = document.getElementById('cm-submit');
-  const title = (document.getElementById('cm-title')?.value || '').trim();
   const activeChip = document.querySelector('#cm-rating-toggle .claim-chip.active');
   const ratingEnabled = activeChip ? activeChip.dataset.val === 'true' : true;
+  const day = document.getElementById('cm-day').value;
+  const time = document.getElementById('cm-time').value;
+  const locationId = document.getElementById('cm-location').value;
+  const slotsNeeded = parseInt(document.getElementById('cm-slots').value, 10);
+  const needed = mAnnounceNeeded();
+
+  if (!day || !time) { showToast('Оберіть день і час', 'error'); return; }
+  if (!locationId) { showToast('Оберіть локацію', 'error'); return; }
+  if (mAnnounceCompanions.length !== needed) {
+    showToast(`Оберіть ${needed} ${needed === 1 ? 'напарника' : 'напарники'}`, 'error');
+    return;
+  }
+
+  const payload = {
+    ratingEnabled,
+    scheduledAt: mScheduledAtIso(day, time),
+    locationId: parseInt(locationId, 10),
+    slotsNeeded,
+    desiredLevels: Array.from(mAnnounceLevels),
+    companionUserIds: mAnnounceCompanions.map(u => u.id),
+    mode: 'ANNOUNCE',
+  };
 
   btn.disabled = true;
   try {
-    const created = await API.matches.create({ title: title || null, ratingEnabled });
+    const created = await API.matches.create(payload);
     mCacheUpdate(created);
     closeModal('modal-create-match');
-    showToast('Матч створено 🎾', 'success');
+    showToast('Гру анонсовано 📣', 'success');
     if (currentTab !== 'matches') switchTab('matches');
     renderMatches();
     openMatchPage(created.id);
   } catch (e) {
     showToast(e.data?.message || e.message || 'Помилка створення матчу', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── Record wizard ───────────────────────────────────────────────── */
+
+let mRecordPartners = [];
+
+function mRecordRemovePartner(uid) {
+  mRecordPartners = mRecordPartners.filter(u => String(u.id) !== uid);
+  mRenderChosenChips('rm-partners-chips', mRecordPartners, mRecordRemovePartner);
+  const addBtn = document.getElementById('rm-partners-add');
+  if (addBtn) addBtn.style.display = mRecordPartners.length >= 3 ? 'none' : '';
+}
+
+document.getElementById('rm-partners-add')?.addEventListener('click', () => {
+  if (mRecordPartners.length >= 3) return;
+  const exclude = new Set([String(currentUser?.id), ...mRecordPartners.map(u => String(u.id))]);
+  openMatchWizardPicker('Обрати партнера', exclude, u => {
+    mRecordPartners.push(u);
+    mRenderChosenChips('rm-partners-chips', mRecordPartners, mRecordRemovePartner);
+    document.getElementById('rm-partners-add').style.display = mRecordPartners.length >= 3 ? 'none' : '';
+  });
+});
+
+document.querySelectorAll('#rm-rating-toggle .claim-chip').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#rm-rating-toggle .claim-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+document.getElementById('rm-when-toggle')?.addEventListener('click', () => {
+  const body = document.getElementById('rm-when-body');
+  const opening = body.style.display === 'none';
+  body.style.display = opening ? '' : 'none';
+  document.getElementById('rm-when-chevron').textContent = opening ? '▴' : '▾';
+});
+
+function openRecordMatchModal() {
+  mRecordPartners = [];
+
+  document.querySelectorAll('#rm-rating-toggle .claim-chip').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === 'true');
+  });
+  mRenderChosenChips('rm-partners-chips', mRecordPartners, mRecordRemovePartner);
+  document.getElementById('rm-partners-add').style.display = '';
+
+  document.getElementById('rm-when-body').style.display = 'none';
+  document.getElementById('rm-when-chevron').textContent = '▾';
+
+  const daySel = document.getElementById('rm-day');
+  daySel.innerHTML = '<option value="">—</option>' + mDayOptions().map(o => `<option value="${o.value}">${esc(o.label)}</option>`).join('');
+  const timeSel = document.getElementById('rm-time');
+  timeSel.innerHTML = '<option value="">—</option>' + mTimeOptions().map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+  const locSel = document.getElementById('rm-location');
+  locSel.innerHTML = '<option value="">—</option>';
+
+  openModal('modal-record-match');
+
+  mGetLocations().then(locs => {
+    locSel.innerHTML = '<option value="">—</option>' + locs.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  });
+}
+
+document.getElementById('rm-submit')?.addEventListener('click', async () => {
+  const btn = document.getElementById('rm-submit');
+  const activeChip = document.querySelector('#rm-rating-toggle .claim-chip.active');
+  const ratingEnabled = activeChip ? activeChip.dataset.val === 'true' : true;
+
+  if (mRecordPartners.length !== 3) {
+    showToast('Оберіть рівно 3 партнерів', 'error');
+    return;
+  }
+
+  const day = document.getElementById('rm-day').value;
+  const time = document.getElementById('rm-time').value;
+  const locationId = document.getElementById('rm-location').value;
+
+  const payload = {
+    ratingEnabled,
+    companionUserIds: mRecordPartners.map(u => u.id),
+    mode: 'RECORD',
+  };
+  if (day && time) payload.scheduledAt = mScheduledAtIso(day, time);
+  if (locationId) payload.locationId = parseInt(locationId, 10);
+
+  btn.disabled = true;
+  try {
+    const created = await API.matches.create(payload);
+    mCacheUpdate(created);
+    closeModal('modal-record-match');
+    showToast('Матч записано 🎾', 'success');
+    if (currentTab !== 'matches') switchTab('matches');
+    renderMatches();
+    openMatchPage(created.id);
+  } catch (e) {
+    showToast(e.data?.message || e.message || 'Помилка запису матчу', 'error');
   } finally {
     btn.disabled = false;
   }
@@ -653,7 +1068,8 @@ function renderMatchPicker(query) {
   listEl.innerHTML = matches.length
     ? matches.map(u => `
         <div class="am-picker-row" data-uid="${u.id}">
-          <span>${esc(u.displayName || '?')}</span>
+          <span class="am-picker-av">${avatarHtml({ name: u.displayName, photoUrl: u.photoUrl }, 'sm')}</span>
+          <span class="am-picker-name">${esc(u.displayName || '?')}</span>
           <span class="am-picker-pts">${u.ratingPoints || 0} pts</span>
         </div>`).join('')
     : '<div class="am-empty">Нікого не знайдено</div>';
@@ -677,3 +1093,130 @@ function renderMatchPicker(query) {
 }
 
 document.getElementById('mm-picker-search')?.addEventListener('input', e => renderMatchPicker(e.target.value));
+
+/* ── Admin: Locations directory (list/create/edit/soft-delete) ──────
+   Mirrors js/announcements.js's admin CRUD pattern. Wired from
+   wireAdminPanel() in analysis-admin.js (Система → «Локації»). ──── */
+
+let locationsAdminList = [];
+let editingLocationId = null;
+
+async function openAdminLocationsModal() {
+  openModal('modal-admin-locations');
+  await refreshLocationsAdminList();
+}
+
+async function refreshLocationsAdminList() {
+  const list = document.getElementById('loc-admin-list');
+  list.innerHTML = '<div style="color:var(--text-sec);font-size:13px;padding:12px 0">Завантаження...</div>';
+  try {
+    locationsAdminList = await API.locations.adminList();
+  } catch (e) {
+    list.innerHTML = `<div style="color:var(--error);font-size:13px">Помилка: ${esc(e.message)}</div>`;
+    return;
+  }
+  renderLocationsAdminList();
+}
+
+function renderLocationsAdminList() {
+  const list = document.getElementById('loc-admin-list');
+  if (!locationsAdminList.length) {
+    list.innerHTML = '<div style="color:var(--text-sec);font-size:13px;padding:12px 0">Локацій ще немає</div>';
+    return;
+  }
+  list.innerHTML = locationsAdminList.map(l => `
+    <div class="ann-row" data-id="${l.id}">
+      <div class="ann-row-placeholder">📍</div>
+      <div class="ann-row-body">
+        <div class="ann-row-title">${esc(l.name)}${l.active ? '' : ' (вимкнено)'}</div>
+        ${l.address ? `<div class="ann-row-desc">${esc(l.address)}</div>` : ''}
+      </div>
+      <div class="ann-row-actions">
+        <button class="ach-toggle-btn ${l.active ? 'on' : 'off'}" data-act="toggle">${l.active ? 'Увімк.' : 'Вимк.'}</button>
+        <button class="ann-icon-btn" data-act="edit">✎</button>
+        <button class="ann-icon-btn" data-act="delete">🗑</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.ann-row').forEach(row => {
+    const id = parseInt(row.dataset.id, 10);
+    const l = locationsAdminList.find(x => x.id === id);
+    row.querySelector('[data-act="toggle"]').addEventListener('click', () => toggleLocationActive(l));
+    row.querySelector('[data-act="edit"]').addEventListener('click', () => openEditLocation(l));
+    row.querySelector('[data-act="delete"]').addEventListener('click', () => deleteLocation(l));
+  });
+}
+
+async function toggleLocationActive(l) {
+  try {
+    const updated = await API.locations.update(l.id, { name: l.name, address: l.address, active: !l.active, sortOrder: l.sortOrder });
+    l.active = updated.active;
+    renderLocationsAdminList();
+    mLocationsCache = null; // invalidate the public list used by the wizards
+  } catch (e) {
+    showToast('Помилка: ' + (e.message || 'невідома'), 'error');
+  }
+}
+
+async function deleteLocation(l) {
+  if (!(await uiConfirm(`Видалити локацію «${l.name}»?`))) return;
+  try {
+    await API.locations.remove(l.id);
+    locationsAdminList = locationsAdminList.filter(x => x.id !== l.id);
+    renderLocationsAdminList();
+    mLocationsCache = null;
+  } catch (e) {
+    showToast('Помилка видалення', 'error');
+  }
+}
+
+function openCreateLocation() {
+  editingLocationId = null;
+  document.getElementById('loc-form-title').textContent = 'Нова локація';
+  document.getElementById('loc-name').value = '';
+  document.getElementById('loc-address').value = '';
+  document.getElementById('loc-sort-order').value = '';
+  document.getElementById('loc-active').checked = true;
+  openModal('modal-location-form');
+}
+
+function openEditLocation(l) {
+  editingLocationId = l.id;
+  document.getElementById('loc-form-title').textContent = 'Редагувати локацію';
+  document.getElementById('loc-name').value = l.name || '';
+  document.getElementById('loc-address').value = l.address || '';
+  document.getElementById('loc-sort-order').value = l.sortOrder ?? '';
+  document.getElementById('loc-active').checked = l.active !== false;
+  openModal('modal-location-form');
+}
+
+document.getElementById('loc-create-btn')?.addEventListener('click', openCreateLocation);
+
+document.getElementById('loc-submit')?.addEventListener('click', async () => {
+  const btn = document.getElementById('loc-submit');
+  const name = document.getElementById('loc-name').value.trim();
+  const address = document.getElementById('loc-address').value.trim() || null;
+  const sortOrderRaw = document.getElementById('loc-sort-order').value;
+  const sortOrder = sortOrderRaw === '' ? 0 : parseInt(sortOrderRaw, 10);
+  const active = document.getElementById('loc-active').checked;
+
+  if (!name) { showToast('Вкажіть назву локації', 'error'); return; }
+
+  const payload = { name, address, active, sortOrder };
+  btn.disabled = true;
+  try {
+    if (editingLocationId) {
+      await API.locations.update(editingLocationId, payload);
+    } else {
+      await API.locations.create(payload);
+    }
+    closeModal('modal-location-form');
+    showToast('Збережено', 'success');
+    mLocationsCache = null;
+    await refreshLocationsAdminList();
+  } catch (e) {
+    showToast('Помилка: ' + (e.message || 'невідома'), 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
