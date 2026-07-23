@@ -169,7 +169,8 @@ function buildMatchRow(m) {
       : '';
 
   const timeLabel = mScheduleLabel(m);
-  const locLabel = m.location ? `<span class="m-row-loc">· ${esc(m.location)}</span>` : '';
+  const locName = m.location && typeof m.location === 'object' ? m.location.name : m.location;
+  const locLabel = locName ? `<span class="m-row-loc">· ${esc(locName)}</span>` : '';
 
   let bodyHtml;
   if (m.status === 'FINISHED') {
