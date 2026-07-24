@@ -885,8 +885,8 @@ function renderProfile() {
         <span>⚠</span> Backend недоступний. Запустіть bsp-backend локально.
       </div>
       <div class="profile-guest">
-        <div class="profile-guest-avatar">BS</div>
-        <div class="profile-guest-name">Blacksea Padel</div>
+        <div class="profile-guest-avatar">${clubInfo().initials}</div>
+        <div class="profile-guest-name">${esc(clubInfo().name)}</div>
         <div class="profile-guest-hint">Підключіться до backend-сервера щоб увійти в профіль.</div>
       </div>`;
     return;

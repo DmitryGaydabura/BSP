@@ -87,12 +87,12 @@ function autoColorScheme() {
 const CLUB_KEY = 'bsp_club'; // 'BLACKSEA' | 'YELLOW'
 const CLUBS = {
   BLACKSEA: {
-    id: 'BLACKSEA', name: 'Blacksea Padel', sub: '★ Odesa, Ukraine ★',
+    id: 'BLACKSEA', name: 'Blacksea Padel', sub: '★ Odesa, Ukraine ★', initials: 'BS',
     logo: 'assets/logo.jpg', dataClub: '',
     bg: { light: '#F4F2EA', dark: '#0D1B2E' },
   },
   YELLOW: {
-    id: 'YELLOW', name: 'Yellow Padel Club', sub: '★ Odesa, Ukraine ★',
+    id: 'YELLOW', name: 'Yellow Padel Club', sub: '★ Odesa, Ukraine ★', initials: 'YP',
     logo: 'assets/yellow_club_logo.jpg', dataClub: 'yellow',
     bg: { light: '#FBF7E4', dark: '#171308' },
   },
@@ -117,6 +117,12 @@ function applyClub() {
   const subEl = document.querySelector('#header .logo-sub');
   if (nameEl) nameEl.textContent = club.name;
   if (subEl) subEl.textContent = club.sub;
+  // Section eyebrows (tab headers) carry the club name; a data-suffix keeps
+  // per-eyebrow tails like "· Odesa".
+  document.querySelectorAll('.section-eyebrow[data-club-eyebrow]').forEach(el => {
+    el.textContent = club.name + (el.dataset.suffix ? ' ' + el.dataset.suffix : '');
+  });
+  document.title = club.name;
   applyAppTheme(autoColorScheme());
 }
 
@@ -139,6 +145,7 @@ async function switchClub(clubId) {
   if (tab === 'home' && typeof renderHome === 'function') renderHome();
   else if (tab === 'results' && typeof renderResults === 'function') renderResults();
   else if (tab === 'activity' && typeof renderActivity === 'function') renderActivity();
+  else if (tab === 'profile' && typeof renderProfile === 'function') renderProfile();
 }
 
 // Cycle to the next club (tapping the header logo). Works for any number of clubs.

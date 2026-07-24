@@ -721,7 +721,7 @@ async function _captureFinishedCardPng() {
   const clone = card.cloneNode(true);
   clone.querySelectorAll('.t-admin-actions, .analysis-btn, .fin-share-btn, .fin-my, .cup-view-btn, .am-view-btn')
     .forEach(el => el.remove());
-  clone.insertAdjacentHTML('beforeend', '<div class="fin-export-brand">★ BLACKSEA PADEL · ODESA ★</div>');
+  clone.insertAdjacentHTML('beforeend', `<div class="fin-export-brand">★ ${esc(clubInfo().name.toUpperCase())} · ODESA ★</div>`);
 
   const frame = document.createElement('div');
   frame.className = 'fin-export-frame';
