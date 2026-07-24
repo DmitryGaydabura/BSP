@@ -183,6 +183,152 @@ html[data-theme="navy"] {
   --viz-mute: rgba(143,163,184,0.38);
 }
 
+/* ══ Yellow Padel Club — per-club palette ════════════════════════
+   A second club served by the same app. Tournaments/activity are its
+   own; the palette swaps Blacksea's sea-green for the club's amber/gold
+   over a warm-cream (light) or warm-black (dark) field. Selected by the
+   data-club="yellow" attribute (set by applyClub()/pre-paint script),
+   layered on top of the light (paper) and dark (navy) themes. Overrides
+   only color tokens — the data-viz categorical slots are inherited so
+   charts keep their validated, brand-neutral hue order. Legacy alias
+   names (--gold, --navy-*, --sea) are remapped because JS inlines them. */
+html[data-club="yellow"][data-theme="paper"] {
+  --paper:        #FBF7E4;
+  --paper-deep:   #F2ECD3;
+  --card:         #FFFFFF;
+  --ink:          #1D1A10;
+  --ink-soft:     #3A3418;
+
+  --accent:       #9A7A0B;   /* deep amber — readable as text/buttons */
+  --accent-deep:  #7A5F08;
+  --accent-soft:  #F6EECB;
+  --lime:         #FFD21A;   /* bright brand yellow — the ball / #1   */
+  --lime-soft:    #FFF3BE;
+  --clay:         #D14D32;
+  --clay-soft:    #FBEAE4;
+
+  --navy-deep:    var(--paper);
+  --navy-mid:     var(--card);
+  --navy-light:   #EFE8CE;
+  --navy-subtle:  #E5DCBC;
+  --navy-card:    var(--card);
+  --navy-dark:    var(--paper-deep);
+  --gold:         var(--accent);
+  --gold-light:   #B8930E;
+  --gold-dark:    var(--accent-deep);
+  --gold-dim:     rgba(154,122,11,0.35);
+  --sea:          #B58A00;
+  --sea-light:    #C79A10;
+
+  --text:           var(--ink);
+  --text-pri:       var(--ink);
+  --text-primary:   var(--ink);
+  --text-bright:    var(--ink);
+  --text-sec:       #5A5230;
+  --text-secondary: #5A5230;
+  --text-muted:     #857B52;
+  --text-dim:       #A99F76;
+
+  --success:      #178A50;
+  --error:        #D14D32;
+
+  --surface:      #F7F2DE;
+  --card-bg:      #F3EDD5;
+
+  --border-sub:   rgba(29,26,16,0.10);
+  --border-def:   rgba(29,26,16,0.18);
+  --border-str:   rgba(29,26,16,0.42);
+
+  --shadow-md:    0 2px 10px rgba(60,52,24,0.10);
+  --shadow-lg:    0 14px 44px rgba(60,52,24,0.18);
+  --shadow-gold:  0 4px 18px rgba(154,122,11,0.24);
+
+  --ink-fill:     #201C10;
+  --on-ink:       #FBF7E4;
+  --on-accent:    #FFFFFF;
+  --on-lime:      #1D1A10;
+  --lime-ink:     #7A5F08;
+  --lime-line:    #E9CC4E;
+  --bronze:       #A97B4E;
+  --bronze-soft:  #F3E7D7;
+  --sea-soft:     #F1EACB;
+  --skel-hi:      #FCF8E9;
+  --stone-bg:     #EFE9D5;
+  --stone-fg:     #726A47;
+  --stone-line:   #D3CBAB;
+  --dplus-bg:     #F1EAC8;
+  --dplus-fg:     #7A6410;
+  --dplus-line:   #DDCE93;
+  --accent-line:  #D7C173;
+  --header-bg:    rgba(251,247,228,0.92);
+}
+
+html[data-club="yellow"][data-theme="navy"] {
+  --paper:        #171308;   /* warm near-black field */
+  --paper-deep:   #221C0C;
+  --card:         #282112;
+  --ink:          #F8F2DE;
+  --ink-soft:     #E4DBC2;
+
+  --accent:       #E2BC49;   /* bright gold on the dark field */
+  --accent-deep:  #F0D488;
+  --accent-soft:  rgba(226,188,73,0.15);
+  --lime:         #FFD21A;
+  --lime-soft:    rgba(255,210,26,0.13);
+  --clay:         #E56B57;
+  --clay-soft:    rgba(224,85,69,0.16);
+
+  --navy-deep:    var(--paper);
+  --navy-mid:     var(--card);
+  --navy-light:   #34290F;
+  --navy-subtle:  #46370F;
+  --navy-card:    var(--card);
+  --navy-dark:    var(--paper-deep);
+  --gold:         var(--accent);
+  --gold-light:   #F0D488;
+  --gold-dark:    #A07E1F;
+  --gold-dim:     rgba(226,188,73,0.35);
+  --sea:          #C0983A;
+  --sea-light:    #E0B640;
+
+  --text-sec:     #D2C6A6;
+  --text-muted:   #A99C78;
+  --text-dim:     #77694A;
+
+  --success:      #4CC38A;
+  --error:        #E56B57;
+
+  --surface:      #221C0C;
+  --card-bg:      #34290F;
+
+  --border-sub:   rgba(226,188,73,0.15);
+  --border-def:   rgba(226,188,73,0.28);
+  --border-str:   rgba(226,188,73,0.5);
+
+  --shadow-md:    0 4px 20px rgba(0,0,0,0.45);
+  --shadow-lg:    0 8px 40px rgba(0,0,0,0.6);
+  --shadow-gold:  0 0 16px rgba(226,188,73,0.32);
+
+  --ink-fill:     #120F06;
+  --on-ink:       #F8F2DE;
+  --on-accent:    #1B1608;
+  --on-lime:      #1B1608;
+  --lime-ink:     #FFD21A;
+  --lime-line:    rgba(255,210,26,0.4);
+  --bronze:       #D9A05B;
+  --bronze-soft:  rgba(205,127,50,0.2);
+  --sea-soft:     rgba(192,152,58,0.22);
+  --skel-hi:      #34290F;
+  --stone-bg:     #34290F;
+  --stone-fg:     #D2C6A6;
+  --stone-line:   #46370F;
+  --dplus-bg:     rgba(76,195,138,0.15);
+  --dplus-fg:     #7FD0A5;
+  --dplus-line:   rgba(76,195,138,0.35);
+  --accent-line:  rgba(226,188,73,0.45);
+  --header-bg:    rgba(23,19,8,0.94);
+}
+
 /* Paper grain: light dots on the navy field */
 html[data-theme="navy"] body::before,
 html[data-theme="navy"] #onboarding-overlay::before {
@@ -261,7 +407,11 @@ body::before {
   border: 1.5px solid var(--ink);
   object-fit: cover;
   flex-shrink: 0;
+  cursor: pointer;            /* tap to switch club */
+  transition: transform 0.12s var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
+#header .logo-img:active { transform: scale(0.9); }
 #header .logo-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 #header .logo-name {
   font-family: var(--font-brand);

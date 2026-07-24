@@ -8,6 +8,10 @@ const API = (() => {
   const removeToken = () => localStorage.removeItem(TOKEN_KEY);
   const isAuthenticated = () => !!getToken();
 
+  // Active club id (from core.js global). Defaults to BLACKSEA before core.js loads
+  // or in any edge case where it is unset. Used to scope club-specific endpoints.
+  const club = () => (typeof currentClub !== 'undefined' && currentClub) ? currentClub : 'BLACKSEA';
+
   async function request(method, path, body) {
     const headers = {
       'Content-Type': 'application/json',
@@ -57,10 +61,10 @@ const API = (() => {
     },
 
     tournaments: {
-      list:             ()             => request('GET',    '/tournaments'),
+      list:             ()             => request('GET',    `/tournaments?club=${club()}`),
       get:              id             => request('GET',    `/tournaments/${id}`),
       getLevels:        ()             => request('GET',    '/tournaments/levels'),
-      create:           data           => request('POST',   '/tournaments', data),
+      create:           data           => request('POST',   '/tournaments', { ...data, club: club() }),
       activate:         id             => request('POST',   `/tournaments/${id}/activate`),
       submitResults:    (id, payload)  => request('POST',   `/tournaments/${id}/results`, payload),
       finalize:         id             => request('POST',   `/tournaments/${id}/finalize`),
@@ -86,7 +90,7 @@ const API = (() => {
 
     americano: {
       get:               id             => request('GET',    `/tournaments/${id}/americano`),
-      create:            data           => request('POST',   '/tournaments/americano', data),
+      create:            data           => request('POST',   '/tournaments/americano', { ...data, club: club() }),
       update:            (id, data)     => request('PUT',    `/tournaments/americano/${id}`, data),
       start:             id             => request('POST',   `/tournaments/${id}/americano/start`),
       submitMatch:       (id, matchId, s) => request('PUT',  `/tournaments/${id}/americano/matches/${matchId}/result`, s),
@@ -98,7 +102,7 @@ const API = (() => {
 
     winnersCourt: {
       get:               id             => request('GET',    `/tournaments/${id}/winners-court`),
-      create:            data           => request('POST',   '/tournaments/winners-court', data),
+      create:            data           => request('POST',   '/tournaments/winners-court', { ...data, club: club() }),
       update:            (id, data)     => request('PUT',    `/tournaments/winners-court/${id}`, data),
       start:             id             => request('POST',   `/tournaments/${id}/winners-court/start`),
       submitMatch:       (id, matchId, s) => request('PUT',  `/tournaments/${id}/winners-court/matches/${matchId}/result`, s),
@@ -150,7 +154,7 @@ const API = (() => {
     },
 
     activity: {
-      monthly: (month) => request('GET', `/activity?month=${month}`),
+      monthly: (month) => request('GET', `/activity?month=${month}&club=${club()}`),
     },
 
     achievements: {

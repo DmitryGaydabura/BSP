@@ -78,12 +78,81 @@ function autoColorScheme() {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
+/* ── Clubs (multi-club) ─────────────────────────────────────────
+   The app serves more than one padel club. Tournaments and the activity
+   feed are scoped per club (backend `?club=` filter); the player base,
+   ratings and casual matches are shared across all clubs. Each club has
+   its own identity (logo/name) and its own light+dark palette, selected
+   by the `data-club` attribute on <html> (empty = default Blacksea). */
+const CLUB_KEY = 'bsp_club'; // 'BLACKSEA' | 'YELLOW'
+const CLUBS = {
+  BLACKSEA: {
+    id: 'BLACKSEA', name: 'Blacksea Padel', sub: '★ Odesa, Ukraine ★',
+    logo: 'assets/logo.jpg', dataClub: '',
+    bg: { light: '#F4F2EA', dark: '#0D1B2E' },
+  },
+  YELLOW: {
+    id: 'YELLOW', name: 'Yellow Padel Club', sub: '★ Odesa, Ukraine ★',
+    logo: 'assets/yellow_club_logo.jpg', dataClub: 'yellow',
+    bg: { light: '#FBF7E4', dark: '#171308' },
+  },
+};
+const CLUB_ORDER = ['BLACKSEA', 'YELLOW'];
+let currentClub = (() => {
+  try { const c = localStorage.getItem(CLUB_KEY); if (c && CLUBS[c]) return c; } catch { /* private mode */ }
+  return 'BLACKSEA';
+})();
+function clubInfo() { return CLUBS[currentClub] || CLUBS.BLACKSEA; }
+
+// Reflect the active club into the header (logo + name) and the <html> data-club
+// attribute that drives the club palette. Re-applies the theme so the browser/TG
+// chrome color matches the club.
+function applyClub() {
+  const club = clubInfo();
+  if (club.dataClub) document.documentElement.dataset.club = club.dataClub;
+  else delete document.documentElement.dataset.club;
+  const img = document.querySelector('#header .logo-img');
+  if (img) { img.src = club.logo; img.alt = club.name; }
+  const nameEl = document.querySelector('#header .logo-name');
+  const subEl = document.querySelector('#header .logo-sub');
+  if (nameEl) nameEl.textContent = club.name;
+  if (subEl) subEl.textContent = club.sub;
+  applyAppTheme(autoColorScheme());
+}
+
+// Switch to another club: persist the choice, re-theme, and refetch the
+// club-scoped data (tournaments + activity) for whatever tab is on screen.
+async function switchClub(clubId) {
+  if (!CLUBS[clubId] || clubId === currentClub) return;
+  currentClub = clubId;
+  try { localStorage.setItem(CLUB_KEY, clubId); } catch { /* private mode */ }
+  applyClub();
+  try { tg?.HapticFeedback?.impactOccurred('medium'); } catch { /* old client */ }
+  if (typeof showToast === 'function') showToast(clubInfo().name, 'info');
+
+  // Tournaments and activity are club-specific — drop their caches so the next
+  // read refetches for the new club. Ratings/matches are shared and left alone.
+  if (typeof tournamentsData !== 'undefined') tournamentsData = null;
+  if (typeof activityCache !== 'undefined') activityCache = {};
+
+  const tab = (typeof currentTab !== 'undefined') ? currentTab : 'home';
+  if (tab === 'home' && typeof renderHome === 'function') renderHome();
+  else if (tab === 'results' && typeof renderResults === 'function') renderResults();
+  else if (tab === 'activity' && typeof renderActivity === 'function') renderActivity();
+}
+
+// Cycle to the next club (tapping the header logo). Works for any number of clubs.
+function cycleClub() {
+  const idx = CLUB_ORDER.indexOf(currentClub);
+  switchClub(CLUB_ORDER[(idx + 1) % CLUB_ORDER.length]);
+}
+
 function applyAppTheme(scheme) {
   const pref = getThemePref();
   const resolved = pref === 'system' ? scheme : pref;
   const navy = resolved === 'dark';
   document.documentElement.dataset.theme = navy ? 'navy' : 'paper';
-  const bg = navy ? '#0D1B2E' : '#F4F2EA';
+  const bg = navy ? clubInfo().bg.dark : clubInfo().bg.light;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
   if (tg) {
     try { tg.setHeaderColor(bg); tg.setBackgroundColor(bg); } catch { /* old client */ }
@@ -103,6 +172,9 @@ document.getElementById('theme-toggle')?.addEventListener('click', () => {
   setThemePref(dark ? 'light' : 'dark');
   try { tg?.HapticFeedback?.impactOccurred('light'); } catch { /* old client */ }
 });
+
+// Tapping the header logo switches clubs (Blacksea ↔ Yellow Padel Club).
+document.querySelector('#header .logo-img')?.addEventListener('click', cycleClub);
 
 if (tg) {
   tg.ready();
@@ -125,6 +197,9 @@ if (tg) {
   applyAppTheme(mq?.matches ? 'dark' : 'light');
   mq?.addEventListener?.('change', e => applyAppTheme(e.matches ? 'dark' : 'light'));
 }
+
+// Reflect the persisted club into the header + palette on load (also re-applies theme).
+applyClub();
 
 /* ── App state ─────────────────────────────────────────────────── */
 let currentUser = null;   // UserDto from API when logged in
