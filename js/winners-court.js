@@ -162,7 +162,7 @@ function renderWinnersCourtModal() {
     ${st.isPrivate ? '<span class="friendly-badge fb-private">🔒 Приватний</span>' : ''}
     <span class="am-config-chip">${kotc ? '👑 King of the Court' : "🪜 Winner's Court"}</span>
     <span class="am-config-chip">🎯 ${st.pointsPerMatch} очок/матч</span>
-    <span class="am-config-chip">🪜 раунд ${st.currentRound || 0}/${st.roundsCount}</span>
+    <span class="am-config-chip">🪜 ${st.roundsCount ? `раунд ${st.currentRound || 0}/${st.roundsCount}` : `раунд ${st.currentRound || 0} · без ліміту`}</span>
     ${st.calibrationRounds ? `<span class="am-config-chip">🎚 ${st.calibrationRounds} калібрувальн${st.calibrationRounds === 1 ? 'ий' : 'их'}</span>` : ''}
     <span class="am-config-chip">${st.resultEntryMode === 'ALL_PARTICIPANTS' ? '✍️ рахунок вносять всі' : '✍️ рахунок вносить організатор'}</span>
     ${st.status === 'ACTIVE' ? '<span class="am-config-chip wc-live-chip">● наживо</span>' : ''}
@@ -238,6 +238,11 @@ function renderWinnersCourtModal() {
 
   // Manager actions
   if (st.canManage && st.status === 'ACTIVE') {
+    // An open-ended ladder (no roundsCount) offers both after every scored round —
+    // the organiser plays as many rounds as the session has time for.
+    if (st.canAdvanceRound && st.canFinalize) {
+      html += `<div class="wc-round-choice">Раунд ${st.currentRound} зіграно — почати наступний чи завершити турнір?</div>`;
+    }
     if (st.canAdvanceRound) {
       html += `<button class="btn-primary wc-advance-btn" id="wc-advance-btn">Наступний раунд ▶</button>`;
     } else if (!st.canFinalize && st.currentRound > 0) {

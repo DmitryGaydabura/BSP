@@ -69,10 +69,11 @@ function amUpdateRoundsHint() {
   const hint = document.getElementById('am-rounds-hint');
   if (amIsLadderFormat()) {
     const courts = n / 4;
-    input.placeholder = "обов'язково";
-    hint.textContent = amSelectedFormat === 'KING_OF_THE_COURT'
+    input.placeholder = 'без обмежень';
+    const ladder = amSelectedFormat === 'KING_OF_THE_COURT'
       ? `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — у кожному раунді дві гри зі зміною партнерів, потім двоє кращих ідуть на корт вище.`
       : `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — переможці підіймаються на вищий корт, переможені опускаються.`;
+    hint.textContent = `${ladder} Залиште поле порожнім — і турнір гратиметься без ліміту: після кожного раунду ви обираєте, почати наступний чи завершити.`;
   } else if (amSelectedFormat === 'TEAM_AMERICANO') {
     const teams = n / 2;
     input.placeholder = `авто (${teams - 1})`;
@@ -209,11 +210,8 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const roundsCount = parseInt(document.getElementById('am-rounds').value) || null;
   const calibrationRounds = isLadder
     ? (parseInt(document.getElementById('am-calibration').value, 10) || 0) : null;
-  if (isLadder && !roundsCount) {
-    showToast('Вкажіть кількість раундів для драбини кортів', 'error');
-    return;
-  }
-  if (isLadder && calibrationRounds >= roundsCount) {
+  // A ladder with no rounds count is open-ended: it runs until the organiser finishes it.
+  if (isLadder && roundsCount && calibrationRounds >= roundsCount) {
     showToast('Калібрувальних раундів має бути менше, ніж усіх раундів', 'error');
     return;
   }
