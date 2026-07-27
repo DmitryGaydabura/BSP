@@ -1,13 +1,28 @@
 /* ════════════════════════════════════════════════════════════════
-   WINNER'S COURT — драбина кортів: переможці підіймаються, переможені
-   опускаються; партнер попереднього раунду завжди стає суперником.
+   COURT LADDER — Winner's Court та King of the Court.
+
+   Winner's Court: один матч на корт за раунд, переможна пара підіймається.
+   King of the Court: два підраунди зі зміною партнерів, після них двоє
+   найкращих за набраними очками підіймаються, двоє інших опускаються.
+
    Rounds are generated one at a time (each depends on the previous
-   round's results) — the creation modal is shared with americano.js.
+   round's results) — the creation modal is shared with americano.js,
+   and both formats use the same /winners-court endpoints.
 ════════════════════════════════════════════════════════════════ */
 
 let wcState = null;              // WinnersCourtDto from the backend
 let wcTournamentId = null;
 let wcDirectory = null;          // cached /users/directory for the add-picker
+
+const WC_POLL_KEY = 'court-ladder';
+
+function wcIsKingOfCourt(st) {
+  return (st || wcState)?.type === 'KING_OF_THE_COURT';
+}
+
+function wcFormatTitle(type) {
+  return type === 'KING_OF_THE_COURT' ? 'King of the Court' : "Winner's Court";
+}
 
 /* ── Detail modal: round history, current round, standings ───────── */
 
@@ -16,27 +31,126 @@ async function openWinnersCourtModal(tournamentId) {
   const body  = document.getElementById('wc-modal-body');
   const title = document.getElementById('wc-modal-title');
   const t = (tournamentsData || []).find(x => String(x.id) === String(tournamentId));
-  title.textContent = t ? t.name : "Winner's Court";
+  title.textContent = t ? t.name : 'Драбина кортів';
   body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted)">Завантаження...</div>';
   openModal('modal-winners-court');
   try {
     wcState = await API.winnersCourt.get(tournamentId);
     renderWinnersCourtModal();
+    wcStartLive();
   } catch (e) {
     body.innerHTML = `<div style="color:var(--error);padding:20px;text-align:center">Помилка: ${esc(e.data?.message || e.message)}</div>`;
   }
 }
+
+/* Live scores: while the ladder is running, anyone with the modal open sees
+   results the moment the organiser enters them — no reload, no manual refresh.
+   The poll stops with the modal and once the tournament is finished. */
+function wcStartLive() {
+  if (!wcState || wcState.status !== 'ACTIVE') { stopLivePoll(WC_POLL_KEY); return; }
+  const tid = wcTournamentId;
+  startLivePoll(WC_POLL_KEY,
+    () => API.winnersCourt.get(tid),
+    fresh => {
+      if (String(wcTournamentId) !== String(tid)) return;
+      wcState = fresh;
+      renderWinnersCourtModal();
+      if (fresh.status !== 'ACTIVE') stopLivePoll(WC_POLL_KEY);
+    },
+    { seed: wcState });
+}
+
+document.getElementById('modal-winners-court')
+  .addEventListener('bsp:closed', () => stopLivePoll(WC_POLL_KEY));
 
 function wcTeamNames(team) {
   return team.map(p => `<span class="tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.displayName || '?')}')">${esc(p.displayName || '?')}</span>`)
              .join('<span class="am-team-sep"> / </span>');
 }
 
+/** Points each of the four players scored on a court this round, best first.
+    Mirrors the backend ranking that decides who moves up — shown so players can
+    see the move coming instead of only discovering it next round. */
+function wcCourtRanking(matches) {
+  const byPlayer = new Map();
+  matches.forEach(m => {
+    if (!m.played || m.score1 == null || m.score2 == null) return;
+    m.teamA.forEach(p => byPlayer.set(p.id, {
+      name: p.displayName || '?', pts: (byPlayer.get(p.id)?.pts || 0) + m.score1 }));
+    m.teamB.forEach(p => byPlayer.set(p.id, {
+      name: p.displayName || '?', pts: (byPlayer.get(p.id)?.pts || 0) + m.score2 }));
+  });
+  return [...byPlayer.entries()]
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.pts - a.pts);
+}
+
+/** One court's block inside a round: the header, its match rows and — for King
+    of the Court, once both sub-rounds are in — who is moving up or down. */
+function wcCourtBlock(courtMatches, { isCurrent, kotc, calibration }) {
+  const m0 = courtMatches[0];
+  const canEnter = isCurrent && wcState.canEnterResults && wcState.status === 'ACTIVE';
+  const ptsChip = calibration
+    ? '<span class="wc-ladder-pts wc-pts-calib">калібрування</span>'
+    : `<span class="wc-ladder-pts">+${m0.pointsPerWin}/перемога</span>`;
+
+  const rows = courtMatches.map(m => {
+    const score = m.played
+        ? `<span class="am-score ${m.score1 > m.score2 ? 'am-score-a' : m.score2 > m.score1 ? 'am-score-b' : ''}">${m.score1}:${m.score2}</span>`
+        : '<span class="am-score am-score-empty">—:—</span>';
+    return `<div class="am-match-row">
+      <span class="am-court">${kotc ? `Гра ${m.subRound}` : `Корт ${m.court}`}</span>
+      <div class="am-teams">
+        <div class="am-team${m.played && m.score1 > m.score2 ? ' am-team-won' : ''}">${wcTeamNames(m.teamA)}</div>
+        <div class="am-vs">проти</div>
+        <div class="am-team${m.played && m.score2 > m.score1 ? ' am-team-won' : ''}">${wcTeamNames(m.teamB)}</div>
+      </div>
+      <div class="am-match-right">
+        ${kotc ? '' : ptsChip}
+        ${score}
+        ${canEnter ? `<button class="am-enter-btn" data-mid="${m.id}" data-s1="${m.score1 ?? ''}" data-s2="${m.score2 ?? ''}"
+            data-ta="${esc(m.teamA.map(p => p.displayName || '?').join(' / '))}"
+            data-tb="${esc(m.teamB.map(p => p.displayName || '?').join(' / '))}">${m.played ? '✎' : 'Внести'}</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  if (!kotc) return rows;
+
+  const allPlayed = courtMatches.every(m => m.played);
+  const ranking = allPlayed ? wcCourtRanking(courtMatches) : [];
+  const isTopCourt = m0.court === 1;
+  const isBottomCourt = m0.court === wcState.totalCourts;
+  const moveOf = i => (i < 2
+    ? (isTopCourt ? { cls: 'wc-move-stay', icon: '=' } : { cls: 'wc-move-up', icon: '↑' })
+    : (isBottomCourt ? { cls: 'wc-move-stay', icon: '=' } : { cls: 'wc-move-down', icon: '↓' }));
+
+  const summary = ranking.length ? `
+    <div class="wc-court-outcome">
+      ${ranking.map((r, i) => {
+        const mv = moveOf(i);
+        return `<span class="wc-outcome-row ${mv.cls}">
+          <span class="wc-outcome-mv">${mv.icon}</span>
+          <span class="wc-outcome-name">${esc(r.name)}</span>
+          <span class="wc-outcome-pts">${r.pts}</span>
+        </span>`;
+      }).join('')}
+    </div>` : '';
+
+  return `<div class="wc-court-block">
+    <div class="wc-court-head"><span>Корт ${m0.court}</span>${ptsChip}</div>
+    ${rows}
+    ${summary}
+  </div>`;
+}
+
 function renderWinnersCourtModal() {
   const st = wcState;
   if (!st) return;
   const body = document.getElementById('wc-modal-body');
+  const prevScroll = body.scrollTop;
   const t = (tournamentsData || []).find(x => String(x.id) === String(wcTournamentId));
+  const kotc = wcIsKingOfCourt(st);
 
   let html = '';
 
@@ -46,9 +160,12 @@ function renderWinnersCourtModal() {
         : st.ratingEnabled ? '<span class="friendly-badge">Дружній · з рейтингом</span>'
         : '<span class="friendly-badge">Дружній · без рейтингу</span>'}
     ${st.isPrivate ? '<span class="friendly-badge fb-private">🔒 Приватний</span>' : ''}
+    <span class="am-config-chip">${kotc ? '👑 King of the Court' : "🪜 Winner's Court"}</span>
     <span class="am-config-chip">🎯 ${st.pointsPerMatch} очок/матч</span>
     <span class="am-config-chip">🪜 раунд ${st.currentRound || 0}/${st.roundsCount}</span>
+    ${st.calibrationRounds ? `<span class="am-config-chip">🎚 ${st.calibrationRounds} калібрувальн${st.calibrationRounds === 1 ? 'ий' : 'их'}</span>` : ''}
     <span class="am-config-chip">${st.resultEntryMode === 'ALL_PARTICIPANTS' ? '✍️ рахунок вносять всі' : '✍️ рахунок вносить організатор'}</span>
+    ${st.status === 'ACTIVE' ? '<span class="am-config-chip wc-live-chip">● наживо</span>' : ''}
   </div>`;
 
   // DRAFT: roster management before the start
@@ -68,7 +185,7 @@ function renderWinnersCourtModal() {
       html += `<button class="btn-secondary" id="wc-add-participant-btn" style="width:100%;margin-top:8px">+ Додати учасника</button>`;
       const okCount = parts.length >= 4 && parts.length % 4 === 0;
       html += `<button class="btn-primary" id="wc-start-btn" style="width:100%;margin-top:8px" ${okCount ? '' : 'disabled'}>
-        ▶ Запустити Winner's Court${okCount ? '' : ` (потрібна кількість гравців, кратна 4)`}
+        ▶ Запустити ${wcFormatTitle(st.type)}${okCount ? '' : ` (потрібна кількість гравців, кратна 4)`}
       </button>`;
     } else {
       html += `<div class="am-empty" style="margin-top:8px">Драбина з'явиться після старту</div>`;
@@ -80,29 +197,21 @@ function renderWinnersCourtModal() {
     const lastRoundNumber = st.rounds[st.rounds.length - 1].roundNumber;
     st.rounds.forEach(r => {
       const isCurrent = r.roundNumber === lastRoundNumber;
+      // group the round's matches by court — King of the Court has two per court
+      const byCourt = new Map();
+      r.matches.forEach(m => {
+        if (!byCourt.has(m.court)) byCourt.set(m.court, []);
+        byCourt.get(m.court).push(m);
+      });
+      const courts = [...byCourt.keys()].sort((a, b) => a - b);
       html += `<div class="am-round${isCurrent ? '' : ' wc-round-history'}">
-        <div class="am-round-title">${isCurrent ? `Раунд ${r.roundNumber} · поточний` : `Раунд ${r.roundNumber}`}</div>
-        ${r.matches.map(m => {
-          const canEnter = isCurrent && st.canEnterResults && st.status === 'ACTIVE';
-          const score = m.played
-              ? `<span class="am-score ${m.score1 > m.score2 ? 'am-score-a' : 'am-score-b'}">${m.score1}:${m.score2}</span>`
-              : '<span class="am-score am-score-empty">—:—</span>';
-          return `<div class="am-match-row">
-            <span class="am-court">Корт ${m.court}</span>
-            <div class="am-teams">
-              <div class="am-team${m.played && m.score1 > m.score2 ? ' am-team-won' : ''}">${wcTeamNames(m.teamA)}</div>
-              <div class="am-vs">проти</div>
-              <div class="am-team${m.played && m.score2 > m.score1 ? ' am-team-won' : ''}">${wcTeamNames(m.teamB)}</div>
-            </div>
-            <div class="am-match-right">
-              <span class="wc-ladder-pts">+${m.pointsPerWin}/перемога</span>
-              ${score}
-              ${canEnter ? `<button class="am-enter-btn" data-mid="${m.id}" data-s1="${m.score1 ?? ''}" data-s2="${m.score2 ?? ''}"
-                  data-ta="${esc(m.teamA.map(p => p.displayName || '?').join(' / '))}"
-                  data-tb="${esc(m.teamB.map(p => p.displayName || '?').join(' / '))}">${m.played ? '✎' : 'Внести'}</button>` : ''}
-            </div>
-          </div>`;
-        }).join('')}
+        <div class="am-round-title">
+          ${isCurrent ? `Раунд ${r.roundNumber} · поточний` : `Раунд ${r.roundNumber}`}
+          ${r.calibration ? '<span class="wc-calib-tag">калібрування</span>' : ''}
+        </div>
+        ${courts.map(c => wcCourtBlock(
+            byCourt.get(c).slice().sort((a, b) => a.subRound - b.subRound),
+            { isCurrent, kotc, calibration: r.calibration })).join('')}
       </div>`;
     });
   }
@@ -110,7 +219,11 @@ function renderWinnersCourtModal() {
   // Standings
   if (st.standings && st.standings.length) {
     const anyPlayed = st.standings.some(s => s.matchesPlayed > 0);
-    html += `<div class="cup-section-title" style="margin-top:14px">Таблиця${anyPlayed ? '' : ' (матчі ще не зіграні)'}</div>`;
+    const note = anyPlayed ? ''
+      : (st.currentRound > 0 && st.currentRound <= st.calibrationRounds
+          ? ' (калібрування — очки ще не нараховуються)'
+          : ' (матчі ще не зіграні)');
+    html += `<div class="cup-section-title" style="margin-top:14px">Таблиця${note}</div>`;
     html += `<div class="am-standings">
       <div class="am-st-head"><span></span><span>Гравець</span><span>В–П</span><span>Очки</span></div>
       ${st.standings.map(s => `
@@ -138,6 +251,7 @@ function renderWinnersCourtModal() {
   }
 
   body.innerHTML = html;
+  body.scrollTop = prevScroll;   // a live refresh must not yank the reader back to the top
 
   // Wire score entry
   body.querySelectorAll('.am-enter-btn').forEach(btn => {
@@ -170,8 +284,7 @@ function renderWinnersCourtModal() {
   if (advanceBtn) advanceBtn.addEventListener('click', async () => {
     advanceBtn.disabled = true;
     try {
-      wcState = await API.winnersCourt.advanceRound(wcTournamentId);
-      renderWinnersCourtModal();
+      wcApply(await API.winnersCourt.advanceRound(wcTournamentId));
       showToast('Наступний раунд згенеровано! 🎾', 'success');
     } catch (e) {
       showToast(e.data?.message || e.message || 'Помилка', 'error');
@@ -188,10 +301,11 @@ function renderWinnersCourtModal() {
     if (!(await uiConfirm(msg))) return;
     finalizeBtn.disabled = true;
     try {
-      wcState = await API.winnersCourt.finalize(wcTournamentId);
+      const fresh = await API.winnersCourt.finalize(wcTournamentId);
       tournamentsData = null;
-      renderWinnersCourtModal();
-      showToast(wcState.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
+      wcApply(fresh);
+      stopLivePoll(WC_POLL_KEY);
+      showToast(fresh.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
     } catch (e) {
       showToast(e.data?.message || e.message || 'Помилка', 'error');
       finalizeBtn.disabled = false;
@@ -199,13 +313,21 @@ function renderWinnersCourtModal() {
   });
 }
 
+/** Adopt a freshly returned state and keep the live poll from repainting over it. */
+function wcApply(state) {
+  wcState = state;
+  syncLivePoll(WC_POLL_KEY, state);
+  renderWinnersCourtModal();
+}
+
 async function wcStart(btn) {
   btn.disabled = true;
   try {
-    wcState = await API.winnersCourt.start(wcTournamentId);
+    const fresh = await API.winnersCourt.start(wcTournamentId);
     tournamentsData = null;
     renderResults();
-    renderWinnersCourtModal();
+    wcApply(fresh);
+    wcStartLive();
     showToast('Раунд 1 згенеровано! 🎾', 'success');
   } catch (e) {
     showToast(e.data?.message || e.message || 'Помилка', 'error');
@@ -213,12 +335,11 @@ async function wcStart(btn) {
   }
 }
 
-/** Refetch both the tournament list (roster) and the winners-court state, then re-render. */
+/** Refetch both the tournament list (roster) and the ladder state, then re-render. */
 async function wcRefresh() {
   tournamentsData = null;
   await renderResults();
-  wcState = await API.winnersCourt.get(wcTournamentId);
-  renderWinnersCourtModal();
+  wcApply(await API.winnersCourt.get(wcTournamentId));
 }
 
 /* ── Score entry modal ───────────────────────────────────────────── */
@@ -230,7 +351,9 @@ function openWinnersCourtScoreModal(ds) {
   const total = wcState.pointsPerMatch;
   document.getElementById('wc-score-teama').textContent = ds.ta;
   document.getElementById('wc-score-teamb').textContent = ds.tb;
-  document.getElementById('wc-score-hint').textContent = `Сума очок має дорівнювати ${total}. Нічия неможлива.`;
+  document.getElementById('wc-score-hint').textContent = wcState.allowDraws
+      ? `Сума очок має дорівнювати ${total}.`
+      : `Сума очок має дорівнювати ${total}. Нічия неможлива.`;
   const in1 = document.getElementById('wc-score-1');
   const in2 = document.getElementById('wc-score-2');
   in1.max = total; in2.max = total;
@@ -257,16 +380,16 @@ document.getElementById('wc-score-submit').addEventListener('click', async () =>
     showToast(`Сума очок має дорівнювати ${total}`, 'error');
     return;
   }
-  if (s1 === s2) {
+  if (s1 === s2 && !wcState?.allowDraws) {
     showToast('Нічия неможлива — потрібен переможець', 'error');
     return;
   }
   const btn = document.getElementById('wc-score-submit');
   btn.disabled = true;
   try {
-    wcState = await API.winnersCourt.submitMatch(wcTournamentId, wcScoreMatchId, { score1: s1, score2: s2 });
+    const fresh = await API.winnersCourt.submitMatch(wcTournamentId, wcScoreMatchId, { score1: s1, score2: s2 });
     closeModal('modal-winners-court-score');
-    renderWinnersCourtModal();
+    wcApply(fresh);
     showToast('Рахунок збережено', 'success');
   } catch (e) {
     showToast(e.data?.message || e.message || 'Помилка', 'error');

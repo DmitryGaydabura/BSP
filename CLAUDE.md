@@ -36,7 +36,9 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 
 | File | Responsibility |
 |---|---|
-| `js/core.js` | App-state globals (`currentUser`, `apiAvailable`, `apiLoading`), Telegram WebApp init, `apiBootstrap()`, fallback data arrays, shared helpers (`fmt`, `ratioClass`) |
+| `js/core.js` | App-state globals (`currentUser`, `apiAvailable`, `apiLoading`), Telegram WebApp init, `apiBootstrap()`, fallback data arrays, shared helpers (`fmt`, `ratioClass`), live polling (`startLivePoll`/`stopLivePoll`/`syncLivePoll`) |
+| `js/americano.js` | Shared create/edit modal for all four self-hosted formats (`amSetFormat`, `AM_FORMAT_BTNS`, `amIsLadderFormat`) + the americano rounds/score modal |
+| `js/winners-court.js` | Court-ladder modal for **both** WINNERS_COURT and KING_OF_THE_COURT (`openWinnersCourtModal`, `wcCourtBlock`, `wcCourtRanking`) |
 | `js/tournaments.js` | Tournaments tab: compact rows (`buildTournamentRow`/`buildFinishedRow`) + full-screen detail page `#t-page` (`openTournamentPage`, `buildTournamentDetailCard`, `buildFinishedDetailCard`, `wireTournamentCardActions`), `normalizeTournament`, `myEnrollmentState`, `attemptJoinTournament` |
 | `js/home.js` | Home tab (`renderHome`) — default screen: next-game hero, rank/activity tiles, live banner, last result |
 | `js/players.js` | Ratings screen (`renderRatings`, `renderRatingsSkeleton`), player profile sheet, H2H modal, activity screen, `updateMemberCount` |
@@ -62,6 +64,13 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 
 **Dialogs & feedback:** never use native `alert()`/`confirm()` — use `await uiConfirm(msg)` / `await uiAlert(msg)` from `core.js` (Telegram popups with browser fallback) and `showToast(msg, 'success'|'error'|'info')` for outcomes. **Data freshness:** tab revisits use stale-while-revalidate — `refreshTournamentsSilently()` / `refreshRatingsSilently()` refetch in the background and re-render only on change (never flash a skeleton over cached data); `ratingsFetchedAt` feeds the honest «Оновлено N тому» label via `fmtAgo()`.
 
+**Live results (no reload):** every screen showing a running tournament registers a named poll via `startLivePoll(key, fetchFn, onChange, {seed})` from `core.js` — the tournament detail page (`tournament-page`), the cup modal (`cup`), the americano modal (`americano`) and the court-ladder modal (`court-ladder`). A poll refetches every `LIVE_POLL_MS` (12 s), diffs the serialized payload and re-renders only on a real change; it pauses while `document.hidden` and refetches immediately on resume. Rules when adding one:
+- stop it when the surface closes — modals fire a `bsp:closed` event from `closeModal()`; pages call `stopLivePoll` directly — and when the tournament reaches a terminal status;
+- call `syncLivePoll(key, state)` after adopting a payload your own mutation returned, so the next tick doesn't repaint over it;
+- preserve `scrollTop` around `innerHTML` in any renderer a poll can drive.
+
+Polling (not websockets) is deliberate: the payload changes a few times an hour, and a socket would add a second transport, its own auth handshake and reconnect logic behind Railway's proxy for no user-visible gain.
+
 **Admin UI:** most admin controls render conditionally on `currentUser?.role === 'ADMIN'` checks inline in the template strings.
 
 ## Backend architecture
@@ -85,13 +94,19 @@ security/     → JWT filter + Telegram initData HMAC-SHA256 validation
 
 **Tournament flow:** `DRAFT → ACTIVE → FINISHED` (regular); `DRAFT → GROUP_STAGE → PLAYOFF → FINISHED` (CUP).
 
+**Court ladders** (`TournamentType.isCourtLadder()` — WINNERS_COURT + KING_OF_THE_COURT): courts ranked 1 (top) .. K; a win on court *c* is worth `K − c + 1` points. Both live in `winners_court_matches` and are driven by `WinnersCourtService` behind the `/api/tournaments/{id}/winners-court` endpoints — the format is picked by `type` in `WinnersCourtCreateRequest` (same pattern as AMERICANO/TEAM_AMERICANO). Differences:
+- **WINNERS_COURT** — one match per court per round (`sub_round` always 1); the winning pair moves up, the losing pair down. Needs an odd `pointsPerMatch` so a draw is impossible.
+- **KING_OF_THE_COURT** — two sub-rounds per court per round (`sub_round` 1..2, `KingOfCourtScheduler`): `A+B vs C+D`, then `A` re-partners with a randomly drawn opponent. The four are then ranked by points *personally scored* across both games (ties: wins → head-to-head → rating → id); top two move up, bottom two down. Draws are allowed (`TournamentType.allowsDraws()`).
+
+**Calibration rounds** (`tournaments.calibration_rounds`, both ladder formats): the first N rounds move players between courts but contribute no points, wins or losses to the standings — they exist purely to sort players onto the right court before scoring starts. Must be `< roundsCount`. `WinnersCourtMatchDto.pointsPerWin` is 0 for them and `WinnersCourtRoundDto.calibration` flags them for the UI.
+
 **Pair registration** (PAIR and CUP in DRAFT): players join solo → send pair request via deep link → partner approves in Telegram DM → `PairRequestService.approveRequest` links both `TournamentParticipant` records via the `partner` field and saves a `TournamentPair`. `TournamentType.isPairBased()` covers both PAIR and CUP — use this, not `== PAIR`.
 
 **Rating calculation:** `K = 200 × (avgParticipantRating / 1500)`. `delta = K × (actualPerf − expectedPerf)`. Stored in `RatingHistory`. Player levels (C/C−/D+/D) are percentile-based, computed fresh on each recalculate. `finalizedAvgRating` is snapshotted at finalization.
 
 **Telegram announcements:** `TournamentAnnouncement` records track (tournament, chatId, messageId). `refreshAnnouncements()` edits them in-place. Individual "player X looking for partner" messages are tracked in `ParticipantJoinNotification` — used by `notifyPairApproved` and `clearJoinButtons` to remove the inline keyboard button once a pair is formed. All bot notification methods are `@Async`.
 
-**DB migrations:** Liquibase, files in `src/main/resources/db/changelog/changes/`, numbered `001–021`. Add new changesets as `0NN-description.xml` and include in `db.changelog-master.xml`.
+**DB migrations:** Liquibase, files in `src/main/resources/db/changelog/changes/`, numbered `001–032`. Add new changesets as `0NN-description.xml` and include in `db.changelog-master.xml`.
 
 ## Design system
 

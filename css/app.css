@@ -3789,7 +3789,10 @@ button.pf-stat:active { background: var(--surface); }
   white-space: nowrap;
 }
 
-.am-format-toggle { display: flex; gap: 6px; }
+.am-format-toggle { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Four formats don't fit one phone-width row — two per line reads better than four
+   squeezed columns. flex-basis leaves room for the 6px gap. */
+.am-format-toggle .am-format-btn { flex: 1 1 calc(50% - 3px); }
 .am-format-btn {
   flex: 1;
   min-width: 0;
@@ -3848,6 +3851,82 @@ button.pf-stat:active { background: var(--surface); }
 }
 .wc-round-history { opacity: 0.72; }
 .wc-round-history .am-round-title { background: var(--surface); color: var(--text-muted); }
+
+/* ── King of the Court: two sub-rounds per court, then the move ──── */
+
+/* One court's block groups its games so it reads as a unit, not four loose rows */
+.wc-court-block {
+  border-bottom: 1px solid var(--border-sub);
+  padding-bottom: 6px;
+}
+.wc-court-block:last-child { border-bottom: none; padding-bottom: 0; }
+.wc-court-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px 3px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-sec);
+}
+.wc-pts-calib { color: var(--text-muted); font-style: italic; }
+.wc-calib-tag {
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border-sub);
+  border-radius: 999px;
+  padding: 2px 7px;
+  vertical-align: middle;
+}
+
+/* Who is moving where after both games — the whole point of the format */
+.wc-court-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 12px 2px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
+}
+.wc-outcome-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.wc-outcome-mv {
+  flex-shrink: 0;
+  width: 15px;
+  text-align: center;
+  font-weight: 800;
+}
+.wc-outcome-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wc-outcome-pts {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-sec);
+}
+.wc-move-up   .wc-outcome-mv { color: var(--success); }
+.wc-move-down .wc-outcome-mv { color: var(--error); }
+.wc-move-stay .wc-outcome-mv { color: var(--text-muted); }
+
+/* Live-polling badge: results appear here without a reload */
+.wc-live-chip { color: var(--accent-deep); }
+.wc-live-chip::first-letter { animation: wc-live-pulse 2s ease-in-out infinite; }
+@keyframes wc-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .wc-live-chip::first-letter { animation: none; }
+}
 .wc-advance-btn, .wc-finalize-btn { width: 100%; margin-top: 8px; }
 .wc-current-round-title {
   font-size: 10.5px;

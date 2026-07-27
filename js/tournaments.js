@@ -47,6 +47,7 @@ function normalizeTournament(t) {
     isPrivate: t.isPrivate || false,
     pointsPerMatch: t.pointsPerMatch || null,
     roundsCount: t.roundsCount || null,
+    calibrationRounds: t.calibrationRounds || 0,
     resultEntryMode: t.resultEntryMode || null,
     createdById: t.createdById || null,
     createdByName: t.createdByName || null,
@@ -181,8 +182,11 @@ function renderUpcomingList(source, list) {
   wireTournamentRows(list);
 }
 
-/** AMERICANO, TEAM_AMERICANO and WINNERS_COURT share the app-user-created, self-managed format bucket. */
-const AM_FAMILY_TYPES = new Set(['AMERICANO', 'TEAM_AMERICANO', 'WINNERS_COURT']);
+/** The app-user-created, self-managed format bucket: americano variants + court ladders. */
+const AM_FAMILY_TYPES = new Set(['AMERICANO', 'TEAM_AMERICANO', 'WINNERS_COURT', 'KING_OF_THE_COURT']);
+
+/** Court-ladder formats — both served by the winners-court endpoints and modal. */
+const COURT_LADDER_TYPES = new Set(['WINNERS_COURT', 'KING_OF_THE_COURT']);
 
 /** Types that register via the partner-invite flow (solo join + pair request / admin pairing).
     TEAM_AMERICANO and CUP only register this way while still in DRAFT. */
@@ -253,7 +257,7 @@ function buildTournamentDetailCard(t) {
       : (t.maxParticipants
           ? `${t.participantCount || 0}/${t.maxParticipants} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}`
           : (t.participantCount ? `${t.participantCount} уч.${reserveCount ? ` · +${reserveCount} резерв` : ''}` : ''));
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
+    const typeLabel = tTypeLabel(t);
     const isLive = t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF';
     const liveBadge = isLive ? `<span class="live-badge">● LIVE</span>` : '';
     const canJoinCup = t.type === 'CUP' && (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF' || t.status === 'FINISHED');
@@ -344,7 +348,7 @@ function buildTournamentDetailCard(t) {
       ? `<button class="t-admin-btn t-admin-cup-finalize-btn" data-id="${t.id}">✓ Фіналізувати кубок</button>`
       : '';
 
-    // Americano / Winner's Court: the creator manages their own tournament like an admin
+    // Americano / court ladders: the creator manages their own tournament like an admin
     const canManageT = currentUser && (currentUser.role === 'ADMIN'
         || t.createdById === currentUser.id);
     // Team americano registers/pairs in this card (DRAFT); the rounds modal opens once ACTIVE.
@@ -540,7 +544,7 @@ function buildFinishedDetailCard(t) {
     const silvers = results.filter(r => r.pos === 2);
     const bronzes = results.filter(r => r.pos === 3);
     const rest    = results.filter(r => r.pos > 3);
-    const typeLabel = t.type === 'SINGLE' ? 'Одиночний' : t.type === 'CUP' ? '🏆 Кубок' : t.type === 'AMERICANO' ? '🎾 Американо' : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо' : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court" : 'Парний';
+    const typeLabel = tTypeLabel(t);
 
     const playersOf = r => r.players || r.pair.map(n => ({ id: null, name: n, photoUrl: null }));
     const tapAttr   = p => `onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.name)}')"`;
@@ -804,7 +808,7 @@ function wireAdminTournamentBtns(container) {
       try {
         // Americano / Winner's Court go through their own endpoints — creators may delete their own
         if (t?.type === 'AMERICANO' || t?.type === 'TEAM_AMERICANO') await API.americano.delete(btn.dataset.id);
-        else if (t?.type === 'WINNERS_COURT') await API.winnersCourt.delete(btn.dataset.id);
+        else if (COURT_LADDER_TYPES.has(t?.type)) await API.winnersCourt.delete(btn.dataset.id);
         else await API.tournaments.delete(btn.dataset.id);
         tournamentsData = null;
         renderResults();
@@ -817,7 +821,7 @@ function wireAdminTournamentBtns(container) {
   container.querySelectorAll('.am-view-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
-      if (t?.type === 'WINNERS_COURT') openWinnersCourtModal(btn.dataset.id);
+      if (COURT_LADDER_TYPES.has(t?.type)) openWinnersCourtModal(btn.dataset.id);
       else openAmericanoModal(btn.dataset.id);
     });
   });
@@ -947,6 +951,7 @@ function tTypeLabel(t) {
        : t.type === 'AMERICANO' ? '🎾 Американо'
        : t.type === 'TEAM_AMERICANO' ? '👥 Командне американо'
        : t.type === 'WINNERS_COURT' ? "🪜 Winner's Court"
+       : t.type === 'KING_OF_THE_COURT' ? '👑 King of the Court'
        : 'Парний';
 }
 
@@ -1032,21 +1037,48 @@ async function openTournamentPage(tid) {
     }
     if (tPageId !== tid) return; // page changed while loading
   }
-  renderTournamentPage(t);
+  renderTournamentPage(t, { keepScroll: false });
+  tPageStartLive(t);
 }
 
-function renderTournamentPage(t) {
+/* Live detail page: registrations, pairings and results land here without a
+   reload while the tournament is still running. Finished tournaments never
+   change again, so they don't poll. See startLivePoll in core.js. */
+const T_PAGE_POLL_KEY = 'tournament-page';
+
+function tPageStartLive(t) {
+  if (!t || t.status === 'FINISHED') { stopLivePoll(T_PAGE_POLL_KEY); return; }
+  const tid = t.id;
+  startLivePoll(T_PAGE_POLL_KEY,
+    async () => normalizeTournament(await API.tournaments.get(tid)),
+    fresh => {
+      if (String(tPageId) !== String(tid)) return;
+      // Keep the cached list in step so a later list render shows the same data
+      if (Array.isArray(tournamentsData)) {
+        const i = tournamentsData.findIndex(x => String(x.id) === String(tid));
+        if (i >= 0) tournamentsData[i] = fresh;
+      }
+      renderTournamentPage(fresh);
+      if (fresh.status === 'FINISHED') stopLivePoll(T_PAGE_POLL_KEY);
+    },
+    { seed: t });
+}
+
+/** `keepScroll` is set by background refreshes — only opening the page jumps to the top. */
+function renderTournamentPage(t, { keepScroll = true } = {}) {
   document.getElementById('t-page-title').textContent = t.name;
   const body = document.getElementById('t-page-body');
+  const prevScroll = body.scrollTop;
   body.innerHTML = t.status === 'FINISHED'
     ? buildFinishedDetailCard(t)
     : buildTournamentDetailCard(t);
   wireTournamentCardActions(body);
-  body.scrollTop = 0;
+  body.scrollTop = keepScroll ? prevScroll : 0;
 }
 
 function closeTournamentPage() {
   tPageId = null;
+  stopLivePoll(T_PAGE_POLL_KEY);
   document.getElementById('t-page').classList.remove('t-page-visible');
   if (tg && currentTab === 'home') tg.BackButton.hide();
 }
@@ -1055,7 +1087,10 @@ function closeTournamentPage() {
 function refreshOpenTournamentPage() {
   if (!tPageId) return;
   const t = (tournamentsData || []).find(x => String(x.id) === String(tPageId));
-  if (t) renderTournamentPage(t);
+  if (t) {
+    syncLivePoll(T_PAGE_POLL_KEY, t);   // don't repaint again on the next tick
+    renderTournamentPage(t);
+  }
 }
 
 document.getElementById('t-page-back').addEventListener('click', closeTournamentPage);

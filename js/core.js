@@ -416,3 +416,92 @@ function pct(wins, losses) {
   return Math.round((wins / total) * 100) + '%';
 }
 
+/* ════════════════════════════════════════════════════════════════
+   LIVE POLLING — «результати без перезавантаження»
+
+   A running tournament's scores are entered by whoever is holding the
+   phone; everyone else should see them appear on their own screen. The
+   backend is a plain REST service behind Railway's proxy, so a socket
+   would mean a second transport, its own auth handshake and reconnect
+   logic for a payload that changes a few times an hour — polling with a
+   diff is the cheaper, more robust fit and reuses the existing client.
+
+   Each open live surface (tournament page, cup/americano/ladder modal)
+   registers one named poll. A poll refetches on an interval, compares the
+   serialized payload with the last one, and only calls back on a real
+   change — so nothing repaints while the data is unchanged. Polls pause
+   while the app is backgrounded and refetch immediately on return.
+════════════════════════════════════════════════════════════════ */
+
+const LIVE_POLL_MS = 12000;
+const _livePolls = new Map(); // key → { fetchFn, onChange, ms, timer, last, busy }
+
+/** Register (or replace) a live poll. `fetchFn` must resolve to the payload to diff. */
+function startLivePoll(key, fetchFn, onChange, { ms = LIVE_POLL_MS, seed = null } = {}) {
+  stopLivePoll(key);
+  const entry = { fetchFn, onChange, ms, timer: null, last: seed ? JSON.stringify(seed) : null, busy: false };
+  _livePolls.set(key, entry);
+  _scheduleLivePoll(key);
+}
+
+function stopLivePoll(key) {
+  const entry = _livePolls.get(key);
+  if (!entry) return;
+  clearTimeout(entry.timer);
+  _livePolls.delete(key);
+}
+
+function _scheduleLivePoll(key) {
+  const entry = _livePolls.get(key);
+  if (!entry || document.hidden) return;
+  clearTimeout(entry.timer);
+  entry.timer = setTimeout(() => _runLivePoll(key), entry.ms);
+}
+
+async function _runLivePoll(key) {
+  const entry = _livePolls.get(key);
+  if (!entry || entry.busy || document.hidden) return;
+  if (!apiAvailable) { _scheduleLivePoll(key); return; }
+  entry.busy = true;
+  try {
+    const data = await entry.fetchFn();
+    // The poll may have been replaced or stopped while the request was in flight
+    if (_livePolls.get(key) !== entry) return;
+    const json = JSON.stringify(data);
+    if (json !== entry.last) {
+      entry.last = json;
+      entry.onChange(data);
+    }
+  } catch { /* offline or a transient error — keep the current view, try again next tick */ }
+  finally {
+    entry.busy = false;
+    // Skip rescheduling when the poll was replaced or stopped while in flight
+    if (_livePolls.get(key) === entry) _scheduleLivePoll(key);
+  }
+}
+
+/** Refetch a poll right now (e.g. after the user's own mutation), keeping the interval running. */
+function pokeLivePoll(key) {
+  const entry = _livePolls.get(key);
+  if (!entry) return;
+  clearTimeout(entry.timer);
+  _runLivePoll(key);
+}
+
+/** Tell a poll that the payload it would fetch is already on screen, so the next
+    tick doesn't repaint over a render the user just triggered themselves. */
+function syncLivePoll(key, data) {
+  const entry = _livePolls.get(key);
+  if (entry) entry.last = JSON.stringify(data);
+}
+
+// Telegram suspends the webview when the user switches chats — resume with a fresh
+// fetch so the first thing they see on return is up to date, not a stale interval.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    _livePolls.forEach(entry => clearTimeout(entry.timer));
+  } else {
+    _livePolls.forEach((_, key) => _runLivePoll(key));
+  }
+});
+

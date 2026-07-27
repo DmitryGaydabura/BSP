@@ -635,7 +635,7 @@ async function openAdminAnalysisModal() {
 
     list.innerHTML = finished.map(t => {
       const isCup = t.type === 'CUP';
-      // AMERICANO, TEAM_AMERICANO and WINNERS_COURT are analysed from native BSP match
+      // The americano and court-ladder families are analysed from native BSP match
       // data (no Raketo link needed or possible) — same as CUP.
       const isAmericanoFamily = AM_FAMILY_TYPES.has(t.type);
       const isNative = isCup || isAmericanoFamily;
@@ -652,7 +652,7 @@ async function openAdminAnalysisModal() {
         ${isNative
           ? `<div class="aa-linked">
                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-               ${isCup ? 'Кубок' : t.type === 'WINNERS_COURT' ? "Winner's Court" : t.type === 'TEAM_AMERICANO' ? 'Командне американо' : 'Американо'} — аналіз з даних BSP
+               ${isCup ? 'Кубок' : t.type === 'WINNERS_COURT' ? "Winner's Court" : t.type === 'KING_OF_THE_COURT' ? 'King of the Court' : t.type === 'TEAM_AMERICANO' ? 'Командне американо' : 'Американо'} — аналіз з даних BSP
              </div>`
           : t.raketoId
             ? `<div class="aa-linked">
@@ -1320,6 +1320,8 @@ function closeModal(id) {
   el.style.zIndex = '';
   el.classList.remove('open');
   if (id === 'modal-analysis') destroyCharts();
+  // Live-score modals listen for this to stop their poll when they leave the screen
+  el.dispatchEvent(new CustomEvent('bsp:closed'));
 }
 document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));

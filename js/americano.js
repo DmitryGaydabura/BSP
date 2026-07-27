@@ -7,7 +7,13 @@ let americanoState = null;        // AmericanoDto from the backend
 let americanoTournamentId = null;
 let editingAmericanoId = null;
 let americanoDirectory = null;    // cached /users/directory for the add-picker
-let amSelectedFormat = 'CLASSIC'; // 'CLASSIC' | 'TEAM_AMERICANO' | 'WINNERS_COURT' — selected in the shared create/edit modal
+// 'CLASSIC' | 'TEAM_AMERICANO' | 'WINNERS_COURT' | 'KING_OF_THE_COURT' — selected in the shared create/edit modal
+let amSelectedFormat = 'CLASSIC';
+
+/** Court-ladder formats share the winners-court endpoints, rounds field and calibration option. */
+function amIsLadderFormat(f = amSelectedFormat) {
+  return f === 'WINNERS_COURT' || f === 'KING_OF_THE_COURT';
+}
 
 const AM_SIZES  = [4, 8, 12, 16];
 const AM_POINTS_CLASSIC = [16, 21, 24, 32];
@@ -47,7 +53,8 @@ function amToggleRatingInputs() {
   document.getElementById('am-rating-toggle-row').style.display = official ? 'none' : '';
 }
 
-/** Winner's Court needs an odd points-per-match total so an exact-half tie is impossible. */
+/** Winner's Court needs an odd points-per-match total so an exact-half tie is impossible.
+    King of the Court ranks the four by points scored, so a drawn game is harmless there. */
 function amPopulatePointsOptions() {
   const sel = document.getElementById('am-points');
   const opts = amSelectedFormat === 'WINNERS_COURT' ? AM_POINTS_WC : AM_POINTS_CLASSIC;
@@ -60,10 +67,12 @@ function amUpdateRoundsHint() {
   const n = parseInt(document.getElementById('am-max-participants').value, 10);
   const input = document.getElementById('am-rounds');
   const hint = document.getElementById('am-rounds-hint');
-  if (amSelectedFormat === 'WINNERS_COURT') {
+  if (amIsLadderFormat()) {
     const courts = n / 4;
     input.placeholder = "обов'язково";
-    hint.textContent = `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — переможці підіймаються на вищий корт, переможені опускаються.`;
+    hint.textContent = amSelectedFormat === 'KING_OF_THE_COURT'
+      ? `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — у кожному раунді дві гри зі зміною партнерів, потім двоє кращих ідуть на корт вище.`
+      : `Драбина з ${courts} корт${courts === 1 ? 'ом' : 'ами'} — переможці підіймаються на вищий корт, переможені опускаються.`;
   } else if (amSelectedFormat === 'TEAM_AMERICANO') {
     const teams = n / 2;
     input.placeholder = `авто (${teams - 1})`;
@@ -78,30 +87,37 @@ const AM_FORMAT_HINTS = {
   CLASSIC: 'Класичний американо: кожен гравець грає в парі з кожним іншим рівно по одному разу.',
   TEAM_AMERICANO: 'Командний американо: фіксовані пари на весь турнір; команди грають одна проти одної (реєстрація через запрошення партнера, як у парному).',
   WINNERS_COURT: "Winner's Court: переможці рухаються на вищий корт, переможені — на нижчий; партнер попереднього раунду стає суперником.",
+  KING_OF_THE_COURT: 'King of the Court: у кожному раунді на корті грають дві гри зі зміною партнерів; далі двоє найкращих за набраними очками підіймаються, двоє інших опускаються — справедливіший перехід, ніж у Winner\'s Court.',
 };
 
-/** Switch the shared create/edit modal between the three americano formats. */
+const AM_FORMAT_BTNS = {
+  CLASSIC: 'am-format-classic',
+  TEAM_AMERICANO: 'am-format-team',
+  WINNERS_COURT: 'am-format-wc',
+  KING_OF_THE_COURT: 'am-format-koc',
+};
+
+/** Switch the shared create/edit modal between the four self-hosted formats. */
 function amSetFormat(format) {
   amSelectedFormat = format;
-  document.getElementById('am-format-classic').classList.toggle('am-format-active', format === 'CLASSIC');
-  document.getElementById('am-format-team').classList.toggle('am-format-active', format === 'TEAM_AMERICANO');
-  document.getElementById('am-format-wc').classList.toggle('am-format-active', format === 'WINNERS_COURT');
+  Object.entries(AM_FORMAT_BTNS).forEach(([f, id]) =>
+    document.getElementById(id).classList.toggle('am-format-active', f === format));
   document.getElementById('am-format-hint').textContent = AM_FORMAT_HINTS[format] || AM_FORMAT_HINTS.CLASSIC;
+  // Calibration rounds only mean something for a ladder — they decide how many
+  // rounds are played purely to sort players onto the right court.
+  document.getElementById('am-calibration-row').style.display = amIsLadderFormat(format) ? '' : 'none';
   amPopulatePointsOptions();
   amUpdateRoundsHint();
 }
 
 /** Format can't change once a tournament exists — lock the toggle while editing. */
 function amLockFormatToggle(locked) {
-  document.getElementById('am-format-classic').disabled = locked;
-  document.getElementById('am-format-team').disabled = locked;
-  document.getElementById('am-format-wc').disabled = locked;
+  Object.values(AM_FORMAT_BTNS).forEach(id => { document.getElementById(id).disabled = locked; });
   document.getElementById('am-format-row').style.opacity = locked ? '0.55' : '';
 }
 
-document.getElementById('am-format-classic').addEventListener('click', () => amSetFormat('CLASSIC'));
-document.getElementById('am-format-team').addEventListener('click', () => amSetFormat('TEAM_AMERICANO'));
-document.getElementById('am-format-wc').addEventListener('click', () => amSetFormat('WINNERS_COURT'));
+Object.entries(AM_FORMAT_BTNS).forEach(([format, id]) =>
+  document.getElementById(id).addEventListener('click', () => amSetFormat(format)));
 
 // Fill the americano level selects from the shared levels cache (analysis-admin.js)
 async function amPopulateLevelSelects() {
@@ -128,6 +144,7 @@ async function openCreateAmericano() {
   document.getElementById('am-max-participants').value = '8';
   document.getElementById('am-points').value = '24';
   document.getElementById('am-rounds').value = '';
+  document.getElementById('am-calibration').value = '0';
   document.getElementById('am-private').checked = false;
   document.getElementById('am-entry-all').checked = false;
   document.getElementById('am-rating-enabled').checked = false;
@@ -145,12 +162,12 @@ async function openCreateAmericano() {
 
 async function openEditAmericano(t) {
   editingAmericanoId = t.id;
-  const fmtType = t.type === 'WINNERS_COURT' ? 'WINNERS_COURT'
-                : t.type === 'TEAM_AMERICANO' ? 'TEAM_AMERICANO' : 'CLASSIC';
+  const fmtType = AM_FORMAT_BTNS[t.type] ? t.type : 'CLASSIC';
   amSetFormat(fmtType);
   amLockFormatToggle(true);
   document.querySelector('#modal-create-americano .modal-title').textContent =
       fmtType === 'WINNERS_COURT' ? "Редагувати Winner's Court"
+      : fmtType === 'KING_OF_THE_COURT' ? 'Редагувати King of the Court'
       : fmtType === 'TEAM_AMERICANO' ? 'Редагувати командне американо'
       : 'Редагувати американо';
   document.getElementById('am-submit').textContent = 'Зберегти';
@@ -163,6 +180,7 @@ async function openEditAmericano(t) {
   document.getElementById('am-max-participants').value = String(t.maxParticipants || 8);
   document.getElementById('am-points').value = String(t.pointsPerMatch || 24);
   document.getElementById('am-rounds').value = t.roundsCount || '';
+  document.getElementById('am-calibration').value = String(t.calibrationRounds || 0);
   document.getElementById('am-private').checked = !!t.isPrivate;
   document.getElementById('am-entry-all').checked = t.resultEntryMode === 'ALL_PARTICIPANTS';
   document.getElementById('am-rating-enabled').checked = !!t.ratingEnabled;
@@ -186,11 +204,17 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const date = document.getElementById('am-date').value;
   if (!name || !date) { showToast('Вкажіть назву та дату', 'error'); return; }
 
-  const isWc = amSelectedFormat === 'WINNERS_COURT';
+  const isLadder = amIsLadderFormat();
   const isTeam = amSelectedFormat === 'TEAM_AMERICANO';
   const roundsCount = parseInt(document.getElementById('am-rounds').value) || null;
-  if (isWc && !roundsCount) {
-    showToast("Вкажіть кількість раундів для Winner's Court", 'error');
+  const calibrationRounds = isLadder
+    ? (parseInt(document.getElementById('am-calibration').value, 10) || 0) : null;
+  if (isLadder && !roundsCount) {
+    showToast('Вкажіть кількість раундів для драбини кортів', 'error');
+    return;
+  }
+  if (isLadder && calibrationRounds >= roundsCount) {
+    showToast('Калібрувальних раундів має бути менше, ніж усіх раундів', 'error');
     return;
   }
 
@@ -198,8 +222,9 @@ document.getElementById('am-submit').addEventListener('click', async () => {
   const official = isAdmin && document.getElementById('am-official').checked;
   const payload = {
     name, date,
-    // Only the americano endpoint understands `type`; omit it for Winner's Court.
-    type:            isWc ? undefined : (isTeam ? 'TEAM_AMERICANO' : 'AMERICANO'),
+    // Both endpoints take a `type`: the americano one picks the engine variant,
+    // the court-ladder one picks between Winner's Court and King of the Court.
+    type:            isLadder ? amSelectedFormat : (isTeam ? 'TEAM_AMERICANO' : 'AMERICANO'),
     level:           document.getElementById('am-level').value || null,
     levelMax:        document.getElementById('am-level-max').value
                        || document.getElementById('am-level').value || null,
@@ -209,6 +234,7 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     maxParticipants: parseInt(document.getElementById('am-max-participants').value, 10),
     pointsPerMatch:  parseInt(document.getElementById('am-points').value, 10),
     roundsCount,
+    calibrationRounds,
     isPrivate:       document.getElementById('am-private').checked,
     resultEntryMode: document.getElementById('am-entry-all').checked ? 'ALL_PARTICIPANTS' : 'CREATOR_ONLY',
     friendly:        !official,
@@ -218,7 +244,7 @@ document.getElementById('am-submit').addEventListener('click', async () => {
     description:     document.getElementById('am-description').value.trim() || null,
   };
 
-  const api = isWc ? API.winnersCourt : API.americano;
+  const api = isLadder ? API.winnersCourt : API.americano;
   const btn = document.getElementById('am-submit');
   btn.disabled = true; btn.textContent = '...';
   try {
@@ -227,7 +253,8 @@ document.getElementById('am-submit').addEventListener('click', async () => {
       showToast('Турнір оновлено', 'success');
     } else {
       await api.create(payload);
-      showToast(isWc ? "Winner's Court створено! 🎾"
+      showToast(amSelectedFormat === 'WINNERS_COURT' ? "Winner's Court створено! 🎾"
+              : amSelectedFormat === 'KING_OF_THE_COURT' ? 'King of the Court створено! 👑'
               : isTeam ? 'Командне американо створено! 👥' : 'Американо створено! 🎾', 'success');
     }
     tournamentsData = null;
@@ -254,10 +281,39 @@ async function openAmericanoModal(tournamentId) {
   try {
     americanoState = await API.americano.get(tournamentId);
     renderAmericanoModal();
+    amStartLive();
   } catch (e) {
     body.innerHTML = `<div style="color:var(--error);padding:20px;text-align:center">Помилка: ${esc(e.data?.message || e.message)}</div>`;
   }
 }
+
+/* Live scores while the tournament runs: results entered on someone else's
+   phone show up here without a reload. See startLivePoll in core.js. */
+const AM_POLL_KEY = 'americano';
+
+function amStartLive() {
+  if (!americanoState || americanoState.status !== 'ACTIVE') { stopLivePoll(AM_POLL_KEY); return; }
+  const tid = americanoTournamentId;
+  startLivePoll(AM_POLL_KEY,
+    () => API.americano.get(tid),
+    fresh => {
+      if (String(americanoTournamentId) !== String(tid)) return;
+      americanoState = fresh;
+      renderAmericanoModal();
+      if (fresh.status !== 'ACTIVE') stopLivePoll(AM_POLL_KEY);
+    },
+    { seed: americanoState });
+}
+
+/** Adopt a freshly returned state and keep the live poll from repainting over it. */
+function amApply(state) {
+  americanoState = state;
+  syncLivePoll(AM_POLL_KEY, state);
+  renderAmericanoModal();
+}
+
+document.getElementById('modal-americano')
+  .addEventListener('bsp:closed', () => stopLivePoll(AM_POLL_KEY));
 
 function amTeamNames(team) {
   return team.map(p => `<span class="tp-name-tap" onclick="_tournamentPlayerTap('${p.id || ''}','${jsq(p.displayName || '?')}')">${esc(p.displayName || '?')}</span>`)
@@ -268,6 +324,7 @@ function renderAmericanoModal() {
   const st = americanoState;
   if (!st) return;
   const body = document.getElementById('americano-modal-body');
+  const prevScroll = body.scrollTop;
   const t = (tournamentsData || []).find(x => String(x.id) === String(americanoTournamentId));
   const allMatches = (st.rounds || []).flatMap(r => r.matches);
   const allPlayed  = allMatches.length > 0 && allMatches.every(m => m.played);
@@ -283,6 +340,7 @@ function renderAmericanoModal() {
     <span class="am-config-chip">🎯 ${st.pointsPerMatch} очок/матч</span>
     ${st.roundsCount ? `<span class="am-config-chip">🔄 ${st.roundsCount} раундів</span>` : ''}
     <span class="am-config-chip">${st.resultEntryMode === 'ALL_PARTICIPANTS' ? '✍️ рахунок вносять всі' : '✍️ рахунок вносить організатор'}</span>
+    ${st.status === 'ACTIVE' ? '<span class="am-config-chip wc-live-chip">● наживо</span>' : ''}
   </div>`;
 
   // DRAFT: roster management before the start
@@ -381,6 +439,7 @@ function renderAmericanoModal() {
   }
 
   body.innerHTML = html;
+  body.scrollTop = prevScroll;   // a live refresh must not yank the reader back to the top
 
   // Wire score entry
   body.querySelectorAll('.am-enter-btn').forEach(btn => {
@@ -419,11 +478,12 @@ function renderAmericanoModal() {
     if (!(await uiConfirm(msg))) return;
     finalizeBtn.disabled = true;
     try {
-      americanoState = await API.americano.finalize(americanoTournamentId);
+      const fresh = await API.americano.finalize(americanoTournamentId);
       tournamentsData = null;
       renderResults();          // repaint the list so the tournament moves into «Завершені»
-      renderAmericanoModal();
-      showToast(americanoState.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
+      amApply(fresh);
+      stopLivePoll(AM_POLL_KEY);
+      showToast(fresh.ratingEnabled ? 'Турнір завершено! Рейтинг нараховано 🏆' : 'Турнір завершено! 🎾', 'success');
     } catch (e) {
       showToast(e.data?.message || e.message || 'Помилка', 'error');
       finalizeBtn.disabled = false;
@@ -435,10 +495,11 @@ async function amStart(btn, isRestart) {
   if (isRestart && !(await uiConfirm('Перегенерувати розклад раундів?'))) return;
   btn.disabled = true;
   try {
-    americanoState = await API.americano.start(americanoTournamentId);
+    const fresh = await API.americano.start(americanoTournamentId);
     tournamentsData = null;
     renderResults();
-    renderAmericanoModal();
+    amApply(fresh);
+    amStartLive();
     showToast('Розклад згенеровано! 🎾', 'success');
   } catch (e) {
     showToast(e.data?.message || e.message || 'Помилка', 'error');
@@ -450,8 +511,7 @@ async function amStart(btn, isRestart) {
 async function amRefresh() {
   tournamentsData = null;
   await renderResults();
-  americanoState = await API.americano.get(americanoTournamentId);
-  renderAmericanoModal();
+  amApply(await API.americano.get(americanoTournamentId));
 }
 
 /* ── Score entry modal ───────────────────────────────────────────── */
@@ -493,9 +553,9 @@ document.getElementById('am-score-submit').addEventListener('click', async () =>
   const btn = document.getElementById('am-score-submit');
   btn.disabled = true;
   try {
-    americanoState = await API.americano.submitMatch(americanoTournamentId, amScoreMatchId, { score1: s1, score2: s2 });
+    const fresh = await API.americano.submitMatch(americanoTournamentId, amScoreMatchId, { score1: s1, score2: s2 });
     closeModal('modal-americano-score');
-    renderAmericanoModal();
+    amApply(fresh);
     showToast('Рахунок збережено', 'success');
   } catch (e) {
     showToast(e.data?.message || e.message || 'Помилка', 'error');

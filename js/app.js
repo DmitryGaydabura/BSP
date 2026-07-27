@@ -759,14 +759,39 @@ async function openCupModal(tournamentId) {
   try {
     cupState = await API.cup.get(tournamentId);
     renderCupModal();
+    cupStartLive();
   } catch (e) {
     body.innerHTML = `<div style="color:#e05252;padding:20px;text-align:center">Помилка: ${esc(e.data?.message || e.message)}</div>`;
   }
 }
 
+/* Live scores: with the cup modal open, group and playoff results entered by
+   the admin appear here without a reload. See startLivePoll in core.js. */
+const CUP_POLL_KEY = 'cup';
+
+function cupStartLive() {
+  const live = cupState && (cupState.status === 'GROUP_STAGE' || cupState.status === 'PLAYOFF');
+  if (!live) { stopLivePoll(CUP_POLL_KEY); return; }
+  const tid = cupTournamentId;
+  startLivePoll(CUP_POLL_KEY,
+    () => API.cup.get(tid),
+    fresh => {
+      if (String(cupTournamentId) !== String(tid)) return;
+      cupState = fresh;
+      renderCupModal();
+      if (fresh.status === 'FINISHED') stopLivePoll(CUP_POLL_KEY);
+    },
+    { seed: cupState });
+}
+
+document.getElementById('modal-cup')
+  .addEventListener('bsp:closed', () => stopLivePoll(CUP_POLL_KEY));
+
 function renderCupModal() {
   if (!cupState) return;
+  syncLivePoll(CUP_POLL_KEY, cupState);   // whatever is on screen is the new baseline
   const body = document.getElementById('cup-modal-body');
+  const prevScroll = body.scrollTop;
   const isAdmin = currentUser?.role === 'ADMIN';
   const status = cupState.status;
 
@@ -837,6 +862,7 @@ function renderCupModal() {
   }
 
   body.innerHTML = html;
+  body.scrollTop = prevScroll;   // a live refresh must not yank the reader back to the top
 
   // Right-edge fade hints that the bracket scrolls; hidden once fully scrolled
   body.querySelectorAll('.cup-bracket-wrap').forEach(wrap => {
@@ -889,6 +915,7 @@ function renderCupModal() {
         cupState = await API.cup.finalize(cupTournamentId);
         tournamentsData = null;
         renderCupModal();
+        stopLivePoll(CUP_POLL_KEY);
         showToast('Кубок завершено! Рейтинг нараховано 🏆');
       } catch (e) {
         showToast(e.data?.message || e.message || 'Помилка', 'error');
@@ -1525,6 +1552,7 @@ document.getElementById('cup-start-btn').addEventListener('click', async () => {
     if (title && t) title.textContent = t.name;
     openModal('modal-cup');
     renderCupModal();
+    cupStartLive();
 
     showToast('Кубок розпочато! 🏆');
   } catch (e) {
