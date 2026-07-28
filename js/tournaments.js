@@ -104,6 +104,14 @@ async function renderResults() {
     return;
   }
 
+  // Revisiting the tab used to rebuild every row from unchanged data. The
+  // signature covers the subtab and the month filter too, since both change the
+  // markup without changing `source`.
+  if (!shouldRepaint('results', [activeResultsSubTab, activeResultFilter, currentUser?.id ?? null, source])) {
+    refreshOpenTournamentPage();
+    return;
+  }
+
   if (activeResultsSubTab === 'upcoming') {
     // Friendly tournaments also show here (below official ones) — renderUpcomingList sections them
     const upcoming = source.filter(t => t.status !== 'FINISHED');

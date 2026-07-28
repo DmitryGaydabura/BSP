@@ -576,14 +576,23 @@ html[data-theme="navy"] .tt-moon { opacity: 1; transform: rotate(0deg) scale(1);
      (separate layers) still paint. Keeping #content a plain scroller avoids that. */
   position: relative;
 }
+/* NOTE: deliberately no `contain` here. Layout containment would make the panel
+   a containing block for position:fixed descendants, and paint containment
+   would clip card shadows at the panel edge — both real regressions for a win
+   the render memoization in switchTab already delivers more safely. */
 .tab-panel { display: none; padding-bottom: 40px; }
 .tab-panel.active { display: block; }
 /* Entrance is explicit (added by switchTab on tap switches, skipped for
-   finger-following swipes) so class churn never re-triggers it. */
-.tab-panel.tab-enter { animation: tab-in 0.3s var(--ease); }
+   finger-following swipes) so class churn never re-triggers it.
+   Opacity only: the old 8px rise read as "content is still arriving" — exactly
+   the impression the loading work below was already creating. */
+.tab-panel.tab-enter { animation: tab-in 0.18s var(--ease); }
 @keyframes tab-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel.tab-enter { animation: none; }
 }
 /* Finger-following tab swipe: the incoming panel is absolutely positioned
    over the scroll viewport (left/right mirror #content's 14px padding) and
@@ -2695,6 +2704,25 @@ button.pf-stat:active { background: var(--surface); }
   padding: 14px 0;
   text-align: center;
 }
+
+/* Cold-cache placeholders for the profile chart + history. Sized to what
+   replaces them — the chart skeleton carries buildRatingChart's own 360×110
+   viewBox ratio, the rows match .history-row's height — so the arriving
+   content swaps in place instead of shoving everything below it down. */
+.pf-skel-chart {
+  width: 100%;
+  aspect-ratio: 360 / 110;
+  border-radius: 10px;
+}
+.pf-skel-row {
+  height: 20px;
+  margin: 9px 0;
+  border-radius: 6px;
+}
+.pf-skel-row:nth-child(2) { width: 82%; }
+.pf-skel-row:nth-child(3) { width: 64%; }
+/* Reserve the empty/error states' footprint too, so those don't jump either. */
+#rating-chart-body, #history-list { min-height: 44px; }
 
 /* ═══════════════════════════════════════════════════════════════
    ACTIVITY TAB

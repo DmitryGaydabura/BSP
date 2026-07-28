@@ -58,6 +58,13 @@ async function renderMatches() {
     .sort((a, b) => new Date(b.finishedAt || b.createdAt) - new Date(a.finishedAt || a.createdAt))
     .slice(0, 15);
 
+  // Same reasoning as renderResults: revisiting the tab must not rebuild rows
+  // that would come out byte-identical.
+  if (!shouldRepaint('matches', [currentUser?.id ?? null, active, finished])) {
+    refreshOpenMatchPage();
+    return;
+  }
+
   const createRow = `
     <button class="t-create-row" onclick="openAnnounceMatchModal()">
       <span class="t-create-plus" aria-hidden="true">📣</span>

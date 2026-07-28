@@ -68,19 +68,29 @@ function avatarMonogram(name) {
   return `<div class="avatar-mono" style="background:hsl(${hue} 58% 40%)">${esc(initials(name))}</div>`;
 }
 
+/* Telegram photo_url links expire, so a share of the avatars 404 on every load.
+   Each 404 resolves late and swaps the <img> for a monogram — a visible pop
+   after the row has already painted. Remembering the dead URLs for the session
+   means a list rebuilt later renders the monogram immediately instead of
+   re-requesting a URL we already know is gone. */
+const _deadAvatars = new Set();
+
 // onerror handler for avatar <img> tags — swaps the broken photo for a styled
 // monogram circle instead of bare fallback text. Global function so it can be
 // wired via inline onerror="" attributes (see CLAUDE.md "Global functions").
 function avatarMonoFallback(imgEl) {
-  if (imgEl && imgEl.parentNode) imgEl.parentNode.innerHTML = avatarMonogram(imgEl.dataset.name || '?');
+  if (!imgEl || !imgEl.parentNode) return;
+  if (imgEl.src) _deadAvatars.add(imgEl.src);
+  imgEl.parentNode.innerHTML = avatarMonogram(imgEl.dataset.name || '?');
 }
 
 function avatarHtml(p, size = 'md') {
   const name = p?.name || p?.displayName || '?';
-  if (p?.photoUrl) {
+  if (p?.photoUrl && !_deadAvatars.has(p.photoUrl)) {
     // Name lives in a data-attribute (HTML-attribute-escaped via esc), NOT interpolated
     // into the inline JS string — avoids any attribute/JS double-context escaping pitfalls.
-    return `<img src="${esc(p.photoUrl)}" alt="" data-name="${esc(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="avatarMonoFallback(this)">`;
+    // decoding=async keeps a long list's decode work off the frame that paints it.
+    return `<img src="${esc(p.photoUrl)}" alt="" data-name="${esc(name)}" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="avatarMonoFallback(this)">`;
   }
   return avatarMonogram(name);
 }
@@ -821,13 +831,20 @@ function buildActivityMonthChips(tournaments) {
 async function renderActivityList() {
   if (!activeActivityMonth) return;
   const wrap = document.getElementById('activity-list');
-  wrap.innerHTML = '<div class="activity-empty">Завантаження...</div>';
 
   try {
     if (!activityCache[activeActivityMonth]) {
+      // Only announce loading for a month we actually have to fetch. This used
+      // to run unconditionally, so a cached month flashed «Завантаження...»
+      // for a frame on every visit to the screen.
+      wrap.innerHTML = '<div class="activity-empty">Завантаження...</div>';
       activityCache[activeActivityMonth] = await API.activity.monthly(activeActivityMonth);
     }
     const data = activityCache[activeActivityMonth];
+
+    // Keyed on the whole list, month included — switching months and switching
+    // back must repaint, even though each month's own payload is unchanged.
+    if (!shouldRepaint('activity-list', [activeActivityMonth, data])) return;
 
     if (!data.length) {
       wrap.innerHTML = '<div class="activity-empty">Немає даних за цей місяць</div>';
@@ -938,6 +955,14 @@ function renderProfile() {
   const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
   const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
 
+  // Nothing this card shows has changed — leave the DOM (and its listeners,
+  // decoded avatar and rendered chart) alone and just revalidate in place.
+  if (!shouldRepaint('profile', [u, level, globalRank, achievementsConfig, tournamentsData?.length ?? null])) {
+    loadHistory();
+    paintActivityStat();
+    return;
+  }
+
   container.innerHTML = `
     <div class="profile-hero ${tier} pf-card">
       <div class="pf-top">
@@ -970,7 +995,7 @@ function renderProfile() {
       </div>
     </div>
 
-    <div id="profile-achievements"></div>
+    <div id="profile-achievements">${tournamentsData ? renderAchievements(u.id, u.displayName) : ''}</div>
 
     ${u.initialPointsClaimed ? `
       <div class="raketo-claimed-card">
@@ -1007,12 +1032,12 @@ function renderProfile() {
 
     <div class="rating-chart-card" id="rating-chart-card">
       <div class="history-card-title">Прогрес рейтингу</div>
-      <div id="rating-chart-body"><div class="history-loading">Завантаження...</div></div>
+      <div id="rating-chart-body">${pfChartHtml(myHistoryCache)}</div>
     </div>
 
     <div class="history-card">
       <div class="history-card-title">Історія турнірів</div>
-      <div id="history-list"><div class="history-loading">Завантаження...</div></div>
+      <div id="history-list">${pfHistoryHtml(myHistoryCache)}</div>
     </div>
 
     <button class="btn-secondary" id="btn-whats-new" style="width:100%;margin-top:8px">Що нового?</button>
@@ -1035,18 +1060,50 @@ function renderProfile() {
   }
 
   if (isAdmin) wireAdminPanel();
+  if (tournamentsData) wireAchievements(document.getElementById('profile-achievements'));
   loadHistory();
 
-  // Current-month activity → identity-card stat
-  const actMonth = currentYearMonth();
-  API.activity.monthly(actMonth).then(data => {
-    const me = data.find(e => e.userId === u.id);
+  // Current-month activity → identity-card stat. Goes through activityCache
+  // (shared with Home and the Активність screen) instead of its own request,
+  // so on a revisit the number is there before the card paints.
+  paintActivityStat();
+}
+
+/** Fills the «Активність» stat on the identity card from cache, fetching once. */
+function paintActivityStat() {
+  const u = currentUser;
+  if (!u) return;
+  const m = currentYearMonth();
+  const apply = data => {
+    const me = (data || []).find(e => String(e.userId) === String(u.id));
     const valEl = document.getElementById('pf-act-val');
     const lblEl = document.getElementById('pf-act-lbl');
     if (!valEl) return;
     valEl.textContent = me ? me.activityPoints : '0';
     if (lblEl && me) lblEl.textContent = `Активність · #${me.rank}`;
-  }).catch(() => {});
+  };
+  if (activityCache[m]) { apply(activityCache[m]); return; }   // synchronous — no «—» frame
+  API.activity.monthly(m).then(d => { activityCache[m] = d; apply(d); }).catch(() => {});
+}
+
+/* Profile chart/history slots. Both render straight from the session-cached
+   history when it is warm, so a revisit paints the real content in the same
+   frame as the card. Only a genuinely cold cache shows a skeleton — and it is
+   a skeleton of the right height, not a one-line «Завантаження...» that the
+   arriving content shoves everything below it. */
+function pfChartHtml(history) {
+  if (history === null) return '<div class="skel pf-skel-chart"></div>';
+  if (!history.length) return '<div class="history-empty">Недостатньо даних</div>';
+  return buildRatingChart(history, currentUser?.startingPoints || 0)
+    ?? '<div class="history-empty">Недостатньо даних</div>';
+}
+
+function pfHistoryHtml(history) {
+  if (history === null) {
+    return Array.from({ length: 3 }, () => '<div class="skel pf-skel-row"></div>').join('');
+  }
+  if (!history.length) return '<div class="history-empty">Немає записів</div>';
+  return history.map(buildHistoryRow).join('');
 }
 
 function levelFromPoints(pts) {
@@ -1354,41 +1411,60 @@ function buildRatingChart(history, startingPoints) {
 </svg>`;
 }
 
+/* Stale-while-revalidate for the profile's chart + history. renderProfile has
+   already painted whatever myHistoryCache held; this refetches quietly and
+   repaints only on a real change. It used to fetch unconditionally and leave
+   two «Завантаження...» placeholders on screen for a full round trip — the
+   loading that appeared "in the middle and at the bottom" of the profile on
+   every single visit. */
+let _pfHistorySeq = 0;
+let _pfHistoryAt = 0;
+const PF_HISTORY_TTL = 20000;  // don't re-hit the API on rapid tab ping-pong
+
 async function loadHistory() {
   const container = document.getElementById('history-list');
-  const chartBody = document.getElementById('rating-chart-body');
   if (!container) return;
   if (!apiAvailable) {
     container.innerHTML = '<div class="history-empty">Backend недоступний</div>';
-    if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';
+    const cb = document.getElementById('rating-chart-body');
+    if (cb) cb.innerHTML = '<div class="history-empty">—</div>';
     return;
   }
-  // Load tournaments for achievements if not yet cached
-  if (!tournamentsData && apiAvailable) {
+
+  // Achievements need the tournament list. Fetch it only when nothing has yet —
+  // when it is already cached, renderProfile painted them inline.
+  if (!tournamentsData) {
     try {
       tournamentsData = (await API.tournaments.list()).map(normalizeTournament);
-    } catch { /* ignore — achievements will be empty */ }
+      const achEl = document.getElementById('profile-achievements');
+      if (achEl && currentUser) {
+        achEl.innerHTML = renderAchievements(currentUser.id, currentUser.displayName);
+        wireAchievements(achEl);
+      }
+    } catch { /* ignore — achievements stay empty */ }
   }
-  const achEl = document.getElementById('profile-achievements');
-  if (achEl && currentUser) { achEl.innerHTML = renderAchievements(currentUser.id, currentUser.displayName); wireAchievements(achEl); }
 
+  if (myHistoryCache !== null && Date.now() - _pfHistoryAt < PF_HISTORY_TTL) return;
+
+  const seq = ++_pfHistorySeq;
   try {
-    const history = await API.users.history();
-    if (!history || history.length === 0) {
-      container.innerHTML = '<div class="history-empty">Немає записів</div>';
-      if (chartBody) chartBody.innerHTML = '<div class="history-empty">Недостатньо даних</div>';
-      return;
-    }
+    const fresh = await API.users.history() || [];
+    if (seq !== _pfHistorySeq) return;              // a newer load finished first
+    const changed = JSON.stringify(fresh) !== JSON.stringify(myHistoryCache);
+    myHistoryCache = fresh;
+    _pfHistoryAt = Date.now();
+    if (!changed) return;                           // what is on screen is already right
 
-    if (chartBody) {
-      const svg = buildRatingChart(history, currentUser?.startingPoints || 0);
-      chartBody.innerHTML = svg ?? '<div class="history-empty">Недостатньо даних</div>';
-    }
-
-    container.innerHTML = history.map(buildHistoryRow).join('');
+    // Re-read the nodes: renderProfile may have rebuilt the card while we waited.
+    const list = document.getElementById('history-list');
+    const chartBody = document.getElementById('rating-chart-body');
+    if (list) list.innerHTML = pfHistoryHtml(fresh);
+    if (chartBody) chartBody.innerHTML = pfChartHtml(fresh);
   } catch {
+    if (myHistoryCache !== null) return;             // keep showing the cached data
     container.innerHTML = '<div class="history-empty">Помилка завантаження</div>';
-    if (chartBody) chartBody.innerHTML = '<div class="history-empty">—</div>';
+    const cb = document.getElementById('rating-chart-body');
+    if (cb) cb.innerHTML = '<div class="history-empty">—</div>';
   }
 }
 

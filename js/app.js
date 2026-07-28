@@ -41,8 +41,6 @@ function switchTab(tab, opts = {}) {
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelector(`.nav-tab[data-tab="${NAV_KEY[tab] || tab}"]`)?.classList.add('active');
 
-  content.scrollTop = tabScroll[tab] || 0;
-
   const refresh = () => {
     if (tab === 'home') {
       renderHome(); // cheap: uses cached data, keeps «next game» fresh
@@ -70,6 +68,20 @@ function switchTab(tab, opts = {}) {
     setTimeout(refresh, 120);
   } else {
     refresh();
+  }
+
+  // Restore scroll AFTER the panel has content. Doing it first (as this used to)
+  // meant assigning a scrollTop the still-empty panel could not reach — the
+  // browser clamped it and the tab opened at the wrong place.
+  const want = tabScroll[tab] || 0;
+  content.scrollTop = want;
+  // Cold cache: the renderer is async and the panel is still a skeleton, so the
+  // assignment above got clamped. Try once more after it paints — but only if the
+  // user has not scrolled in the meantime.
+  if (want && content.scrollTop < want) {
+    requestAnimationFrame(() => {
+      if (currentTab === tab && content.scrollTop < want) content.scrollTop = want;
+    });
   }
 
   currentTab = tab;
@@ -1719,14 +1731,18 @@ apiBootstrap().then(async () => {
   } else {
     achievementsConfig = [];
   }
-  renderHome(); // replace skeleton with real data or offline state
+  invalidateRender();       // the skeletons above were painted from no data
+  await renderHome();       // replace skeleton with real data or offline state
 
-  // Re-render other tabs if the user navigated there before bootstrap finished
+  // Re-render other tabs if the user navigated there before bootstrap finished.
+  // tournamentsData is NOT dropped here — apiBootstrap's reachability probe
+  // already fetched that exact list, and re-nulling it cost a second request
+  // plus a skeleton flash on the first visit to Турніри.
   if (currentTab === 'ratings') renderRatings();
-  if (currentTab === 'results') {
-    tournamentsData = null;
-    renderResults();
-  }
+  if (currentTab === 'results') renderResults();
+  if (currentTab === 'matches') renderMatches();
+
+  prewarmCaches();          // fill the remaining tabs' caches while the user reads Home
 
   updateMemberCount();
 

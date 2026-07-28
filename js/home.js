@@ -6,9 +6,6 @@
    players.js (ratings cache, activity helpers) — classic load order.
 ════════════════════════════════════════════════════════════════ */
 
-/** Rating history for the signed-in player, fetched once per session for the form strip. */
-let hmHistoryCache = null;
-
 function hmOpenFriendly() {
   switchTab('results');
   document.querySelector('#results-subtabs .results-subtab[data-subtab="friendly"]')?.click();
@@ -56,13 +53,18 @@ function hmFormHtml(history) {
     </div>`;
 }
 
-/** Fills the form strip after first paint — it needs an authenticated fetch. */
+/** Fills the form strip when the history is not yet cached. When it is (the
+    usual case after the first seconds), renderHome inlines the strip instead —
+    this is only the cold path, so the block never appears mid-card. Shares
+    myHistoryCache with the Profile chart: one fetch per session, not one per
+    visit to either screen. */
 async function hmLoadForm() {
   const slot = document.getElementById('hm-form-slot');
-  if (!slot || !currentUser) return;
+  if (!slot || !currentUser || myHistoryCache !== null) return;
   try {
-    if (hmHistoryCache === null) hmHistoryCache = await API.users.history();
-    slot.innerHTML = hmFormHtml(hmHistoryCache);
+    myHistoryCache = await API.users.history();
+    const el = document.getElementById('hm-form-slot');
+    if (el) el.innerHTML = hmFormHtml(myHistoryCache);
   } catch { /* offline — the strip just stays empty */ }
 }
 
@@ -159,6 +161,12 @@ async function renderHome() {
     (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF') && (!next || t.id !== next.id));
   const lastDone = ts.filter(t => t.status === 'FINISHED' && !t.friendly).sort(byDate).slice(-1)[0] || null;
 
+  // Everything below is derived from these — if none of them moved, the card is
+  // already correct and rebuilding it would only re-create the DOM for a frame.
+  if (!shouldRepaint('home', [next, openReg, live, lastDone, meRating, myPts, currentUser?.id ?? null, myHistoryCache])) {
+    return;
+  }
+
   let html = '';
 
   if (next) {
@@ -183,6 +191,9 @@ async function renderHome() {
     // rankChange is places gained/lost in the most recent finalized tournament.
     const mv = meRating?.rankChange || 0;
     const mvHtml = mv ? ` · <span class="hm-move ${mv > 0 ? 'up' : 'down'}">${mv > 0 ? '▲' : '▼'}${Math.abs(mv)}</span>` : '';
+    // Seed the activity tile from cache so a repaint never blinks back to «—».
+    const actMonth = currentYearMonth();
+    const actMe = (activityCache[actMonth] || []).find(e => String(e.userId) === String(currentUser.id));
     html += `<div class="hm-tiles">
       <button class="hm-tile" onclick="switchTab('ratings')">
         <div class="hm-tile-label">Рейтинг</div>
@@ -191,8 +202,8 @@ async function renderHome() {
       </button>
       <button class="hm-tile" onclick="switchTab('activity')">
         <div class="hm-tile-label">Активність</div>
-        <div class="hm-tile-val" id="hm-act-val">—</div>
-        <div class="hm-tile-sub" id="hm-act-sub">${activityMonthLabel(currentYearMonth())}</div>
+        <div class="hm-tile-val" id="hm-act-val">${actMe ? actMe.activityPoints : (activityCache[actMonth] ? '0' : '—')}</div>
+        <div class="hm-tile-sub" id="hm-act-sub">${actMe ? `#${actMe.rank} · ` : ''}${activityMonthLabel(actMonth)}</div>
       </button>
     </div>`;
   } else {
@@ -210,8 +221,9 @@ async function renderHome() {
     </div>`;
   }
 
-  // Filled by hmLoadForm() once the authenticated history request lands.
-  if (currentUser) html += `<div id="hm-form-slot"></div>`;
+  // Painted inline from the shared history cache; hmLoadForm() below fills it
+  // only on the cold path, so a revisit never grows a block mid-card.
+  if (currentUser) html += `<div id="hm-form-slot">${myHistoryCache ? hmFormHtml(myHistoryCache) : ''}</div>`;
 
   if (live) {
     html += `<button class="hm-live" onclick="${live.type === 'CUP' ? `openCupModal(${live.id})` : `openTournamentPage(${live.id})`}">

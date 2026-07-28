@@ -140,6 +140,7 @@ async function switchClub(clubId) {
   // read refetches for the new club. Ratings/matches are shared and left alone.
   if (typeof tournamentsData !== 'undefined') tournamentsData = null;
   if (typeof activityCache !== 'undefined') activityCache = {};
+  invalidateRender();  // same data shape, different club — force the repaint
 
   const tab = (typeof currentTab !== 'undefined') ? currentTab : 'home';
   if (tab === 'home' && typeof renderHome === 'function') renderHome();
@@ -214,6 +215,35 @@ const playerNameOf = p => [p?.firstName, p?.lastName].filter(Boolean).join(' ') 
 let apiAvailable = false; // whether the backend responded
 let apiLoading   = true;  // true until apiBootstrap() resolves
 let achievementsConfig = null; // array of enabled achievement IDs (null = not yet fetched)
+
+/** Rating history of the signed-in player. One fetch per session, shared by the
+    Home form strip and the Profile chart/history — both used to fetch it
+    separately, so revisiting either tab cost a round trip and a placeholder. */
+let myHistoryCache = null;
+
+/* ── Render memoization ────────────────────────────────────────────
+   Revisiting a tab used to tear down and rebuild its DOM even when nothing
+   had changed: hundreds of nodes destroyed, <img> avatars re-created and
+   re-decoded, layout recalculated — one dropped frame every switch. Each
+   list renderer now asks shouldRepaint() first and returns early when the
+   data it would paint is byte-identical to what is already on screen. */
+const _renderSig = {};
+
+/** True when `payload` differs from what was last painted under `key`. */
+function shouldRepaint(key, payload) {
+  const sig = JSON.stringify(payload);
+  if (_renderSig[key] === sig) return false;
+  _renderSig[key] = sig;
+  return true;
+}
+
+/** Forget a memoized signature (or all of them) so the next render repaints.
+    Call after anything that changes markup without changing the data:
+    filter/subtab switches, login/logout, club switch, config arrival. */
+function invalidateRender(key) {
+  if (key === undefined) { for (const k of Object.keys(_renderSig)) delete _renderSig[k]; return; }
+  delete _renderSig[key];
+}
 
 /* ════════════════════════════════════════════════════════════════
    FALLBACK DATA (used when API is unavailable)
@@ -420,6 +450,8 @@ async function refreshAfterAuthChange() {
   if (typeof ratingsData !== 'undefined') ratingsData = null;
   if (typeof tournamentsData !== 'undefined') tournamentsData = null;
   if (typeof matchesData !== 'undefined') matchesData = null;
+  myHistoryCache = null;         // belongs to the previous identity
+  invalidateRender();            // every screen renders differently signed in
   try { achievementsConfig = await API.achievements.getConfig(); } catch { achievementsConfig = []; }
 
   const tab = (typeof currentTab !== 'undefined') ? currentTab : 'home';
@@ -461,13 +493,47 @@ async function apiBootstrap() {
     }
   }
 
-  // Test if API is reachable at all
+  // Test if API is reachable at all. Keep the payload — this is the same list
+  // the Home and Tournaments screens need, and throwing it away made the first
+  // visit to either one show a skeleton for a request we had already paid for.
   if (!apiAvailable) {
     try {
-      await API.tournaments.list();
+      const list = await API.tournaments.list();
       apiAvailable = true;
+      if (typeof normalizeTournament === 'function') tournamentsData = list.map(normalizeTournament);
     } catch { /* offline */ }
   }
+}
+
+/* Warm the caches every tab reads from, in the background, right after
+   bootstrap. Without this the first visit to each tab pays for its own fetch
+   and shows a skeleton; with it only the very first seconds of the session do.
+   Deliberately fire-and-forget and failure-tolerant: a cold cache just means
+   the tab fetches on demand, exactly as before. */
+function prewarmCaches() {
+  if (!apiAvailable) return;
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 200));
+  idle(() => {
+    if (typeof tournamentsData !== 'undefined' && tournamentsData === null && typeof normalizeTournament === 'function') {
+      API.tournaments.list().then(l => { tournamentsData = l.map(normalizeTournament); }).catch(() => {});
+    }
+    if (typeof ratingsData !== 'undefined' && ratingsData === null && typeof normalizeRating === 'function') {
+      API.ratings.list().then(l => {
+        ratingsData = l.map(normalizeRating);
+        if (typeof ratingsFetchedAt !== 'undefined') ratingsFetchedAt = Date.now();
+      }).catch(() => {});
+    }
+    if (typeof matchesData !== 'undefined' && matchesData === null) {
+      API.matches.list().then(l => { matchesData = l; }).catch(() => {});
+    }
+    if (currentUser) {
+      if (myHistoryCache === null) API.users.history().then(h => { myHistoryCache = h; }).catch(() => {});
+      if (typeof activityCache !== 'undefined' && typeof currentYearMonth === 'function') {
+        const m = currentYearMonth();
+        if (!activityCache[m]) API.activity.monthly(m).then(d => { activityCache[m] = d; }).catch(() => {});
+      }
+    }
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════
