@@ -36,6 +36,10 @@ const API = (() => {
   return {
     getToken, setToken, removeToken, isAuthenticated,
 
+    // Same-origin re-serve of an avatar photo, for canvas/export use only. Telegram
+    // userpics redirect without CORS headers, so a direct cross-origin fetch fails.
+    avatarProxyUrl: url => `${BASE_URL}/avatar?u=${encodeURIComponent(url)}`,
+
     auth: {
       loginWithTelegram: initData => request('POST', '/auth/telegram', { initData }),
       // Telegram Login Widget user object (web version) — sent verbatim, the hash covers every field
@@ -69,6 +73,8 @@ const API = (() => {
       create:           data           => request('POST',   '/tournaments', { ...data, club: club() }),
       activate:         id             => request('POST',   `/tournaments/${id}/activate`),
       submitResults:    (id, payload)  => request('POST',   `/tournaments/${id}/results`, payload),
+      // Free-text → unsaved draft. Nothing is persisted; the admin confirms in the form.
+      parseDraft:       (text)         => request('POST',   '/tournaments/parse', { text }),
       finalize:         id             => request('POST',   `/tournaments/${id}/finalize`),
       update:           (id, data)     => request('PUT',    `/tournaments/${id}`, data),
       changeType:       (id, data)     => request('PUT',    `/tournaments/${id}/type`, data),

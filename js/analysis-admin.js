@@ -958,6 +958,135 @@ function fsRefId(fields, key) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   ADMIN — TOURNAMENT DRAFT FROM FREE TEXT
+   Parse → review → prefill the normal create form. The parse call
+   saves nothing; the admin still presses «Створити» in the form,
+   so a misread request costs an edit rather than a wrong tournament.
+════════════════════════════════════════════════════════════════ */
+
+let draftedTournament = null;
+
+const DT_TYPE_LABEL = {
+  SINGLE: 'Одиночний', PAIR: 'Парний', CUP: 'Кубок',
+  AMERICANO: 'Американо', TEAM_AMERICANO: 'Командне американо',
+  WINNERS_COURT: "Winner's Court", KING_OF_THE_COURT: 'King of the Court',
+};
+// Americano-family formats live in their own create modal.
+const DT_AM_TYPES = { AMERICANO: 'CLASSIC', TEAM_AMERICANO: 'TEAM_AMERICANO',
+                      WINNERS_COURT: 'WINNERS_COURT', KING_OF_THE_COURT: 'KING_OF_THE_COURT' };
+
+function openDraftTournament() {
+  draftedTournament = null;
+  document.getElementById('dt-text').value = '';
+  document.getElementById('dt-result').style.display = 'none';
+  openModal('modal-draft-tournament');
+}
+
+async function parseTournamentDraft() {
+  const text = document.getElementById('dt-text').value.trim();
+  if (!text) { showToast('Опишіть турнір текстом', 'error'); return; }
+
+  const btn = document.getElementById('dt-parse');
+  btn.disabled = true;
+  btn.textContent = 'Розбираю…';
+  try {
+    draftedTournament = await API.tournaments.parseDraft(text);
+    await loadTournamentLevels();   // the preview shows level labels, not enum names
+    renderDraftPreview(draftedTournament);
+  } catch (e) {
+    showToast(e.message || 'Не вдалося розібрати опис', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Розібрати';
+  }
+}
+
+function renderDraftPreview(d) {
+  const lvl = v => (tournamentLevels || []).find(l => l.value === v)?.label || v;
+  const rows = [
+    ['Назва', d.name],
+    ['Формат', DT_TYPE_LABEL[d.type] || d.type],
+    ['Дата', d.date],
+    ['Час', d.time ? String(d.time).slice(0, 5) : null],
+    ['Рівень', d.level ? (d.levelMax ? `${lvl(d.level)} – ${lvl(d.levelMax)}` : lvl(d.level)) : null],
+    ['Гравців', d.maxParticipants],
+    ['Локація', d.location],
+    ['Ціна', d.price != null ? `${d.price} грн` : null],
+    ['Очки за матч', d.pointsPerMatch],
+    ['Раундів', d.roundsCount],
+  ].filter(([, v]) => v != null && v !== '');
+
+  document.getElementById('dt-summary').innerHTML = rows.map(([k, v]) =>
+    `<div class="dt-row"><span class="dt-key">${esc(k)}</span><span class="dt-val">${esc(String(v))}</span></div>`
+  ).join('') || '<div class="dt-row"><span class="dt-key">Нічого не розпізнано</span></div>';
+
+  const notes = d.notes || [];
+  document.getElementById('dt-notes').innerHTML = notes.length
+    ? `<div class="dt-notes">${notes.map(n => `<div class="dt-note">${esc(n)}</div>`).join('')}</div>`
+    : '';
+
+  document.getElementById('dt-result').style.display = '';
+}
+
+/** Sets a <select> only when the value is one of its options; reports it otherwise. */
+function dtSetSelect(id, value, missing, label) {
+  const sel = document.getElementById(id);
+  if (value == null || !sel) return;
+  if ([...sel.options].some(o => o.value === String(value))) sel.value = String(value);
+  else missing.push(`${label}: ${value}`);
+}
+
+async function applyTournamentDraft() {
+  const d = draftedTournament;
+  if (!d) return;
+  closeModal('modal-draft-tournament');
+
+  const missing = [];
+  const amFormat = DT_AM_TYPES[d.type];
+
+  if (amFormat) {
+    await openCreateAmericano();
+    amSetFormat(amFormat);
+    if (d.name) document.getElementById('am-name').value = d.name;
+    if (d.date) document.getElementById('am-date').value = d.date;
+    if (d.time) document.getElementById('am-time').value = String(d.time).slice(0, 2) + ':00';
+    if (d.location) document.getElementById('am-location').value = d.location;
+    if (d.price != null) document.getElementById('am-price').value = d.price;
+    if (d.description) document.getElementById('am-description').value = d.description;
+    if (d.minRating != null) document.getElementById('am-min-rating').value = d.minRating;
+    if (d.maxRating != null) document.getElementById('am-max-rating').value = d.maxRating;
+    if (d.roundsCount != null) document.getElementById('am-rounds').value = d.roundsCount;
+    dtSetSelect('am-max-participants', d.maxParticipants, missing, 'Гравців');
+    dtSetSelect('am-points', d.pointsPerMatch, missing, 'Очки за матч');
+    dtSetSelect('am-level', d.level, missing, 'Рівень');
+    dtSetSelect('am-level-max', d.levelMax || d.level, missing, 'Рівень до');
+    amUpdateRoundsHint();
+  } else {
+    await openCreateTournament();
+    if (d.name) document.getElementById('ct-name').value = d.name;
+    if (d.date) document.getElementById('ct-date').value = d.date;
+    if (d.time) document.getElementById('ct-time').value = String(d.time).slice(0, 2) + ':00';
+    if (d.location) document.getElementById('ct-location').value = d.location;
+    if (d.price != null) document.getElementById('ct-price').value = d.price;
+    if (d.description) document.getElementById('ct-description').value = d.description;
+    if (d.maxParticipants != null) document.getElementById('ct-max-participants').value = d.maxParticipants;
+    if (d.minRating != null) document.getElementById('ct-min-rating').value = d.minRating;
+    if (d.maxRating != null) document.getElementById('ct-max-rating').value = d.maxRating;
+    dtSetSelect('ct-type', d.type, missing, 'Формат');
+    dtSetSelect('ct-level', d.level, missing, 'Рівень');
+    dtSetSelect('ct-level-max', d.levelMax || d.level, missing, 'Рівень до');
+    updateLevelHint();
+  }
+
+  showToast(missing.length
+    ? `Заповніть вручну — ${missing.join(', ')}`
+    : 'Перевірте поля та створіть турнір', missing.length ? 'error' : 'info');
+}
+
+document.getElementById('dt-parse').addEventListener('click', parseTournamentDraft);
+document.getElementById('dt-apply').addEventListener('click', applyTournamentDraft);
+
+/* ════════════════════════════════════════════════════════════════
    ADMIN — WIRE ACTIONS
 ════════════════════════════════════════════════════════════════ */
 
@@ -972,6 +1101,7 @@ function wireAdminPanel() {
   if (adminConsoleWired) return;
   adminConsoleWired = true;
   document.getElementById('btn-create-tournament').addEventListener('click', openCreateTournament);
+  document.getElementById('btn-draft-tournament').addEventListener('click', openDraftTournament);
   document.getElementById('btn-submit-results').addEventListener('click', openSubmitResults);
   document.getElementById('btn-manage-participants').addEventListener('click', openParticipantsModal);
   document.getElementById('btn-users').addEventListener('click', openUsersModal);

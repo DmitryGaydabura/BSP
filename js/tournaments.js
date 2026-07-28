@@ -716,6 +716,29 @@ function ensureHtmlToImage() {
   });
 }
 
+/** Fetch an image as a data: URL, falling back to the backend avatar proxy. */
+async function _avatarDataUrl(src) {
+  const read = async url => {
+    const r = await fetch(url, { mode: 'cors', cache: 'no-store' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const blob = await r.blob();
+    if (!blob.size) throw new Error('empty');
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  };
+  try {
+    return await read(src);
+  } catch {
+    // Telegram userpics 302 to their CDN without CORS headers on the redirect,
+    // which fails the whole chain — go through our own origin instead.
+    return await read(API.avatarProxyUrl(src));
+  }
+}
+
 /** Render the open finished card to a PNG data URL (clean shareable version). */
 async function _captureFinishedCardPng() {
   const card = document.querySelector('#t-page-body .finished-card');
@@ -724,7 +747,7 @@ async function _captureFinishedCardPng() {
 
   // Work on an offscreen clone: strip buttons/personal bits, add branding.
   const clone = card.cloneNode(true);
-  clone.querySelectorAll('.t-admin-actions, .analysis-btn, .fin-share-btn, .fin-my, .cup-view-btn, .am-view-btn')
+  clone.querySelectorAll('.t-admin-actions, .analysis-btn, .fin-share-btn, .fin-my, .cup-view-btn, .am-view-btn, .t-description')
     .forEach(el => el.remove());
   clone.insertAdjacentHTML('beforeend', `<div class="fin-export-brand">★ ${esc(clubInfo().name.toUpperCase())} · ODESA ★</div>`);
 
@@ -738,12 +761,21 @@ async function _captureFinishedCardPng() {
   document.body.appendChild(holder);
 
   try {
-    // Avatars the CORS way or not at all: photos we can't re-fetch would
-    // otherwise come out blank — swap them for initials.
+    // Paint each photo as the circle's own background instead of leaving a child
+    // <img>: html-to-image drops the parent's border-radius/overflow clip, so an
+    // <img> bleeds out of its circle and over the neighbouring avatar. Photos we
+    // still cannot read fall back to initials.
     await Promise.all([...clone.querySelectorAll('img')].map(async img => {
+      const circle = img.parentElement;
+      const isAvatar = circle && (circle.classList.contains('fin-hero-avatar')
+                               || circle.classList.contains('fin-medal-avatar'));
       try {
-        const r = await fetch(img.src, { mode: 'cors' });
-        if (!r.ok) throw new Error();
+        const dataUrl = await _avatarDataUrl(img.src);
+        if (!isAvatar) { img.src = dataUrl; return; }
+        circle.style.backgroundImage = `url("${dataUrl}")`;
+        circle.style.backgroundSize = 'cover';
+        circle.style.backgroundPosition = 'center';
+        img.remove();
       } catch {
         img.replaceWith(document.createTextNode(img.dataset.init || ''));
       }

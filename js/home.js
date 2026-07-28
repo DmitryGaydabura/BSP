@@ -6,6 +6,66 @@
    players.js (ratings cache, activity helpers) — classic load order.
 ════════════════════════════════════════════════════════════════ */
 
+/** Rating history for the signed-in player, fetched once per session for the form strip. */
+let hmHistoryCache = null;
+
+function hmOpenFriendly() {
+  switchTab('results');
+  document.querySelector('#results-subtabs .results-subtab[data-subtab="friendly"]')?.click();
+}
+
+/**
+ * Recent-form strip: one chip per finished event, oldest → newest, coloured by the
+ * signed rating delta. A tournament is not a single win/loss (a player can win four
+ * matches and still drop points), so the delta itself is what gets shown — it is the
+ * only unambiguous per-event outcome we have.
+ */
+function hmFormHtml(history) {
+  const evts = (history || []).filter(h => h.pointsDelta != null);
+  if (evts.length < 2) return '';
+
+  const recent = evts.slice(0, 5);
+  const chips = recent.slice().reverse().map(h => {
+    const cls = h.pointsDelta > 0 ? 'won' : h.pointsDelta < 0 ? 'lost' : 'flat';
+    return `<span class="hm-form-chip ${cls}">${h.pointsDelta > 0 ? '+' : ''}${h.pointsDelta}</span>`;
+  }).join('');
+
+  // Streak = consecutive most-recent events on the same side of zero (0 breaks it).
+  let streak = 0;
+  const dir = Math.sign(evts[0].pointsDelta);
+  if (dir !== 0) {
+    for (const h of evts) {
+      if (Math.sign(h.pointsDelta) !== dir) break;
+      streak++;
+    }
+  }
+
+  const since = Date.now() - 30 * 864e5;
+  const monthDelta = evts
+    .filter(h => h.tournamentDate && new Date(h.tournamentDate).getTime() >= since)
+    .reduce((s, h) => s + h.pointsDelta, 0);
+
+  const bits = [];
+  if (streak >= 2) bits.push(`Серія: ${streak} ${dir > 0 ? '↑' : '↓'}`);
+  if (monthDelta) bits.push(`${monthDelta > 0 ? '+' : ''}${monthDelta} за 30 днів`);
+
+  return `<div class="hm-section-title">Форма</div>
+    <div class="hm-form">
+      <div class="hm-form-chips">${chips}</div>
+      ${bits.length ? `<div class="hm-form-sub">${bits.join(' · ')}</div>` : ''}
+    </div>`;
+}
+
+/** Fills the form strip after first paint — it needs an authenticated fetch. */
+async function hmLoadForm() {
+  const slot = document.getElementById('hm-form-slot');
+  if (!slot || !currentUser) return;
+  try {
+    if (hmHistoryCache === null) hmHistoryCache = await API.users.history();
+    slot.innerHTML = hmFormHtml(hmHistoryCache);
+  } catch { /* offline — the strip just stays empty */ }
+}
+
 function hmWhenLabel(t) {
   const start = new Date(`${t.date}T${t.time || '00:00:00'}`);
   const days = Math.ceil((start.getTime() - Date.now()) / 864e5);
@@ -82,8 +142,19 @@ async function renderHome() {
   const upcoming = ts.filter(t => t.status !== 'FINISHED').sort(byDate);
   const mine = currentUser ? upcoming.filter(t => myEnrollmentState(t)) : [];
   const next = mine[0] || null;
-  const openReg = next ? null : upcoming.find(t =>
+
+  const meRating = currentUser
+    ? (ratingsData || []).find(p => String(p.id) === String(currentUser.id))
+    : null;
+  const myPts = meRating ? meRating.pts : (currentUser?.ratingPoints ?? null);
+
+  // Suggest a tournament the player is actually eligible for; fall back to any open one.
+  const openCandidates = next ? [] : upcoming.filter(t =>
     !t.friendly && !t.isPrivate && (t.status === 'DRAFT' || t.status === 'ACTIVE'));
+  const fitsMe = t => myPts == null
+    || ((t.minRating == null || myPts >= t.minRating) && (t.maxRating == null || myPts <= t.maxRating));
+  const openReg = openCandidates.find(fitsMe) || openCandidates[0] || null;
+
   const live = upcoming.find(t =>
     (t.status === 'GROUP_STAGE' || t.status === 'PLAYOFF') && (!next || t.id !== next.id));
   const lastDone = ts.filter(t => t.status === 'FINISHED' && !t.friendly).sort(byDate).slice(-1)[0] || null;
@@ -98,20 +169,25 @@ async function renderHome() {
     html += `<div class="hm-hero">
       <div class="hm-hero-label"><span>Наступна гра</span></div>
       <div class="hm-hero-name">Поки нічого не заплановано</div>
-      <div class="hm-hero-meta">Слідкуйте за анонсами нових турнірів</div>
-      <div class="hm-hero-actions"><button class="hm-btn-ghost" onclick="switchTab('results')">Усі турніри</button></div>
+      <div class="hm-hero-meta">Зберіть своїх на дружнє американо або подивіться, хто вже шукає партнерів.</div>
+      <div class="hm-hero-actions">
+        <button class="hm-btn-lime" onclick="hmOpenFriendly()">Дружня гра</button>
+        <button class="hm-btn-ghost" onclick="switchTab('results')">Усі турніри</button>
+      </div>
     </div>`;
   }
 
   if (currentUser) {
-    const meRating = (ratingsData || []).find(p => String(p.id) === String(currentUser.id));
     const rank = meRating ? (ratingsData.indexOf(meRating) + 1) : 0;
     const lvl = meRating ? (meRating.level || levelFromPoints(meRating.pts)) : null;
+    // rankChange is places gained/lost in the most recent finalized tournament.
+    const mv = meRating?.rankChange || 0;
+    const mvHtml = mv ? ` · <span class="hm-move ${mv > 0 ? 'up' : 'down'}">${mv > 0 ? '▲' : '▼'}${Math.abs(mv)}</span>` : '';
     html += `<div class="hm-tiles">
       <button class="hm-tile" onclick="switchTab('ratings')">
         <div class="hm-tile-label">Рейтинг</div>
         <div class="hm-tile-val">${meRating ? meRating.pts : (currentUser.ratingPoints ?? '—')}</div>
-        <div class="hm-tile-sub">${rank ? `#${rank} у клубі` : 'ще не в рейтингу'}${lvl ? ` · ${lvl}` : ''}</div>
+        <div class="hm-tile-sub">${rank ? `#${rank} у клубі` : 'ще не в рейтингу'}${lvl ? ` · ${lvl}` : ''}${mvHtml}</div>
       </button>
       <button class="hm-tile" onclick="switchTab('activity')">
         <div class="hm-tile-label">Активність</div>
@@ -133,6 +209,9 @@ async function renderHome() {
       </button>
     </div>`;
   }
+
+  // Filled by hmLoadForm() once the authenticated history request lands.
+  if (currentUser) html += `<div id="hm-form-slot"></div>`;
 
   if (live) {
     html += `<button class="hm-live" onclick="${live.type === 'CUP' ? `openCupModal(${live.id})` : `openTournamentPage(${live.id})`}">
@@ -183,5 +262,7 @@ async function renderHome() {
         if (s && me) s.textContent = `#${me.rank} · ${activityMonthLabel(m)}`;
       })
       .catch(() => {});
+
+    hmLoadForm();
   }
 }
