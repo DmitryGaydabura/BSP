@@ -111,10 +111,13 @@ function amSetFormat(format) {
   amUpdateRoundsHint();
 }
 
-/** Format can't change once a tournament exists — lock the toggle while editing. */
+/** The format isn't part of this form once the tournament exists — lock the toggle while
+    editing and point admins at the «Змінити формат» action that does handle it. */
 function amLockFormatToggle(locked) {
   Object.values(AM_FORMAT_BTNS).forEach(id => { document.getElementById(id).disabled = locked; });
   document.getElementById('am-format-row').style.opacity = locked ? '0.55' : '';
+  document.getElementById('am-format-lock-note').style.display =
+      locked && currentUser?.role === 'ADMIN' ? '' : 'none';
 }
 
 Object.entries(AM_FORMAT_BTNS).forEach(([format, id]) =>

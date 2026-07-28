@@ -398,6 +398,7 @@ function buildTournamentDetailCard(t) {
             ${canManageT ? `
             <div class="t-admin-actions">
               ${t.status === 'DRAFT' || currentUser?.role === 'ADMIN' ? `<button class="t-admin-btn t-admin-edit-btn" data-id="${t.id}">Редагувати</button>` : ''}
+              ${currentUser?.role === 'ADMIN' && t.status === 'DRAFT' ? `<button class="t-admin-btn t-admin-type-btn" data-id="${t.id}">Змінити формат</button>` : ''}
               ${adminCupBtn}
               ${adminCupFinalize}
               ${amTeamStartBtn}
@@ -798,6 +799,12 @@ function wireAdminTournamentBtns(container) {
       if (!t) return;
       if (AM_FAMILY_TYPES.has(t.type)) openEditAmericano(t);
       else await openEditTournament(t);
+    });
+  });
+  container.querySelectorAll('.t-admin-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = (tournamentsData || []).find(x => String(x.id) === String(btn.dataset.id));
+      if (t) openChangeTypeModal(t);
     });
   });
   container.querySelectorAll('.t-admin-delete-btn').forEach(btn => {

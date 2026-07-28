@@ -1515,6 +1515,116 @@ document.getElementById('ct-submit').addEventListener('click', async () => {
   }
 });
 
+/* ── Change format of a not-yet-started tournament ───────────────── */
+
+/* Every format a DRAFT tournament can be switched to. The backend keeps all participants
+   enrolled and re-derives whatever settings the new format needs, so this picker only has
+   to ask for the format itself — the details stay in each format's own edit modal. */
+const CTY_FORMATS = [
+  { type: 'PAIR',              label: 'Парний',
+    hint: 'Реєстрація парами: гравці приєднуються соло та запрошують партнера. Результати вносить адмін.' },
+  { type: 'SINGLE',            label: 'Одиночний',
+    hint: 'Індивідуальна реєстрація без пар. Результати вносить адмін.' },
+  { type: 'CUP',               label: '🏆 Кубок',
+    hint: 'Групи + плей-оф. Реєстрація парами, як у парному турнірі.' },
+  { type: 'AMERICANO',         label: '🎾 Американо',
+    hint: AM_FORMAT_HINTS.CLASSIC },
+  { type: 'TEAM_AMERICANO',    label: '👥 Командне американо',
+    hint: AM_FORMAT_HINTS.TEAM_AMERICANO },
+  { type: 'WINNERS_COURT',     label: "🪜 Winner's Court",
+    hint: AM_FORMAT_HINTS.WINNERS_COURT },
+  { type: 'KING_OF_THE_COURT', label: '👑 King of the Court',
+    hint: AM_FORMAT_HINTS.KING_OF_THE_COURT },
+];
+
+const CTY_PAIR_BASED = new Set(['PAIR', 'CUP', 'TEAM_AMERICANO']);
+
+let ctyTournament = null;   // the tournament being re-formatted
+let ctySelected = null;
+
+/* Mirrors of the backend's capacity snapping — used only to preview the change here.
+   Keep in sync with TournamentService.nearestAmericanoSize / nearestLadderSize. */
+function ctyAmericanoSize(n) {
+  const v = n || 8;
+  return [4, 8, 12, 16].reduce((best, s) => Math.abs(s - v) < Math.abs(best - v) ? s : best, 8);
+}
+function ctyLadderSize(n) {
+  const v = n || 8;
+  if (v < 4) return 4;
+  return v % 4 === 0 ? v : v + (4 - v % 4);
+}
+
+/** Capacity the tournament will end up with after switching to `type`. */
+function ctyNewMax(type) {
+  const cur = ctyTournament?.maxParticipants || null;
+  if (type === 'AMERICANO' || type === 'TEAM_AMERICANO') return ctyAmericanoSize(cur);
+  if (COURT_LADDER_TYPES.has(type)) return ctyLadderSize(cur);
+  return cur;
+}
+
+function ctyRenderFormats() {
+  document.getElementById('cty-formats').innerHTML = CTY_FORMATS.map(f =>
+    `<button type="button" class="am-format-btn${f.type === ctySelected ? ' am-format-active' : ''}"
+             data-type="${f.type}">${esc(f.label)}</button>`).join('');
+  document.querySelectorAll('#cty-formats .am-format-btn').forEach(btn =>
+    btn.addEventListener('click', () => { ctySelected = btn.dataset.type; ctyRenderFormats(); }));
+  ctyRenderEffects();
+}
+
+/** Spell out everything the switch will change, so nothing about it is a surprise. */
+function ctyRenderEffects() {
+  const t = ctyTournament;
+  const box = document.getElementById('cty-effects');
+  const meta = CTY_FORMATS.find(f => f.type === ctySelected);
+  document.getElementById('cty-hint').textContent = meta ? meta.hint : '';
+
+  const submit = document.getElementById('cty-submit');
+  const unchanged = !t || ctySelected === t.type;
+  submit.disabled = unchanged;
+  if (unchanged) { box.innerHTML = ''; return; }
+
+  const effects = ['Усі учасники залишаться зареєстрованими в турнірі.'];
+  if (CTY_PAIR_BASED.has(t.type) && !CTY_PAIR_BASED.has(ctySelected)) {
+    effects.push('Пари буде розформовано, а запити на партнера — скасовано. Гравці залишаються в списку окремо.');
+  } else if (!CTY_PAIR_BASED.has(t.type) && CTY_PAIR_BASED.has(ctySelected)) {
+    effects.push('Реєстрація стане парною — гравцям, які вже записані, треба буде знайти партнера.');
+  }
+  const newMax = ctyNewMax(ctySelected);
+  if (newMax !== (t.maxParticipants || null)) {
+    effects.push(`Макс. учасників: ${t.maxParticipants || '—'} → ${newMax}.`);
+  }
+  if (!AM_FAMILY_TYPES.has(t.type) && AM_FAMILY_TYPES.has(ctySelected)) {
+    effects.push('Очки за матч і кількість раундів отримають типові значення — уточніть їх у «Редагувати».');
+  }
+  box.innerHTML = `<ul class="cty-effects">${effects.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`;
+}
+
+function openChangeTypeModal(t) {
+  ctyTournament = t;
+  ctySelected = t.type;
+  openModal('modal-change-type');
+  ctyRenderFormats();
+}
+
+document.getElementById('cty-submit').addEventListener('click', async () => {
+  if (!ctyTournament || ctySelected === ctyTournament.type) return;
+  const btn = document.getElementById('cty-submit');
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    await API.tournaments.changeType(ctyTournament.id, { type: ctySelected });
+    tournamentsData = null;
+    closeModal('modal-change-type');
+    await renderResults();
+    refreshOpenTournamentPage();
+    showToast('Формат турніру змінено ✓', 'success');
+  } catch (e) {
+    showToast('Помилка: ' + (e.data?.message || e.message || 'unknown'), 'error');
+    btn.disabled = false;
+  } finally {
+    btn.textContent = 'Зберегти формат';
+  }
+});
+
 /* ── Submit results ─────────────────────────────────────────────── */
 let srPairCount = 2;
 let srParticipants = [];

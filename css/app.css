@@ -3813,6 +3813,19 @@ button.pf-stat:active { background: var(--surface); }
 }
 .am-format-btn:disabled { opacity: 1; }
 
+/* «Змінити формат»: what the switch will do to the tournament, spelled out before saving */
+.cty-effects {
+  margin: 0 0 14px;
+  padding: 10px 12px 10px 26px;
+  list-style: disc;
+  background: var(--sea-soft);
+  border-radius: var(--r-sm);
+  color: var(--text-sec);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.cty-effects li + li { margin-top: 5px; }
+
 /* ═══════════════════════════════════════════════════════════════
    WINNER'S COURT — round-by-round ladder
    ═══════════════════════════════════════════════════════════════ */
