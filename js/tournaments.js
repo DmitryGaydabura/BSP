@@ -1124,6 +1124,12 @@ async function refreshTournamentsSilently() {
 function attemptJoinTournament(tid, asReserve = false) {
   const tournament = (tournamentsData || []).find(t => t.id === tid);
   if (!tournament) return;
+  // Web version: browsing is open to guests, registering is not
+  if (!currentUser) {
+    showToast('Увійдіть через Telegram, щоб зареєструватись', 'error');
+    switchTab('profile');
+    return;
+  }
   // Raketo link is required for self-enrollment (admins bypass this;
   // friendly tournaments are open to everyone)
   if (!tournament.friendly && currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {

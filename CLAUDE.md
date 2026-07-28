@@ -71,6 +71,13 @@ All JS files share one global scope (classic `<script defer>` tags, no modules).
 
 Polling (not websockets) is deliberate: the payload changes a few times an hour, and a socket would add a second transport, its own auth handshake and reconnect logic behind Railway's proxy for no user-visible gain.
 
+**Login — two surfaces:** inside Telegram the Mini App gets signed `initData` and `apiBootstrap()` logs in automatically. On the **web version** (same GitHub Pages URL opened in a browser) there is no initData, so the Telegram Login Widget is used and the user stays on the page. `loginWithTelegram()` in `core.js` picks the flow: Mini App initData → popup (`Telegram.Login.auth`, desktop) → full-page redirect to `oauth.telegram.org` (mobile, and the «Увійти без вікна» fallback; the result comes back in `#tgAuthResult` and is consumed by `consumeTgAuthRedirect()` at the top of `apiBootstrap`). Rules:
+- the popup MUST be opened synchronously from the click handler — never `await` anything before calling `loginWithTelegram()`;
+- the widget script is lazy-loaded, browser-only, and preloaded at startup (`loadTgWidget`), because awaiting it inside the click would lose the popup permission;
+- `window.BSP_TG_BOT_ID` lives in `config.js`; the bot's domain must be registered via @BotFather `/setdomain` (one domain per bot — a local/ngrok host needs its own test bot, so the widget cannot be tested on localhost);
+- backend: `POST /api/auth/telegram/web` → `TelegramAuthValidator.validateWidget()`. The widget signs with `secret = SHA256(botToken)`, not the initData `HMAC(key="WebAppData")` scheme, and the hash covers **every** field received — that is why the payload is passed around as a `Map`, not a DTO;
+- guests can browse (public GET endpoints) but not act — `attemptJoinTournament` sends them to the profile tab to log in. After login/logout call `refreshAfterAuthChange()`, which drops the data caches and re-renders the current tab.
+
 **Admin UI:** most admin controls render conditionally on `currentUser?.role === 'ADMIN'` checks inline in the template strings.
 
 ## Backend architecture
@@ -89,7 +96,7 @@ entity/       → JPA entities; Tournament, TournamentParticipant (holds partner
 dto/          → request/response shapes; TournamentDto.from(t) is the main factory
 repository/   → Spring Data JPA interfaces
 bot/          → BspBot (TelegramLongPollingBot), BotRegistrar; handles inline keyboard callbacks for pair approve/reject
-security/     → JWT filter + Telegram initData HMAC-SHA256 validation
+security/     → JWT filter + Telegram auth validation (Mini App initData + Login Widget)
 ```
 
 **Tournament flow:** `DRAFT → ACTIVE → FINISHED` (regular); `DRAFT → GROUP_STAGE → PLAYOFF → FINISHED` (CUP).

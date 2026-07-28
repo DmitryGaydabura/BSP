@@ -299,10 +299,147 @@ const RATINGS = [
 ];
 
 /* ════════════════════════════════════════════════════════════════
+   TELEGRAM LOGIN — Mini App + web version
+   ────────────────────────────────────────────────────────────────
+   Inside Telegram the Mini App is handed signed `initData` for free, so login
+   is automatic. On the public web version there is no initData, so we use the
+   Telegram Login Widget: the user confirms in Telegram and lands back on this
+   page — two flows, same signed payload:
+     • popup    — window on oauth.telegram.org, result via Telegram.Login.auth
+                  callback. Must be opened synchronously from a click or the
+                  browser blocks it.
+     • redirect — full-page navigation to oauth.telegram.org, result comes back
+                  in `#tgAuthResult`. Used when the widget script is not ready
+                  and as the manual «вікно не відкрилось» fallback (popups are
+                  unreliable on mobile Safari).
+   Requires the bot domain registered via @BotFather /setdomain.
+════════════════════════════════════════════════════════════════ */
+
+const IS_TG_MINI_APP = !!tg?.initData;
+const TG_OAUTH_URL = 'https://oauth.telegram.org/auth';
+
+// Loaded only in the browser — inside Telegram the widget is never needed, and
+// keeping it out avoids a second script touching window.Telegram.
+let _tgWidgetLoad = null;
+function loadTgWidget() {
+  if (_tgWidgetLoad) return _tgWidgetLoad;
+  _tgWidgetLoad = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://telegram.org/js/telegram-widget.js?22';
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('telegram-widget.js failed to load'));
+    document.head.appendChild(s);
+  });
+  return _tgWidgetLoad;
+}
+// Preload at startup so the script is ready by the time the user taps «Ввійти»
+// (awaiting it inside the click handler would lose the popup permission).
+if (!IS_TG_MINI_APP) loadTgWidget().catch(() => { /* redirect flow still works */ });
+
+// Phones take the redirect flow: mobile browsers (iOS Safari above all) block or
+// mangle the OAuth popup, and the widget gives no way to detect that.
+const TG_PREFERS_REDIRECT = !!window.matchMedia?.('(pointer: coarse)').matches
+  || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+/* Popup login. Resolves with the widget user object; rejects with
+   `{ cancelled: true }` when the user closes the Telegram window. */
+function tgWidgetPopupLogin() {
+  return new Promise((resolve, reject) => {
+    const auth = window.Telegram?.Login?.auth;
+    if (!auth || !window.BSP_TG_BOT_ID) { reject(new Error('widget-unavailable')); return; }
+    // When window.open is blocked the widget does nothing at all and its callback
+    // never fires — time out instead of leaving the button dead forever.
+    const timer = setTimeout(
+      () => reject(new Error('Вікно Telegram не відкрилось — спробуйте «Увійти без вікна»')),
+      120000);
+    auth({ bot_id: String(window.BSP_TG_BOT_ID), request_access: 'write' }, user => {
+      clearTimeout(timer);
+      if (user) resolve(user);
+      else reject(Object.assign(new Error('cancelled'), { cancelled: true }));
+    });
+  });
+}
+
+/* Redirect login — navigates away, so the returned promise never settles. */
+function tgWidgetRedirectLogin() {
+  if (!window.BSP_TG_BOT_ID) {
+    showToast('Вхід недоступний: не налаштований Telegram-бот', 'error');
+    // `silent` — the caller must not toast again, this one is already explained
+    return Promise.reject(Object.assign(new Error('missing BSP_TG_BOT_ID'), { silent: true }));
+  }
+  const back = location.href.split('#')[0];
+  location.href = `${TG_OAUTH_URL}?bot_id=${encodeURIComponent(window.BSP_TG_BOT_ID)}`
+    + `&origin=${encodeURIComponent(location.origin)}`
+    + `&request_access=write`
+    + `&return_to=${encodeURIComponent(back)}`;
+  return new Promise(() => {});
+}
+
+/* Logs in from any surface. MUST be called synchronously from a click handler
+   (no awaits before it) or the popup is blocked. */
+function loginWithTelegram() {
+  if (IS_TG_MINI_APP) {
+    return API.auth.loginWithTelegram(tg.initData).then(adoptAuth);
+  }
+  if (TG_PREFERS_REDIRECT || !window.Telegram?.Login?.auth) return tgWidgetRedirectLogin();
+  return tgWidgetPopupLogin()
+    .then(user => API.auth.loginWithTelegramWeb(user))
+    .then(adoptAuth);
+}
+
+function adoptAuth(res) {
+  API.setToken(res.token);
+  currentUser = res.user;
+  apiAvailable = true;
+  return res.user;
+}
+
+/* Consumes the `#tgAuthResult=<base64 user json>` the redirect flow leaves on
+   the URL. Returns true when it produced a session. */
+async function consumeTgAuthRedirect() {
+  const m = /[#&]tgAuthResult=([^&]+)/.exec(location.hash || '');
+  if (!m) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  try {
+    let b64 = decodeURIComponent(m[1]).replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    // Decode as UTF-8 — names are usually Cyrillic
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const user = JSON.parse(new TextDecoder().decode(bytes));
+    adoptAuth(await API.auth.loginWithTelegramWeb(user));
+    return true;
+  } catch (e) {
+    console.warn('Telegram web login failed', e);
+    return false;
+  }
+}
+
+/* Re-renders the app after the identity changed (login/logout). */
+async function refreshAfterAuthChange() {
+  if (typeof ratingsData !== 'undefined') ratingsData = null;
+  if (typeof tournamentsData !== 'undefined') tournamentsData = null;
+  if (typeof matchesData !== 'undefined') matchesData = null;
+  try { achievementsConfig = await API.achievements.getConfig(); } catch { achievementsConfig = []; }
+
+  const tab = (typeof currentTab !== 'undefined') ? currentTab : 'home';
+  if (tab === 'results' && typeof renderResults === 'function') renderResults();
+  else if (tab === 'ratings' && typeof renderRatings === 'function') renderRatings();
+  else if (tab === 'activity' && typeof renderActivity === 'function') renderActivity();
+  else if (tab === 'matches' && typeof renderMatches === 'function') renderMatches();
+  if (typeof renderHome === 'function') renderHome();
+  if (typeof renderProfile === 'function') renderProfile();
+  if (typeof updateMemberCount === 'function') updateMemberCount();
+}
+
+/* ════════════════════════════════════════════════════════════════
    API BOOTSTRAP — auto-login on startup
 ════════════════════════════════════════════════════════════════ */
 
 async function apiBootstrap() {
+  // Returning from the redirect login flow — that payload wins over any stored token
+  if (await consumeTgAuthRedirect()) return;
+
   // Try to restore session from stored token
   if (API.isAuthenticated()) {
     try {
@@ -318,10 +455,7 @@ async function apiBootstrap() {
   const initData = tg?.initData;
   if (initData) {
     try {
-      const res = await API.auth.loginWithTelegram(initData);
-      API.setToken(res.token);
-      currentUser = res.user;
-      apiAvailable = true;
+      adoptAuth(await API.auth.loginWithTelegram(initData));
     } catch {
       // Backend unavailable or invalid — continue with mock data
     }

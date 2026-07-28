@@ -901,21 +901,31 @@ function renderProfile() {
         <div class="profile-guest-name">${esc(name)}</div>
         <div class="profile-guest-hint">Натисніть «Ввійти», щоб зберегти ваш профіль та статистику.</div>
         <button class="btn-primary" id="login-btn">Ввійти через Telegram</button>
+        ${IS_TG_MINI_APP || TG_PREFERS_REDIRECT ? '' : `
+        <div class="profile-guest-alt">
+          Вікно Telegram не відкрилось?
+          <button type="button" class="link-btn" id="login-alt">Увійти без вікна</button>
+        </div>`}
       </div>`;
-    document.getElementById('login-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('login-btn');
+
+    const btn = document.getElementById('login-btn');
+    const reset = () => { btn.disabled = false; btn.textContent = 'Ввійти через Telegram'; };
+    // Not async and nothing awaited before loginWithTelegram() — the Telegram
+    // popup must open inside the click's user-activation window.
+    btn.addEventListener('click', () => {
       btn.disabled = true; btn.textContent = '...';
-      try {
-        const initData = tg?.initData || 'test';
-        const res = await API.auth.loginWithTelegram(initData);
-        API.setToken(res.token);
-        currentUser = res.user;
-        renderProfile();
-      } catch (e) {
-        btn.disabled = false; btn.textContent = 'Ввійти через Telegram';
-        showToast('Помилка входу: ' + (e.message || 'невідома'), 'error');
-      }
+      loginWithTelegram()
+        .then(async () => {
+          await refreshAfterAuthChange();
+          showToast('Вітаємо у Blacksea Padel!', 'success');
+        })
+        .catch(e => {
+          reset();
+          if (e?.cancelled || e?.silent) return; // user closed the window / already reported
+          showToast('Помилка входу: ' + (e.message || 'невідома'), 'error');
+        });
     });
+    document.getElementById('login-alt')?.addEventListener('click', () => tgWidgetRedirectLogin());
     return;
   }
 
@@ -1013,7 +1023,8 @@ function renderProfile() {
   document.getElementById('logout-btn').addEventListener('click', () => {
     API.removeToken();
     currentUser = null;
-    renderProfile();
+    // Other tabs render admin/участь controls off currentUser — re-render them too
+    refreshAfterAuthChange();
   });
 
   document.getElementById('btn-whats-new').addEventListener('click', openWhatsNew);

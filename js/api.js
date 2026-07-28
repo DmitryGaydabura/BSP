@@ -38,6 +38,8 @@ const API = (() => {
 
     auth: {
       loginWithTelegram: initData => request('POST', '/auth/telegram', { initData }),
+      // Telegram Login Widget user object (web version) — sent verbatim, the hash covers every field
+      loginWithTelegramWeb: user => request('POST', '/auth/telegram/web', user),
     },
 
     users: {
