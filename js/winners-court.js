@@ -68,26 +68,17 @@ function wcTeamNames(team) {
              .join('<span class="am-team-sep"> / </span>');
 }
 
-/** Points each of the four players scored on a court this round, best first.
-    Mirrors the backend ranking that decides who moves up — shown so players can
-    see the move coming instead of only discovering it next round. */
-function wcCourtRanking(matches) {
-  const byPlayer = new Map();
-  matches.forEach(m => {
-    if (!m.played || m.score1 == null || m.score2 == null) return;
-    m.teamA.forEach(p => byPlayer.set(p.id, {
-      name: p.displayName || '?', pts: (byPlayer.get(p.id)?.pts || 0) + m.score1 }));
-    m.teamB.forEach(p => byPlayer.set(p.id, {
-      name: p.displayName || '?', pts: (byPlayer.get(p.id)?.pts || 0) + m.score2 }));
-  });
-  return [...byPlayer.entries()]
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => b.pts - a.pts);
-}
+const WC_MOVE_STYLE = {
+  UP:   { cls: 'wc-move-up',   icon: '↑' },
+  DOWN: { cls: 'wc-move-down', icon: '↓' },
+  STAY: { cls: 'wc-move-stay', icon: '=' },
+};
 
 /** One court's block inside a round: the header, its match rows and — for King
-    of the Court, once both sub-rounds are in — who is moving up or down. */
-function wcCourtBlock(courtMatches, { isCurrent, kotc, calibration }) {
+    of the Court, once both sub-rounds are in — who is moving up or down.
+    The ranking is never computed here: `outcome` comes straight from the engine
+    that generates the next round, so the table cannot disagree with reality. */
+function wcCourtBlock(courtMatches, { isCurrent, kotc, calibration, outcome }) {
   const m0 = courtMatches[0];
   const canEnter = isCurrent && wcState.canEnterResults && wcState.status === 'ACTIVE';
   const ptsChip = calibration
@@ -117,22 +108,15 @@ function wcCourtBlock(courtMatches, { isCurrent, kotc, calibration }) {
 
   if (!kotc) return rows;
 
-  const allPlayed = courtMatches.every(m => m.played);
-  const ranking = allPlayed ? wcCourtRanking(courtMatches) : [];
-  const isTopCourt = m0.court === 1;
-  const isBottomCourt = m0.court === wcState.totalCourts;
-  const moveOf = i => (i < 2
-    ? (isTopCourt ? { cls: 'wc-move-stay', icon: '=' } : { cls: 'wc-move-up', icon: '↑' })
-    : (isBottomCourt ? { cls: 'wc-move-stay', icon: '=' } : { cls: 'wc-move-down', icon: '↓' }));
-
+  const ranking = outcome?.players || [];
   const summary = ranking.length ? `
     <div class="wc-court-outcome">
-      ${ranking.map((r, i) => {
-        const mv = moveOf(i);
+      ${ranking.map(r => {
+        const mv = WC_MOVE_STYLE[r.move] || WC_MOVE_STYLE.STAY;
         return `<span class="wc-outcome-row ${mv.cls}">
           <span class="wc-outcome-mv">${mv.icon}</span>
-          <span class="wc-outcome-name">${esc(r.name)}</span>
-          <span class="wc-outcome-pts">${r.pts}</span>
+          <span class="wc-outcome-name">${esc(r.user?.displayName || '?')}</span>
+          <span class="wc-outcome-pts">${r.points}</span>
         </span>`;
       }).join('')}
     </div>` : '';
@@ -204,6 +188,7 @@ function renderWinnersCourtModal() {
         byCourt.get(m.court).push(m);
       });
       const courts = [...byCourt.keys()].sort((a, b) => a - b);
+      const outcomeOf = c => (r.outcomes || []).find(o => o.court === c);
       html += `<div class="am-round${isCurrent ? '' : ' wc-round-history'}">
         <div class="am-round-title">
           ${isCurrent ? `Раунд ${r.roundNumber} · поточний` : `Раунд ${r.roundNumber}`}
@@ -211,7 +196,7 @@ function renderWinnersCourtModal() {
         </div>
         ${courts.map(c => wcCourtBlock(
             byCourt.get(c).slice().sort((a, b) => a.subRound - b.subRound),
-            { isCurrent, kotc, calibration: r.calibration })).join('')}
+            { isCurrent, kotc, calibration: r.calibration, outcome: outcomeOf(c) })).join('')}
       </div>`;
     });
   }

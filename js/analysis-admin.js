@@ -27,6 +27,20 @@ function vizPalette() {
   return Array.from({ length: VIZ_SLOTS }, (_, i) => vizToken(`--viz-s${i + 1}`, '#71827A'));
 }
 
+/** Did the logged-in user actually play this tournament? Checked against the final
+    standings first (they survive for finished tournaments) and the roster second.
+    Unknown tournament → true, and the backend has the final say either way. */
+function didPlayTournament(tournamentId) {
+  if (!currentUser) return false;
+  const t = (tournamentsData || []).find(x => String(x.id) === String(tournamentId));
+  if (!t) return true;
+  const me = String(currentUser.id);
+  const inResults = (t.results || []).some(r => (r.players || []).some(p => String(p.id) === me));
+  const inRoster  = [...(t.participants || []), ...(t.reserveParticipants || [])]
+    .some(p => String(p.id) === me);
+  return inResults || inRoster;
+}
+
 async function openAnalysisModal(tournamentId) {
   destroyCharts();
   openModal('modal-analysis');
@@ -61,10 +75,9 @@ async function openAnalysisModal(tournamentId) {
       else renderTournamentChart(data.chartData);
     }
 
-    const tournamentMeta = (tournamentsData || []).find(t => t.id === tournamentId);
-    const isCupTournament = tournamentMeta?.type === 'CUP';
-
-    if (!isCupTournament && currentUser && currentUser.raketoDocId) {
+    // «Аналіз мого гейму» works for every format the club runs and needs no Raketo link —
+    // the backend builds it from our own match records. Offer it to anyone who played.
+    if (currentUser && didPlayTournament(tournamentId)) {
       playerSection.style.display = 'block';
       const cached = await API.tournaments.getPlayerAnalysis(tournamentId).catch(() => null);
       if (cached) {
@@ -80,13 +93,13 @@ async function openAnalysisModal(tournamentId) {
             const result = await API.tournaments.generatePlayerAnalysis(tournamentId);
             renderPlayerAnalysis(playerContent, result);
           } catch (e) {
-            playerContent.innerHTML = `<div class="analysis-error">${esc(e.message || 'Помилка генерації')}</div>`;
+            playerContent.innerHTML = `<div class="analysis-error">${esc(e.data?.message || e.message || 'Помилка генерації')}</div>`;
           }
         });
       }
     }
   } catch (e) {
-    content.innerHTML = `<div class="analysis-error">${esc(e.message || 'Помилка завантаження')}</div>`;
+    content.innerHTML = `<div class="analysis-error">${esc(e.data?.message || e.message || 'Помилка завантаження')}</div>`;
   }
 }
 
