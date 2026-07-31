@@ -53,8 +53,9 @@ const API = (() => {
       claimInitialPoints:  (data)           => request('POST', '/users/me/claim-initial-points', data),
       list:                ()               => request('GET',  '/users'),
       setRole:             (id, role)       => request('PUT',  `/users/${id}/role`, { role }),
-      setStartingPoints:   (id, level)      => request('PUT',  `/users/${id}/starting-points`, { level }),
-      setRatingPoints:     (id, points)     => request('PUT',  `/users/${id}/rating-points`, { points }),
+      // payload is { level } (D…B+) or { startingPoints }. Assigning either marks the player
+      // as rated, which is what lets a guest with no Raketo account register for tournaments.
+      setStartingPoints:   (id, payload)    => request('PUT',  `/users/${id}/starting-points`, payload),
       delete:              (id)             => request('DELETE', `/users/${id}`),
       setContact:            (id, contact)   => request('PUT',  `/users/${id}/contact`, { contact }),
       setRaketoDocId:        (id, docId, raketoName) => request('PUT',  `/users/${id}/raketo-doc-id`, { raketoDocId: docId, ...(raketoName ? { raketoName } : {}) }),

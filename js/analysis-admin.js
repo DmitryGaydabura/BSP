@@ -2083,6 +2083,25 @@ function inferLevel(startingPoints) {
   return idx >= 0 ? LEVEL_OPTIONS[idx].value : '';
 }
 
+/**
+ * The rating line under a player's name in the admin list. Marks where the starting rating
+ * came from, so an admin scanning the list can tell a hand-assigned level from an imported
+ * Raketo one — and spot who has no rating at all, since those players cannot register for a
+ * non-friendly tournament until given one.
+ */
+function userPtsLineHtml(u) {
+  const badge = !u.initialPointsClaimed
+    ? ' · <span style="color:var(--error)">без рейтингу</span>'
+    : u.ratingSource === 'ADMIN'
+      ? ' · <span style="color:var(--text-dim)">призначено</span>'
+      : '';
+  const handle = u.username
+    ? ` · <span style="color:var(--gold)">@${esc(u.username)}</span>` : '';
+  const raketoHandle = u.raketoTelegramUsername && u.raketoTelegramUsername !== u.username
+    ? ` · Raketo:@${esc(u.raketoTelegramUsername)}` : '';
+  return `${u.ratingPoints} pts (старт: ${u.startingPoints || 0}${badge})${handle}${raketoHandle}`;
+}
+
 async function openUsersModal() {
   openModal('modal-users');
   const list = document.getElementById('users-list');
@@ -2114,7 +2133,7 @@ async function openUsersModal() {
         </div>
         <div class="user-list-info user-profile-open" data-profile-id="${u.id}" style="cursor:pointer" title="Відкрити профіль">
           <div class="user-list-name">${esc(u.displayName)}${u.adminImported && !u.telegramId ? ' <span style="font-size:10px;color:var(--text-dim);font-weight:600">Raketo·не зареєстрований</span>' : ''}</div>
-          <div class="user-list-pts">${u.ratingPoints} pts (старт: ${u.startingPoints || 0})${u.username ? ` · <span style="color:var(--gold)">@${u.username}</span>` : ''}${u.raketoTelegramUsername && u.raketoTelegramUsername !== u.username ? ` · Raketo:@${u.raketoTelegramUsername}` : ''}</div>
+          <div class="user-list-pts">${userPtsLineHtml(u)}</div>
         </div>
         <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end">
           <input class="form-input rating-edit-input" type="number" min="0"
@@ -2201,18 +2220,43 @@ async function openUsersModal() {
       });
     });
 
+    /* Both rating controls write the same field — starting points — because the current
+       rating is derived (старт + сума історії) and a direct override would be erased by the
+       next recalculation. Assigning either also marks the player as rated, which is how a
+       guest with no Raketo account becomes able to register for a tournament. */
+    async function applyStartingPoints(userId, payload, controlEl) {
+      controlEl.disabled = true;
+      try {
+        const updated = await API.users.setStartingPoints(userId, payload);
+        // Merge field-by-field: this endpoint's payload has no adminContact (it is admin-only
+        // and filled in just by the list endpoint), so a blind assign would blank the cache.
+        const u = users.find(x => String(x.id) === String(userId));
+        if (u) {
+          u.startingPoints = updated.startingPoints;
+          u.ratingPoints = updated.ratingPoints;
+          u.initialPointsClaimed = updated.initialPointsClaimed;
+          u.ratingSource = updated.ratingSource;
+        }
+        const row = list.querySelector(`.user-list-item[data-user-id="${userId}"]`);
+        const inp = row?.querySelector('.rating-edit-input');
+        const sel = row?.querySelector('.level-select');
+        const pts = row?.querySelector('.user-list-pts');
+        if (inp) inp.value = updated.startingPoints || 0;
+        if (sel) sel.value = inferLevel(updated.startingPoints || 0);
+        if (pts) pts.innerHTML = userPtsLineHtml(u || updated);
+        showToast(`Стартові бали: ${updated.startingPoints || 0}`, 'success');
+      } catch (e) {
+        showToast('Помилка: ' + (e.message || 'unknown'), 'error');
+      } finally {
+        controlEl.disabled = false;
+      }
+    }
+
     list.querySelectorAll('.rating-edit-input').forEach(inp => {
       inp.addEventListener('change', async () => {
         const pts = parseInt(inp.value, 10);
         if (isNaN(pts) || pts < 0) return;
-        inp.disabled = true;
-        try {
-          await API.users.setRatingPoints(inp.dataset.userId, pts);
-        } catch (e) {
-          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
-        } finally {
-          inp.disabled = false;
-        }
+        await applyStartingPoints(inp.dataset.userId, { startingPoints: pts }, inp);
       });
     });
 
@@ -2221,17 +2265,7 @@ async function openUsersModal() {
       sel.addEventListener('change', async () => {
         const level = sel.value;
         if (!level) return;
-        sel.disabled = true;
-        try {
-          await API.users.setStartingPoints(sel.dataset.userId, level);
-          const levelPts = {D:1000,D_PLUS:1250,C_MINUS:1500,C:1750,C_PLUS:2000,B_MINUS:2500,B:2750,B_PLUS:3000};
-          const row = list.querySelector(`.rating-edit-input[data-user-id="${sel.dataset.userId}"]`);
-          if (row && levelPts[level]) row.value = levelPts[level];
-        } catch (e) {
-          showToast('Помилка: ' + (e.message || 'unknown'), 'error');
-        } finally {
-          sel.disabled = false;
-        }
+        await applyStartingPoints(sel.dataset.userId, { level }, sel);
       });
     });
 

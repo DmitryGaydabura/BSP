@@ -893,6 +893,69 @@ function initials(name) {
   return name ? name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() : '?';
 }
 
+/**
+ * Where the player's starting rating came from — three states, not two:
+ *   Raketo-derived → the claimed card, done;
+ *   assigned by an admin (no Raketo account) → show the assigned points, but keep the
+ *     import prompt, because real Raketo data still supersedes a hand-set level;
+ *   none at all → the full «як підключити» banner. Only this state blocks registration.
+ * Both prompting branches reuse the `#btn-claim-points` id so renderProfile's single
+ * listener wires whichever one was rendered.
+ */
+function ratingSourceCardHtml(u) {
+  const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
+  const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
+
+  if (u.initialPointsClaimed && u.ratingSource !== 'ADMIN') {
+    return `
+      <div class="raketo-claimed-card">
+        <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
+        <div class="raketo-claimed-body">
+          <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)} · ${colorLabel[u.raketoColor] || ''}</div>
+          <div class="raketo-claimed-detail">${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові бали: <strong>${u.startingPoints || 0}</strong> (${u.raketoColor === 'YELLOW' ? '×0.875' : u.raketoColor === 'RED' ? '×0.75' : '×1.0'} від базового)</div>
+        </div>
+      </div>`;
+  }
+
+  const claimBtn = (title, sub) => `
+      <button class="claim-points-btn" id="btn-claim-points">
+        <div class="claim-points-btn-left">
+          <div class="claim-points-btn-title">${title}</div>
+          <div class="claim-points-btn-sub">${sub}</div>
+        </div>
+        <div class="claim-points-btn-arrow">›</div>
+      </button>`;
+
+  if (u.initialPointsClaimed) {
+    return `
+      <div class="raketo-claimed-card">
+        <div class="raketo-claimed-icon">⭐</div>
+        <div class="raketo-claimed-body">
+          <div class="raketo-claimed-rating">Рівень призначено адміністратором</div>
+          <div class="raketo-claimed-detail">Стартові бали: <strong>${u.startingPoints || 0}</strong> · реєстрація на турніри відкрита</div>
+        </div>
+      </div>
+      ${claimBtn('Підключити рейтинг Raketo', 'Точний рейтинг з Raketo замінить призначений рівень')}`;
+  }
+
+  return `
+      <div class="raketo-link-banner">
+        <div class="raketo-link-banner-icon">🎾</div>
+        <div class="raketo-link-banner-body">
+          <div class="raketo-link-banner-title">Підключіть профіль Raketo</div>
+          <div class="raketo-link-banner-text">
+            Raketo — додаток для падел-рейтингу. Підключіть профіль, щоб отримати стартові бали та реєструватися на турніри.<br><br>
+            <strong>Як підключити:</strong><br>
+            1. Відкрийте додаток <strong>Raketo</strong><br>
+            2. Налаштування → вкажіть Telegram: <strong>@${esc(u.username || 'ваш_username')}</strong><br>
+            3. Натисніть кнопку нижче<br><br>
+            Немає акаунту Raketo? Попросіть адміністратора призначити вам рівень.
+          </div>
+        </div>
+      </div>
+      ${claimBtn('Імпортувати рейтинг з Raketo', 'Натисніть після того як вказали Telegram у Raketo')}`;
+}
+
 function renderProfile() {
   const container = document.getElementById('profile-content');
 
@@ -952,8 +1015,6 @@ function renderProfile() {
   const level = myRatingEntry?.level || levelFromPoints(u.ratingPoints);
   const tier = tierClass(level);
   const globalRank = ratingsData ? ratingsData.findIndex(p => p.id === u.id) + 1 : 0;
-  const colorLabel = { RED: 'Червоний', YELLOW: 'Жовтий', GREEN: 'Зелений' };
-  const colorDot   = { RED: '🔴', YELLOW: '🟡', GREEN: '🟢' };
 
   // Nothing this card shows has changed — leave the DOM (and its listeners,
   // decoded avatar and rendered chart) alone and just revalidate in place.
@@ -997,36 +1058,7 @@ function renderProfile() {
 
     <div id="profile-achievements">${tournamentsData ? renderAchievements(u.id, u.displayName) : ''}</div>
 
-    ${u.initialPointsClaimed ? `
-      <div class="raketo-claimed-card">
-        <div class="raketo-claimed-icon">${colorDot[u.raketoColor] || '⭐'}</div>
-        <div class="raketo-claimed-body">
-          <div class="raketo-claimed-rating">Raketo ${u.raketoRating?.toFixed(1)} · ${colorLabel[u.raketoColor] || ''}</div>
-          <div class="raketo-claimed-detail">${u.gender === 'MALE' ? 'Чоловік' : 'Жінка'} · стартові бали: <strong>${u.startingPoints || 0}</strong> (${u.raketoColor === 'YELLOW' ? '×0.875' : u.raketoColor === 'RED' ? '×0.75' : '×1.0'} від базового)</div>
-        </div>
-      </div>
-    ` : `
-      <div class="raketo-link-banner">
-        <div class="raketo-link-banner-icon">🎾</div>
-        <div class="raketo-link-banner-body">
-          <div class="raketo-link-banner-title">Підключіть профіль Raketo</div>
-          <div class="raketo-link-banner-text">
-            Raketo — додаток для падел-рейтингу. Підключіть профіль, щоб отримати стартові бали та реєструватися на турніри.<br><br>
-            <strong>Як підключити:</strong><br>
-            1. Відкрийте додаток <strong>Raketo</strong><br>
-            2. Налаштування → вкажіть Telegram: <strong>@${u.username || 'ваш_username'}</strong><br>
-            3. Натисніть кнопку нижче
-          </div>
-        </div>
-      </div>
-      <button class="claim-points-btn" id="btn-claim-points">
-        <div class="claim-points-btn-left">
-          <div class="claim-points-btn-title">Імпортувати рейтинг з Raketo</div>
-          <div class="claim-points-btn-sub">Натисніть після того як вказали Telegram у Raketo</div>
-        </div>
-        <div class="claim-points-btn-arrow">›</div>
-      </button>
-    `}
+    ${ratingSourceCardHtml(u)}
 
     ${isAdmin ? renderAdminPanel() : ''}
 
@@ -1055,9 +1087,8 @@ function renderProfile() {
   document.getElementById('btn-whats-new').addEventListener('click', openWhatsNew);
   document.getElementById('btn-support').addEventListener('click', openSupportModal);
 
-  if (!u.initialPointsClaimed) {
-    document.getElementById('btn-claim-points').addEventListener('click', openClaimPointsModal);
-  }
+  // Rendered whenever Raketo is still worth importing — no rating yet, or an admin-assigned one
+  document.getElementById('btn-claim-points')?.addEventListener('click', openClaimPointsModal);
 
   if (isAdmin) wireAdminPanel();
   if (tournamentsData) wireAchievements(document.getElementById('profile-achievements'));

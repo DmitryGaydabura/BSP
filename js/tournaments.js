@@ -6,6 +6,10 @@ let activeResultFilter = 'all';
 let activeResultsSubTab = 'upcoming';
 let tournamentsData = null; // cached from API
 
+// Mirrors the server-side gate in TournamentService.addParticipant / PairRequestService:
+// registering needs a starting rating, whether imported from Raketo or assigned by an admin.
+const NO_RATING_MSG = 'Для реєстрації потрібен стартовий рейтинг — підключіть Raketo 🎾 або попросіть адміністратора призначити рівень';
+
 function normalizeTournament(t) {
   if (!t.pairs) return t;
   return {
@@ -446,8 +450,8 @@ function wireTournamentCardActions(list) {
 
   list.querySelectorAll('.sr-pair-join-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
-        showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+      if (currentUser && !currentUser.initialPointsClaimed && currentUser.role !== 'ADMIN') {
+        showToast(NO_RATING_MSG, 'error');
         switchTab('profile');
         return;
       }
@@ -1170,10 +1174,10 @@ function attemptJoinTournament(tid, asReserve = false) {
     switchTab('profile');
     return;
   }
-  // Raketo link is required for self-enrollment (admins bypass this;
-  // friendly tournaments are open to everyone)
-  if (!tournament.friendly && currentUser && !currentUser.raketoDocId && currentUser.role !== 'ADMIN') {
-    showToast('Для реєстрації потрібно підключити профіль Raketo 🎾', 'error');
+  // A starting rating is required for self-enrollment — from Raketo or assigned by an admin
+  // (admins bypass this; friendly tournaments are open to everyone)
+  if (!tournament.friendly && currentUser && !currentUser.initialPointsClaimed && currentUser.role !== 'ADMIN') {
+    showToast(NO_RATING_MSG, 'error');
     switchTab('profile');
     return;
   }

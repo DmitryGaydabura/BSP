@@ -1637,8 +1637,11 @@ async function handlePairJoinDeepLink(tournamentId, targetParticipantId) {
 ════════════════════════════════════════════════════════════════ */
 
 function initRaketoLinkBanner() {
-  // Only show when the user is logged in but hasn't linked Raketo yet
-  if (!currentUser || currentUser.raketoDocId) return;
+  // Only for logged-in users with no starting rating at all. A player whose rating an admin
+  // assigned by hand already has points and can already register, so this banner's pitch
+  // («отримайте стартові бали та реєструйтеся») would be false — their gentler prompt to
+  // import real Raketo data lives on the profile card instead.
+  if (!currentUser || currentUser.raketoDocId || currentUser.initialPointsClaimed) return;
 
   const banner = document.getElementById('raketo-link-banner');
   if (!banner) return;
